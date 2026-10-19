@@ -1,0 +1,38 @@
+{
+  "name": "@kubohiroya/turbowarp-extension-security-dialog",
+  "version": "0.1.0",
+  "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "repository": {"type": "git", "url": "git+https://github.com/kubohiroya/turbowarp-extension-security-dialog.git"},
+  "bugs": {"url": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues"},
+  "sideEffects": ["**/*.css"],
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {"types": "./dist/index.d.ts", "import": "./dist/index.mjs", "require": "./dist/index.cjs"},
+    "./react": {"types": "./dist/react.d.ts", "import": "./dist/react.mjs", "require": "./dist/react.cjs"},
+    "./turbowarp": {"types": "./dist/turbowarp.d.ts", "import": "./dist/turbowarp.mjs", "require": "./dist/turbowarp.cjs"},
+    "./styles.css": "./styles.css",
+    "./webpack4.css": "./webpack4.css"
+  },
+  "files": ["dist", "react.js", "turbowarp.js", "styles.css", "webpack4.css", "README.md", "NOTICE.md", "LICENSE"],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "npm run build && node --test test/*.test.cjs",
+    "prepack": "npm run build",
+    "prepare": "npm run build"
+  },
+  "dependencies": {"@turbowarp/jszip": "3.11.1"},
+  "peerDependencies": {"react": "^16.14.0 || ^17 || ^18 || ^19"},
+  "peerDependenciesMeta": {"react": {"optional": true}},
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "jsdom": "26.1.0",
+    "react": "16.14.0",
+    "react-dom": "16.14.0"
+  },
+  "engines": {"node": ">=22"},
+  "publishConfig": {"access": "public"}
+}

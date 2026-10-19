@@ -1,0 +1,66 @@
+# turbowarp-extension-security-dialog
+
+TurboWarpの複数の機能拡張を、1つの一覧で確認するための共通パッケージです。
+関連タスクと受け入れ基準は [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33) に記録しています。
+
+## 責務
+
+- 一覧比較UI、個別・一括の3択、確認ダイアログ、ソースの詳細表示
+- コードを実行しないメタデータ取得、実バナー／GitHub画像の候補選択、共通バナーへの切替
+- 画像・メタデータの非同期更新と独立した選択・詳細の状態保持
+- プロジェクト別のIndexedDB保存と初期選択の復元
+- `./turbowarp` に分離したVM互換アダプター
+
+ホスト側が、ダイアログの外枠、起動時フラグ、キャンセル後の初期画面への移動を担当します。
+Reactは任意のpeer dependencyです。coreとVMアダプターの利用にReactは必要ありません。
+
+## 接続例
+
+```jsx
+import {ExtensionSecurityDialog} from '@kubohiroya/turbowarp-extension-security-dialog/react';
+import {installBatchExtensionLoader} from '@kubohiroya/turbowarp-extension-security-dialog/turbowarp';
+import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
+
+const restore = installBatchExtensionLoader(vm, (entries, initialChoices) =>
+  new Promise(resolve => showDialog(
+    <ExtensionSecurityDialog entries={entries} initialChoices={initialChoices}
+      locale="ja" DialogFrame={HostModal} onComplete={resolve} />
+  )), defaultExtensionURLs);
+```
+
+`onComplete` は確定したMap、または確認済みキャンセルの `null` を返します。
+キャンセル時のVMエラーは `isExtensionSecurityCancelled(error)` で識別できます。
+Webpack 4のCSS Modules環境では `styles.css` の代わりに `webpack4.css` を読み込みます。
+従来のWebpack 4がpackage exportsを解釈しない場合にも、ルートの互換entryを解決できます。
+
+## 設定の保存
+
+OKで確定し、プロジェクトが正常に開いた場合だけ保存します。復元値も明示的なOKが必要です。
+キャンセル、続行確認の「いいえ」、読み込み失敗では設定を上書きしません。
+project.jsonの内容をSHA-256で識別し、編集環境メタデータとJSONのキー順を除外します。
+ファイル名では識別しません。内容が変わったプロジェクトは別の設定として扱います。
+保存する拡張URLもハッシュ化し、設定DBへソースコードを複製しません。
+IndexedDBや暗号APIが利用できない環境でも、許可確認と読み込みを続行できます。
+
+## ホスト互換境界
+
+現在のアダプターはVMインスタンスの `_loadExtensions`、`loadProject`、`clear` と、
+ExtensionManagerの `getExtensionURLs`、SecurityManagerの `getSandboxMode` を包みます。
+scratch-vmのソースやnode_modules内の依存パッケージは編集しません。
+アダプターを破棄する際は返された `restore()` を呼びます。
+scratch-guiは既定OFFの起動時フラグで導入し、ホスト独自のセキュリティポリシーを優先します。
+
+## 開発と検証
+
+```sh
+npm install
+npm test
+```
+
+GUIとの統合では、実VMでの拒否後の表示・保存、エディター初期画面への遷移、
+実ブラウザーのIndexedDB復元も検証します。GitHub画像の取得に失敗した場合は共通バナーを使います。
+
+## ロールバック
+
+ホストの `extensionSecurityBatch` をOFFにして再読込すると既存の確認経路へ戻ります。
+必要なら共通依存とホストの接続差分を一体でrevertします。保存済み作品の形式は変えません。
