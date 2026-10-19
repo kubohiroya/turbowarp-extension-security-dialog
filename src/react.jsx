@@ -304,9 +304,11 @@ class ExtensionSecurityDialog extends React.Component {
                             <span>{this.t('extension')}</span>
                             {MODES.map(mode => <span key={mode}>{this.t(mode)}</span>)}<span />
                         </div>
-                        <div className={styles.list}>{entries.map((entry, index) => this.renderRow(entry, index))}</div>
-                        <p className={styles.note}>{this.t('note')}</p>
-                        {counts.unsandboxed > 0 && <p className={styles.warning}>{this.t('warning')}</p>}
+                        <div className={styles.list}>
+                            {entries.map((entry, index) => this.renderRow(entry, index))}
+                            <p className={styles.note}>{this.t('note')}</p>
+                            {counts.unsandboxed > 0 && <p className={styles.warning}>{this.t('warning')}</p>}
+                        </div>
                         <footer className={styles.footer}>
                             <span
                                 className={styles.secondary}
