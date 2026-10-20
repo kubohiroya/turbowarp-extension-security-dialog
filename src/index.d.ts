@@ -1,7 +1,7 @@
 export type Decision = 'deny' | 'sandboxed' | 'unsandboxed';
 export interface ExtensionEntry { url: string; ids: string[]; banner?: string; }
 export interface ExtensionMetadata {
-    name?: string; description?: string; author?: string; version?: string;
+    name?: string; description?: string; author?: string; version?: string; updatedAt?: string;
     license?: string; repository?: string; banner?: string; unsandboxed?: string;
 }
 export interface ExtensionInfo { source: string; metadata: ExtensionMetadata; }

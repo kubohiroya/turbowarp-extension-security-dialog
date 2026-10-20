@@ -23,9 +23,15 @@
 .twextsec-row-main { padding: 16px 0; }
 .twextsec-metadata { display: grid; grid-template-columns: 128px minmax(0,1fr); gap: 12px; align-items: start; min-width: 0; }
 .twextsec-preview { display: block; width: 100%; aspect-ratio: 1.91; object-fit: cover; border-radius: 6px; background: var(--ui-secondary, #f7f8fb); }
+/* The portal avoids clipping by the modal and the scrolling extension list. */
+.twextsec-preview { cursor: zoom-in; }
+.twextsec-preview:focus-visible { outline: 2px solid var(--link-color, #7352d6); outline-offset: 2px; }
+.twextsec-preview-popup { position: fixed; z-index: 2147483647; box-sizing: border-box; overflow: auto; overscroll-behavior: contain; border: 1px solid #aab3c2; border-radius: 6px; background: #fff; box-shadow: 0 6px 28px #0005; }
+.twextsec-preview-original { display: block; width: auto; height: auto; max-width: none; max-height: none; }
 .twextsec-info { min-width: 0; overflow-wrap: anywhere; font-size: 12px; user-select: text; }
 .twextsec-info strong { font-size: 14px; }
 .twextsec-info > div { margin-top: 4px; }
+.twextsec-source-link { color: var(--link-color, #7352d6); text-decoration: underline; overflow-wrap: anywhere; }
 .twextsec-version { margin-inline-start: 8px; }
 .twextsec-choice { display: flex; gap: 6px; align-items: center; justify-content: center; min-height: 40px; border: 1px solid transparent; border-radius: 6px; cursor: pointer; }
 .twextsec-choice:has(input:checked) { background: var(--extensions-transparent, #eee9fc); border-color: var(--extensions-primary, #7352d6); }

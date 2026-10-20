@@ -10,7 +10,7 @@ for (const [format, extension] of [['esm','mjs'], ['cjs','cjs']]) {
     await build({
         absWorkingDir: root, entryPoints: ['src/index.js','src/react.jsx','src/turbowarp.js'],
         outdir: 'dist', outExtension: {'.js': `.${extension}`}, bundle: true,
-        format, platform: 'browser', target: ['es2017'], external: ['react','@turbowarp/jszip'],
+        format, platform: 'browser', target: ['es2017'], external: ['react','react-dom','@turbowarp/jszip'],
         define: {__SECURITY_COMMON_BANNER__: JSON.stringify(banner)}, sourcemap: false
     });
 }

@@ -33,13 +33,18 @@ test('asynchronous metadata/images/new rows preserve choices and detail state; s
         ref:value=>{instance=value;}, entries,locale:'ja',loadInfo,onComplete:value=>completed.push(value),
         initialChoices:new Map([[a.url,'sandboxed']])}),document.getElementById('app'));});}
     render([a,b]);await wait(0);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください（取得中でも選択できます）/);
+    assert.doesNotMatch(document.querySelector('.twextsec-note').textContent,/取得中でも選択/);
+    assert.doesNotMatch(document.querySelector('article').textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
     assert.equal(document.querySelectorAll('input:checked').length,1);
     const radios=Array.from(document.querySelectorAll('input'));
     act(()=>Simulate.change(radios.find(item=>item.dataset.index==='1'&&item.value==='deny')));
-    act(()=>pending.get(a.url)({metadata:{name:'Extension A',banner:'https://images.test/a.png'},source:'globalThis.shouldNeverExecute = true;'}));
+    act(()=>pending.get(a.url)({metadata:{name:'Extension A',banner:'https://images.test/a.png',updatedAt:'2026-10-19T10:30:00+09:00'},source:'globalThis.shouldNeverExecute = true;'}));
     await wait(0);
     assert.equal(instance.state.choices[a.url],'sandboxed');assert.equal(instance.state.choices[b.url],'deny');
+    assert.match(document.querySelector('article').textContent,/更新日時 2026-10-19T10:30:00\+09:00/);
+    assert.doesNotMatch(document.querySelectorAll('article')[1].textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
     click('詳細');await wait(0);
     assert.match(document.querySelector('textarea').value,/shouldNeverExecute/);
@@ -76,6 +81,87 @@ test('partial/all denial and cancellation require Yes; No retains the exact sele
     click('いいえ');assert.deepEqual(instance.state.choices,snapshot);assert.equal(completed.length,1);
     click('キャンセル');await wait(760);click('はい');assert.equal(completed[1],null);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+
+test('web source URLs open in a separate tab while embedded and non-web sources remain text', async () => {
+    const entries = [
+        {url:'https://a.test/extensions/e.js?version=1&lang=ja',ids:['a']},
+        {url:'http://localhost:8601/extensions/b.js',ids:['b']},
+        {url:'data:text/javascript,embedded',ids:['embedded']},
+        {url:'javascript:globalThis.shouldNeverExecute=true',ids:['script']},
+        {url:'file:///extensions/local.js',ids:['file']}
+    ];
+    const completed=[];
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries,locale:'ja',loadInfo:async()=>({metadata:{},source:'source'}),
+        initialChoices:new Map([[entries[0].url,'sandboxed']]),
+        onComplete:value=>completed.push(value)
+    }),document.getElementById('app'));});
+    await wait(0);
+    const rows=Array.from(document.querySelectorAll('article'));
+    for (let index=0;index<2;index++) {
+        const link=rows[index].querySelector('a');
+        assert.equal(link.href,entries[index].url);
+        assert.equal(link.textContent,entries[index].url);
+        assert.equal(link.target,'_blank');
+        assert.equal(link.rel,'noopener noreferrer');
+    }
+    for (const row of rows.slice(2)) assert.equal(row.querySelector('a'),null);
+    assert.match(rows[2].textContent,/埋め込み/);
+    assert.equal(document.querySelectorAll('textarea').length,0);
+    click('詳細');await wait(0);
+    assert.equal(rows[0].querySelectorAll('a').length,2);
+    assert.equal(rows[0].querySelector('input[value="sandboxed"]').checked,true);
+    assert.equal(document.querySelectorAll('textarea').length,1);
+    assert.deepEqual(completed,[]);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+
+test('banner hover and keyboard focus show the original image outside the scrolling dialog', async () => {
+    const entry={url:'https://banner.test/e.js',ids:['banner']};
+    const completed=[];
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[entry],locale:'ja',loadInfo:async()=>({metadata:{banner:'https://images.test/banner.png'},source:'source'}),
+        initialChoices:new Map([[entry.url,'sandboxed']]),onComplete:value=>completed.push(value)
+    }),document.getElementById('app'));});
+    await wait(0);
+    const image=document.querySelector('article img');
+    Object.defineProperty(image,'naturalWidth',{value:1200,configurable:true});
+    Object.defineProperty(image,'naturalHeight',{value:800,configurable:true});
+    image.getBoundingClientRect=()=>({left:20,top:20,right:148,bottom:87,width:128,height:67});
+    act(()=>Simulate.mouseEnter(image));
+    let popup=document.querySelector('[role="tooltip"]');
+    assert.ok(popup);
+    assert.equal(document.querySelector('[role="dialog"]').contains(popup),false);
+    assert.equal(popup.querySelector('img').src,image.src);
+    assert.equal(Number.parseFloat(popup.style.width),window.innerWidth-24);
+    const top=Number.parseFloat(popup.style.top);
+    const height=Number.parseFloat(popup.style.height);
+    assert.ok(top>=12&&top+height<=window.innerHeight-12);
+    assert.ok(top+height<=20||top>=87);
+    assert.equal(document.querySelectorAll('textarea').length,0);
+    assert.equal(document.querySelector('input[value="sandboxed"]').checked,true);
+    act(()=>{Simulate.mouseLeave(image);Simulate.mouseEnter(popup);});
+    await wait(180);
+    assert.ok(document.querySelector('[role="tooltip"]'));
+    act(()=>{popup.dispatchEvent(new dom.window.Event('scroll'));});
+    assert.ok(document.querySelector('[role="tooltip"]'));
+    act(()=>{window.dispatchEvent(new dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));});
+    assert.equal(document.querySelector('[role="tooltip"]'),null);
+    assert.equal(document.querySelector('[role="alertdialog"]'),null);
+    act(()=>Simulate.focus(image));
+    assert.ok(document.querySelector('[role="tooltip"]'));
+    act(()=>Simulate.blur(image));await wait(180);
+    assert.equal(document.querySelector('[role="tooltip"]'),null);
+    act(()=>Simulate.mouseEnter(image));
+    act(()=>Simulate.mouseLeave(image));await wait(180);
+    assert.equal(document.querySelector('[role="tooltip"]'),null);
+    act(()=>Simulate.mouseEnter(image));
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    assert.equal(document.querySelector('[role="tooltip"]'),null);
+    assert.deepEqual(completed,[]);
 });
 
 test.after(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));dom.window.close();});

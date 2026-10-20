@@ -1,4 +1,5 @@
 import React from 'react';
+import BannerPreview from './banner-preview.jsx';
 import {loadExtensionInfo, getPreviewCandidates} from './info.js';
 const commonBanner = __SECURITY_COMMON_BANNER__;
 import {formatMessage} from './messages.js';
@@ -152,13 +153,22 @@ class ExtensionSecurityDialog extends React.Component {
         const candidates = getPreviewCandidates(entry, metadata, commonBanner);
         const expanded = Boolean(this.state.expanded[entry.url]);
         let origin = this.t('embedded');
-        if (!entry.url.startsWith('data:')) {
-            try {
-                origin = new URL(entry.url).host;
-            } catch (e) {
-                origin = entry.url;
-            }
+        let sourceURL = null;
+        try {
+            const url = new URL(entry.url);
+            if (url.protocol !== 'data:') origin = url.host || entry.url;
+            if (['https:', 'http:'].includes(url.protocol)) sourceURL = url.href;
+        } catch (e) {
+            origin = entry.url;
         }
+        const sourceLink = sourceURL ? (
+            <a
+                className={styles.sourceLink}
+                href={sourceURL}
+                target="_blank"
+                rel="noopener noreferrer"
+            >{sourceURL}</a>
+        ) : origin;
         return (
             <article
                 className={styles.row}
@@ -166,7 +176,8 @@ class ExtensionSecurityDialog extends React.Component {
             >
                 <div className={styles.rowMain}>
                     <div className={styles.metadata}>
-                        <img
+                        <BannerPreview
+                            previewId={`extension-preview-${index}`}
                             className={styles.preview}
                             src={candidates[row.previewIndex || 0]}
                             alt={this.t('preview', {name})}
@@ -180,8 +191,11 @@ class ExtensionSecurityDialog extends React.Component {
                             {metadata.author && (
                                 <div className={styles.secondary}>{this.t('author', {author: metadata.author})}</div>
                             )}
+                            {metadata.updatedAt && (
+                                <div className={styles.secondary}>{this.t('updated', {updated: metadata.updatedAt})}</div>
+                            )}
                             {metadata.description && <div>{metadata.description}</div>}
-                            <div className={styles.secondary}>{origin}</div>
+                            <div className={styles.secondary}>{sourceLink}</div>
                             {!row.status && <div className={styles.secondary}>{this.t('pending')}</div>}
                             {row.status === 'failed' && <div className={styles.error}>{this.t('failed')}</div>}
                             {metadata.unsandboxed === 'required' && (
@@ -221,7 +235,7 @@ class ExtensionSecurityDialog extends React.Component {
                         id={`extension-source-${index}`}
                     >
                         <strong>{this.t('source')}</strong>
-                        <p>{`${entry.ids.join(', ')} · ${origin}`}</p>
+                        <p>{`${entry.ids.join(', ')} · `}{sourceLink}</p>
                         {Object.prototype.hasOwnProperty.call(this.state.sources, entry.url) ? (
                             <textarea
                                 aria-label={`${name}: ${this.t('source')}`}
