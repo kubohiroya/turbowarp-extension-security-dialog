@@ -30,6 +30,14 @@ test('metadata is read from header comments without executing the source', () =>
     assert.equal(decodeExtensionDataURL(`data:text/javascript,${encodeURIComponent(source)}`), source);
 });
 
+test('updated time is declarative optional metadata, retaining the author-provided value', () => {
+    for (const key of ['Updated','Updated at','Updated-at','Last updated','Last-updated','Last modified','Last-modified','UpdatedAt']) {
+        assert.deepEqual(parseExtensionMetadata(`// ${key}: 2026-10-19T10:30:00+09:00\nvoid 0;`),
+            {updatedAt:'2026-10-19T10:30:00+09:00'});
+    }
+    assert.deepEqual(parseExtensionMetadata('// Version: 1\nvoid 0;\n// Updated: injected'),{version:'1'});
+});
+
 test('real image candidates prefer a gallery banner, then declared banner and GitHub, then common artwork', () => {
     const entry = {url:'https://cdn.jsdelivr.net/gh/owner/repository@v1/extension.js', banner:'https://gallery.test/banner.png'};
     assert.deepEqual(getPreviewCandidates(entry, {banner:'./header.png'}, '/common.svg'), [

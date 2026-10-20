@@ -17,10 +17,13 @@ export default {
     "modal": "twextsec-modal",
     "note": "twextsec-note",
     "preview": "twextsec-preview",
+    "previewPopup": "twextsec-preview-popup",
+    "previewOriginal": "twextsec-preview-original",
     "primary": "twextsec-primary",
     "row": "twextsec-row",
     "rowMain": "twextsec-row-main",
     "secondary": "twextsec-secondary",
+    "sourceLink": "twextsec-source-link",
     "version": "twextsec-version",
     "warning": "twextsec-warning",
     "warningText": "twextsec-warning-text"
