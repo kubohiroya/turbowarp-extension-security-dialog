@@ -187,6 +187,7 @@ class ExtensionSecurityDialog extends React.Component {
                         />
                         <div className={styles.info}>
                             <strong>{name}</strong>
+                            <div className={styles.secondary}>{this.t('id', {id: metadata.id || entry.ids.join(', ')})}</div>
                             {metadata.version && <span className={styles.version}>{`v${metadata.version}`}</span>}
                             {metadata.author && (
                                 <div className={styles.secondary}>{this.t('author', {author: metadata.author})}</div>
@@ -195,6 +196,9 @@ class ExtensionSecurityDialog extends React.Component {
                                 <div className={styles.secondary}>{this.t('updated', {updated: metadata.updatedAt})}</div>
                             )}
                             {metadata.description && <div>{metadata.description}</div>}
+                            {metadata.license && (
+                                <div className={styles.secondary}>{this.t('license', {license: metadata.license})}</div>
+                            )}
                             <div className={styles.secondary}>{sourceLink}</div>
                             {!row.status && <div className={styles.secondary}>{this.t('pending')}</div>}
                             {row.status === 'failed' && <div className={styles.error}>{this.t('failed')}</div>}
