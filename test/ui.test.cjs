@@ -62,6 +62,26 @@ test('asynchronous metadata/images/new rows preserve choices and detail state; s
     assert.deepEqual(completed,[]);
 });
 
+test('bundle ID and license are visible without expanding source in both locales', async () => {
+    for (const locale of ['ja','en']) {
+        const entry={url:'data:text/javascript,bundle',ids:['runtime']};
+        const metadata={name:'Kamishibai DSL 4.0 Runtime',id:'kubohiroyakamishibai4',
+            author:'Hiroya Kubo',description:'Static bundle of 8 TurboWarp extensions.',
+            license:'See the bundled extension notices below.',unsandboxed:'required'};
+        act(()=>ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[entry],locale,loadInfo:async()=>({metadata,source:'source'}),onComplete:()=>{}
+        }),document.getElementById('app')));
+        await wait(0);
+        const row=document.querySelector('article').textContent;
+        for (const value of [metadata.name,metadata.id,metadata.author,metadata.description,metadata.license]) {
+            assert.ok(row.includes(value),value);
+        }
+        assert.match(row,locale==='ja'?/サンドボックスなしが必要/:/Requires running without sandbox/);
+        assert.equal(document.querySelectorAll('textarea').length,0);
+        act(()=>ReactDOM.unmountComponentAtNode(document.getElementById('app')));
+    }
+});
+
 test('partial/all denial and cancellation require Yes; No retains the exact selection', async () => {
     let instance;
     const completed=[];

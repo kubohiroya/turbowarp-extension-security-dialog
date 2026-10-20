@@ -38,6 +38,20 @@ test('updated time is declarative optional metadata, retaining the author-provid
     assert.deepEqual(parseExtensionMetadata('// Version: 1\nvoid 0;\n// Updated: injected'),{version:'1'});
 });
 
+test('bundled notices retain the enclosing extension metadata and author alias', () => {
+    const source = '// Name: Kamishibai DSL 4.0 Runtime\n' +
+        '// ID: kubohiroyakamishibai4\n// Description: Static bundle of 8 TurboWarp extensions.\n' +
+        '// By: Hiroya Kubo\n// License: See the bundled extension notices below.\n' +
+        '// Unsandboxed: required\n//\n// Bundled extensions:\n' +
+        '// - Name: Asset Cache\n//   ID: assetcache\n//   Description: Nested description\n' +
+        '//   Author: Nested author\n//   License: MPL-2.0\n//   Unsandboxed: optional\nvoid 0;';
+    assert.deepEqual(parseExtensionMetadata(source), {
+        name:'Kamishibai DSL 4.0 Runtime', id:'kubohiroyakamishibai4',
+        description:'Static bundle of 8 TurboWarp extensions.', author:'Hiroya Kubo',
+        license:'See the bundled extension notices below.', unsandboxed:'required'
+    });
+});
+
 test('real image candidates prefer a gallery banner, then declared banner and GitHub, then common artwork', () => {
     const entry = {url:'https://cdn.jsdelivr.net/gh/owner/repository@v1/extension.js', banner:'https://gallery.test/banner.png'};
     assert.deepEqual(getPreviewCandidates(entry, {banner:'./header.png'}, '/common.svg'), [

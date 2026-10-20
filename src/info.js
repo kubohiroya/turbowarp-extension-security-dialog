@@ -4,6 +4,7 @@ const parseExtensionMetadata = source => {
     const metadata = {};
     const fields = {
         name: 'name',
+        id: 'id',
         description: 'description',
         author: 'author',
         by: 'author',
@@ -28,8 +29,11 @@ const parseExtensionMetadata = source => {
     const header = source.slice(0, 16384).match(/^\s*(?:(?:\/\/[^\n]*(?:\n|$))|(?:\/\*[\s\S]*?\*\/)\s*)*/)[0];
     for (const line of header.split('\n')) {
         const match = /^\s*(?:\/\/|\/\*|\*)\s*([\w -]+):\s*(.*?)\s*(?:\*\/)?$/.exec(line);
-        if (match && fields[match[1].toLowerCase()]) {
-            metadata[fields[match[1].toLowerCase()]] = match[2].slice(0, 1000);
+        const field = match && Object.prototype.hasOwnProperty.call(fields, match[1].toLowerCase()) &&
+            fields[match[1].toLowerCase()];
+        // Bundled notices must not overwrite the enclosing extension's header.
+        if (field && !Object.prototype.hasOwnProperty.call(metadata, field)) {
+            metadata[field] = match[2].slice(0, 1000);
         }
     }
     return metadata;
