@@ -6,7 +6,36 @@ import {formatMessage} from './messages.js';
 import styles from './style-names.js';
 const bindAll = (instance, names) => names.forEach(name => {instance[name] = instance[name].bind(instance);});
 
-const MODES = ['deny', 'unsandboxed', 'sandboxed'];
+const MODES = ['deny', 'sandboxed', 'unsandboxed'];
+const requiresUnsandboxed = metadata => metadata && typeof metadata.unsandboxed === 'string' &&
+    metadata.unsandboxed.trim().toLowerCase() === 'required';
+const isModeAllowed = (mode, metadata) => MODES.includes(mode) &&
+    !(mode === 'sandboxed' && requiresUnsandboxed(metadata));
+
+const ModeIcon = ({mode}) => (
+    <svg
+        className={styles.modeIcon}
+        data-mode={mode}
+        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        focusable="false"
+    >
+        {mode === 'deny' ? (
+            <React.Fragment><circle cx="12" cy="12" r="9" /><path d="M6 6l12 12" /></React.Fragment>
+        ) : mode === 'sandboxed' ? (
+            <path d="M12 3l8 3v6c0 5-8 9-8 9s-8-4-8-9V6z" />
+        ) : (
+            <React.Fragment><path d="M12 3L2 21h20zM12 9v5" /><circle cx="12" cy="17" r="0.5" /></React.Fragment>
+        )}
+    </svg>
+);
 
 class ExtensionSecurityDialog extends React.Component {
     constructor (props) {
@@ -55,12 +84,20 @@ class ExtensionSecurityDialog extends React.Component {
             this.requests.set(entry.url, request);
             request.then(result => {
                 if (this.alive) {
-                    this.setState(previous => ({rows: {
-                        ...previous.rows,
-                        [entry.url]: {
-                            ...previous.rows[entry.url], metadata: result.metadata, status: 'ready', previewIndex: 0
-                        }
-                    }}));
+                    this.setState(previous => {
+                        const choices = {...previous.choices};
+                        const invalidated = Boolean(choices[entry.url] &&
+                            !isModeAllowed(choices[entry.url], result.metadata));
+                        // Clear an incompatible choice; never grant broader access automatically.
+                        if (invalidated) delete choices[entry.url];
+                        return {choices, rows: {
+                            ...previous.rows,
+                            [entry.url]: {
+                                ...previous.rows[entry.url], metadata: result.metadata, status: 'ready',
+                                previewIndex: 0, invalidated
+                            }
+                        }};
+                    });
                 }
             }, () => {
                 if (this.alive) {
@@ -81,15 +118,31 @@ class ExtensionSecurityDialog extends React.Component {
     entryForEvent (event) {
         return this.props.entries[Number(event.currentTarget.dataset.index)];
     }
+    canChoose (entry, mode, state = this.state) {
+        return isModeAllowed(mode, (state.rows[entry.url] || {}).metadata);
+    }
+    selectionReady () {
+        return this.props.entries.every(entry => {
+            const mode = this.state.choices[entry.url];
+            const row = this.state.rows[entry.url] || {};
+            // An executing choice must wait for metadata to settle before approval.
+            return this.canChoose(entry, mode) &&
+                (mode === 'deny' || row.status === 'ready' || row.status === 'failed');
+        });
+    }
     handleChoice (event) {
         const entry = this.entryForEvent(event);
         const mode = event.currentTarget.value;
-        this.setState(previous => ({choices: {...previous.choices, [entry.url]: mode}}));
+        if (!entry) return;
+        this.setState(previous => this.canChoose(entry, mode, previous) ?
+            {choices: {...previous.choices, [entry.url]: mode}} : null);
     }
     handleBulk (event) {
         const mode = event.currentTarget.value;
+        if (!MODES.includes(mode)) return;
         this.setState(previous => ({choices: Object.assign({}, previous.choices,
-            Object.fromEntries(this.props.entries.map(entry => [entry.url, mode])))}));
+            Object.fromEntries(this.props.entries.filter(entry => this.canChoose(entry, mode, previous))
+                .map(entry => [entry.url, mode])))}));
     }
     handleDetails (event) {
         const entry = this.entryForEvent(event);
@@ -120,8 +173,7 @@ class ExtensionSecurityDialog extends React.Component {
         this.delay(() => this.setState({ready: true}));
     }
     handleOK () {
-        const complete = this.props.entries.every(entry => MODES.includes(this.state.choices[entry.url]));
-        if (!this.state.ready || !complete) return;
+        if (!this.state.ready || !this.selectionReady()) return;
         if (this.props.entries.some(entry => this.state.choices[entry.url] === 'deny')) this.confirm('deny');
         else this.complete();
     }
@@ -141,6 +193,10 @@ class ExtensionSecurityDialog extends React.Component {
         else this.handleCancel();
     }
     complete () {
+        if (!this.selectionReady()) {
+            this.setState({confirmation: null});
+            return;
+        }
         this.props.onComplete(new Map(this.props.entries.map(entry => [entry.url, this.state.choices[entry.url]])));
     }
     focusNo (element) {
@@ -149,6 +205,9 @@ class ExtensionSecurityDialog extends React.Component {
     renderRow (entry, index) {
         const row = this.state.rows[entry.url] || {};
         const metadata = row.metadata || {};
+        const required = requiresUnsandboxed(metadata);
+        const reasonId = `extension-mode-reason-${index}`;
+        const requiredId = `extension-mode-required-${index}`;
         const name = metadata.name || entry.ids.join(', ');
         const candidates = getPreviewCandidates(entry, metadata, commonBanner);
         const expanded = Boolean(this.state.expanded[entry.url]);
@@ -202,8 +261,11 @@ class ExtensionSecurityDialog extends React.Component {
                             <div className={styles.secondary}>{sourceLink}</div>
                             {!row.status && <div className={styles.secondary}>{this.t('pending')}</div>}
                             {row.status === 'failed' && <div className={styles.error}>{this.t('failed')}</div>}
-                            {metadata.unsandboxed === 'required' && (
-                                <div className={styles.warningText}>{this.t('required')}</div>
+                            {required && (
+                                <div id={reasonId} className={styles.warningText}>{this.t('required')}</div>
+                            )}
+                            {row.invalidated && !this.state.choices[entry.url] && (
+                                <div className={styles.warningText} role="status">{this.t('choiceReset')}</div>
                             )}
                         </div>
                     </div>
@@ -211,17 +273,32 @@ class ExtensionSecurityDialog extends React.Component {
                         <label
                             className={styles.choice}
                             key={mode}
+                            data-mode={mode}
+                            aria-disabled={!this.canChoose(entry, mode)}
+                            title={!this.canChoose(entry, mode) ? this.t('required') : undefined}
                         >
-                            <input
-                                type="radio"
-                                name={`extension-security-${index}`}
-                                value={mode}
-                                checked={this.state.choices[entry.url] === mode}
-                                aria-label={`${name}: ${this.t(mode)}`}
-                                data-index={index}
-                                onChange={this.handleChoice}
-                            />
+                            <span className={styles.choiceControl}>
+                                <input
+                                    type="radio"
+                                    name={`extension-security-${index}`}
+                                    value={mode}
+                                    checked={this.state.choices[entry.url] === mode}
+                                    aria-label={`${name}: ${this.t(mode)}`}
+                                    aria-describedby={!this.canChoose(entry, mode) ? reasonId :
+                                        required && mode === 'unsandboxed' ? requiredId : undefined}
+                                    disabled={!this.canChoose(entry, mode)}
+                                    data-index={index}
+                                    onChange={this.handleChoice}
+                                />
+                                <ModeIcon mode={mode} />
+                            </span>
                             <span className={styles.mobileLabel}>{this.t(mode)}</span>
+                            {!this.canChoose(entry, mode) && (
+                                <span className={styles.modeNote}>{this.t('unsupported')}</span>
+                            )}
+                            {required && mode === 'unsandboxed' && (
+                                <span id={requiredId} className={styles.requiredMode}>{this.t('requiredToRun')}</span>
+                            )}
                         </label>
                     ))}
                     <button
@@ -258,7 +335,8 @@ class ExtensionSecurityDialog extends React.Component {
         const {entries} = this.props;
         const counts = {deny: 0, sandboxed: 0, unsandboxed: 0, unselected: 0};
         entries.forEach(entry => {
-            counts[this.state.choices[entry.url] || 'unselected']++;
+            const mode = this.state.choices[entry.url];
+            counts[this.canChoose(entry, mode) ? mode : 'unselected']++;
         });
         const done = entries.filter(entry => (this.state.rows[entry.url] || {}).status).length;
         const confirmation = this.state.confirmation;
@@ -312,15 +390,20 @@ class ExtensionSecurityDialog extends React.Component {
                                 type="button"
                                 key={mode}
                                 value={mode}
+                                disabled={entries.every(entry => !this.canChoose(entry, mode))}
+                                title={this.t('bulkNote')}
                                 onClick={this.handleBulk}
-                            >{this.t(mode)}</button>))}
+                            ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
+                            <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
                         </div>
                         <div
                             className={styles.columns}
                             aria-hidden="true"
                         >
                             <span>{this.t('extension')}</span>
-                            {MODES.map(mode => <span key={mode}>{this.t(mode)}</span>)}<span />
+                            {MODES.map(mode => <span key={mode} className={styles.modeHeading}>
+                                <ModeIcon mode={mode} />{this.t(mode)}
+                            </span>)}<span />
                         </div>
                         <div className={styles.list}>
                             {entries.map((entry, index) => this.renderRow(entry, index))}
@@ -340,7 +423,7 @@ class ExtensionSecurityDialog extends React.Component {
                                 <button
                                     type="button"
                                     className={styles.primary}
-                                    disabled={!this.state.ready || counts.unselected > 0}
+                                    disabled={!this.state.ready || !this.selectionReady()}
                                     onClick={this.handleOK}
                                 >{this.t('ok')}</button>
                             </div>
