@@ -76,7 +76,10 @@ test('bundle ID and license are visible without expanding source in both locales
         for (const value of [metadata.name,metadata.id,metadata.author,metadata.description,metadata.license]) {
             assert.ok(row.includes(value),value);
         }
-        assert.match(row,locale==='ja'?/サンドボックスなしが必要/:/Requires running without sandbox/);
+        assert.match(row,locale==='ja'?/サンドボックス内では動作しません/:/cannot run inside the sandbox/);
+        assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+        assert.match(document.querySelector('label[data-mode="unsandboxed"]').textContent,
+            locale==='ja'?/動作に必要/:/Required to run/);
         assert.equal(document.querySelectorAll('textarea').length,0);
         act(()=>ReactDOM.unmountComponentAtNode(document.getElementById('app')));
     }
@@ -182,6 +185,81 @@ test('banner hover and keyboard focus show the original image outside the scroll
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     assert.equal(document.querySelector('[role="tooltip"]'),null);
     assert.deepEqual(completed,[]);
+});
+
+test('late requirements invalidate restored choices without increasing permissions, including bulk and submit', async () => {
+    const entries=[{url:'https://required.test/e.js',ids:['required']},{url:'https://ordinary.test/e.js',ids:['ordinary']}];
+    const pending=new Map(),completed=[];let instance;
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        ref:value=>{instance=value;},entries,locale:'ja',
+        initialChoices:new Map([[entries[0].url,'sandboxed']]),
+        loadInfo:url=>new Promise(resolve=>pending.set(url,resolve)),onComplete:value=>completed.push(value)
+    }),document.getElementById('app'));});
+    await wait(760);
+    assert.equal(buttons().find(b=>b.textContent==='OK').disabled,true);
+    act(()=>instance.handleOK());assert.deepEqual(completed,[]);
+    act(()=>pending.get(entries[0].url)({metadata:{name:'Required',unsandboxed:' REQUIRED '},source:'source'}));
+    await wait(0);
+    const required=document.querySelectorAll('article')[0];
+    const sandboxed=required.querySelector('input[value="sandboxed"]');
+    assert.equal(sandboxed.disabled,true);assert.equal(sandboxed.checked,false);
+    assert.equal(instance.state.choices[entries[0].url],undefined);
+    assert.match(required.textContent,/選び直してください/);
+    assert.match(document.getElementById(sandboxed.getAttribute('aria-describedby')).textContent,/動作しません/);
+    click('サンドボックスあり');
+    assert.equal(instance.state.choices[entries[0].url],undefined);
+    assert.equal(instance.state.choices[entries[1].url],'sandboxed');
+    act(()=>Simulate.change(required.querySelector('input[value="unsandboxed"]')));
+    act(()=>Simulate.change(sandboxed));
+    assert.equal(instance.state.choices[entries[0].url],'unsandboxed');
+    click('サンドボックスあり');
+    assert.equal(instance.state.choices[entries[0].url],'unsandboxed');
+    assert.equal(buttons().find(b=>b.textContent==='OK').disabled,true);
+    act(()=>pending.get(entries[1].url)({metadata:{name:'Ordinary'},source:'source'}));await wait(0);
+    click('OK');
+    assert.equal(completed.length,1);
+    assert.deepEqual([...completed[0]],[[entries[0].url,'unsandboxed'],[entries[1].url,'sandboxed']]);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('all controls use deny, sandboxed, unsandboxed order and unavailable bulk mode stays disabled', async () => {
+    for(const locale of ['ja','en']) {
+        const entry={url:'https://required.test/e.js',ids:['required']};
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[entry],locale,initialChoices:new Map([[entry.url,'unsandboxed']]),
+            loadInfo:async()=>({metadata:{unsandboxed:'required'},source:'source'}),onComplete:()=>{}
+        }),document.getElementById('app'));});
+        await wait(0);
+        for(const selector of ['.twextsec-bulk button','.twextsec-row input']) {
+            assert.deepEqual([...document.querySelectorAll(selector)].map(e=>e.value),['deny','sandboxed','unsandboxed']);
+        }
+        assert.deepEqual([...document.querySelectorAll('.twextsec-columns svg')].map(e=>e.dataset.mode),
+            ['deny','sandboxed','unsandboxed']);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="sandboxed"]').disabled,true);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="deny"]').disabled,false);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="unsandboxed"]').disabled,false);
+        assert.equal(document.querySelector('input[value="unsandboxed"]').checked,true);
+        assert.equal(document.querySelectorAll('.twextsec-required-mode').length,1);
+        for(const icon of document.querySelectorAll('.twextsec-mode-icon')) assert.equal(icon.getAttribute('aria-hidden'),'true');
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
+});
+
+test('missing or failed metadata does not invent required permissions', async () => {
+    for(const loadInfo of [async()=>({metadata:{},source:'source'}),async()=>{throw Error('offline');}]) {
+        const entry={url:'https://unknown.test/e.js',ids:['unknown']},completed=[];
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[entry],loadInfo,initialChoices:new Map([[entry.url,'sandboxed']]),
+            onComplete:value=>completed.push(value)
+        }),document.getElementById('app'));});
+        await wait(760);
+        assert.equal(document.querySelector('input[value="sandboxed"]').disabled,false);
+        assert.equal(document.querySelector('input[value="sandboxed"]').checked,true);
+        assert.equal(document.querySelector('input[value="unsandboxed"]').disabled,false);
+        assert.equal(document.querySelectorAll('.twextsec-required-mode').length,0);
+        click('OK');assert.equal(completed[0].get(entry.url),'sandboxed');
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
 });
 
 test.after(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));dom.window.close();});
