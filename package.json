@@ -17,7 +17,7 @@
     "./styles.css": "./styles.css",
     "./webpack4.css": "./webpack4.css"
   },
-  "files": ["dist", "react.js", "turbowarp.js", "styles.css", "webpack4.css", "README.md", "NOTICE.md", "LICENSE"],
+  "files": ["dist", "react.js", "turbowarp.js", "styles.css", "webpack4.css", "README.md", "README.ja.md", "NOTICE.md", "LICENSE"],
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "npm run build && node --test test/*.test.cjs",
