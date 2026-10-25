@@ -5,6 +5,28 @@
 TurboWarpの複数の機能拡張を、1つの一覧で確認するための共通パッケージです。
 関連タスクと受け入れ基準は [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33) に記録しています。
 
+## 公開Editorのスクリーンショット
+
+[英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替えています。
+2026年10月25日の[公開Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=ja)で、
+Camera Source 0.19.3・Asset Cache 0.3.1・Bubble 0.13.4を開いた実画面です。
+
+![3拡張の日本語確認画面。サンドボックスありは非対応で無効、サンドボックスなしは動作に必要。サンドボックス内では動作しない理由を表示](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/required-modes-ja-20261025.png)
+
+3拡張とも`Unsandboxed: required`を宣言しています。「サンドボックスあり」は無効化され、
+「この拡張はサンドボックス内では動作しません。」と理由が表示されます。
+「サンドボックスなし」には「動作に必要」と表示します。拒否は選択でき、実行には自分での選択とOKが必要です。
+必要なモードの表示は、安全性や配布元の信頼性の認定ではありません。
+
+| 機能拡張 | サンドボックスなしが必要な理由 |
+| --- | --- |
+| Camera Source | ホストの実行環境を通して、1つのブラウザーカメラ映像を複数の拡張で共有し、カメラ選択と左右反転の操作を提供します。ブラウザーのカメラ使用許可は別の判断です。 |
+| Asset Cache | ホストの実行環境と描画機能へ直接アクセスして、保持した画像・音声・実行時テキストを作品へ表示・再生します。 |
+| Bubble | ホストの実行環境と描画機能へ直接アクセスして、ステージ上に重ねた吹き出しや立ち絵を描画・更新します。 |
+
+画像はダイアログ部分をブラウザーで直接撮影したもので、加工していません。
+取得元の版・Editor build・画像hashは[撮影台帳](./assets/screenshots/capture-20261025.json)に記録しています。
+
 ## 連動するパッケージ
 
 このパッケージは、ホストのGUIと `scratch-vm` の間に入ります。scratch-vmのソースや
