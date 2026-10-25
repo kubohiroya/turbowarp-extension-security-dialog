@@ -9,12 +9,12 @@ Related tasks and acceptance criteria are tracked in
 
 ## Screenshots from the public Editor
 
-[English](./README.md) and [Japanese](./README.ja.md) use the same dialog with localized labels.
-This capture shows Camera Source 0.19.3, Asset Cache 0.3.1 and Bubble 0.13.4 in the
+[English](./README.md) and [Japanese](./README.ja.md) use the same dialog with localized labels and extension descriptions.
+This capture shows Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5 in the
 [public Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=en)
 on 25 October 2026.
 
-![English extension review: With sandbox is disabled as Unsupported for all three extensions; Without sandbox is marked Required to run, with the reason This extension cannot run inside the sandbox.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/required-modes-en-20261025.png)
+![English descriptions for Camera Source, Asset Cache and Bubble: With sandbox is disabled as Unsupported for all three extensions; Without sandbox is marked Required to run, with the reason This extension cannot run inside the sandbox.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/localized-descriptions-en-20261025.png)
 
 All three extensions declare `Unsandboxed: required`. **With sandbox** is disabled, with
 **This extension cannot run inside the sandbox.** shown as the reason. **Without sandbox**
@@ -28,7 +28,7 @@ choice and OK. These labels describe execution requirements, not a safety certif
 | Bubble | Accesses the host runtime and renderer directly to draw and update layered speech bubbles and portraits on the stage. |
 
 The PNG is an unmodified, modal-only browser capture. Source versions, Editor build and image
-hashes are recorded in [the capture manifest](./assets/screenshots/capture-20261025.json).
+hashes are recorded in [the capture manifest](./assets/screenshots/localized-descriptions-20261025.json).
 
 ## How it fits together
 
@@ -210,9 +210,11 @@ Only the enclosing header is used; bundled member notices cannot supply its tran
 HTML-looking text is rendered as text. The optional `ExtensionMetadata.descriptions` record uses
 lowercase keys, and `getExtensionDescription(metadata, locale)` exposes the same lookup.
 
-The screenshots above record the previously published build; their English descriptions in the
-Japanese capture predate this localization support. New translated bundles and a host dependency
-update are needed to show it in a deployed Editor.
+The public Editor and the three published bundles shown above support localized descriptions.
+The English capture uses each original `Description`; the Japanese capture uses `Description[ja]`.
+Extensions without a matching translation retain their original description. The selected language
+does not change required modes or permission choices. Updating a package does not replace code
+already embedded in an existing SB3.
 
 ## Choosing a run mode
 
