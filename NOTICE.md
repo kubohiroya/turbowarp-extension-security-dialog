@@ -30,3 +30,5 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ## Public Editor screenshots
 
 `assets/screenshots/required-modes-{en,ja}-20261025.png` are unmodified browser captures of the public Editor on 25 October 2026, showing Camera Source 0.19.3, Asset Cache 0.3.1 and Bubble 0.13.4. Their origin, Editor revisions and hashes are recorded in `assets/screenshots/capture-20261025.json`. The captured UI, icons and banners retain their respective rights holders and applicable licenses; this package does not relicense those elements.
+
+`assets/screenshots/localized-descriptions-{en,ja}-20261025.png` are unmodified captures of the updated public Editor on 25 October 2026, showing localized descriptions for Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5. Their origin, revisions and hashes are recorded in `assets/screenshots/localized-descriptions-20261025.json`. The captured UI, icons and banners retain their respective rights holders and applicable licenses.

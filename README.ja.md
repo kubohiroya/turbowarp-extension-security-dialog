@@ -7,11 +7,11 @@ TurboWarpの複数の機能拡張を、1つの一覧で確認するための共�
 
 ## 公開Editorのスクリーンショット
 
-[英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替えています。
+[英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替え、ラベルと拡張の説明文を各言語で表示しています。
 2026年10月25日の[公開Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=ja)で、
-Camera Source 0.19.3・Asset Cache 0.3.1・Bubble 0.13.4を開いた実画面です。
+Camera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。
 
-![3拡張の日本語確認画面。サンドボックスありは非対応で無効、サンドボックスなしは動作に必要。サンドボックス内では動作しない理由を表示](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/required-modes-ja-20261025.png)
+![Camera Source・Asset Cache・Bubbleの説明が日本語で表示された確認画面。サンドボックスありは非対応で無効、サンドボックスなしは動作に必要。サンドボックス内では動作しない理由を表示](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/localized-descriptions-ja-20261025.png)
 
 3拡張とも`Unsandboxed: required`を宣言しています。「サンドボックスあり」は無効化され、
 「この拡張はサンドボックス内では動作しません。」と理由が表示されます。
@@ -25,7 +25,7 @@ Camera Source 0.19.3・Asset Cache 0.3.1・Bubble 0.13.4を開いた実画面で
 | Bubble | ホストの実行環境と描画機能へ直接アクセスして、ステージ上に重ねた吹き出しや立ち絵を描画・更新します。 |
 
 画像はダイアログ部分をブラウザーで直接撮影したもので、加工していません。
-取得元の版・Editor build・画像hashは[撮影台帳](./assets/screenshots/capture-20261025.json)に記録しています。
+取得元の版・Editor build・画像hashは[撮影台帳](./assets/screenshots/localized-descriptions-20261025.json)に記録しています。
 
 ## 連動するパッケージ
 
@@ -200,7 +200,7 @@ HTTP/HTTPSの出所URLは完全なURLを表示し、別タブで開きます。�
 
 同梱メンバーのnoticeにある説明は親バンドルへ混ぜません。HTMLに見える説明も文字列として表示します。独自の`loadInfo`を使う場合は、任意の`ExtensionMetadata.descriptions`へ小文字の言語タグをキーとした説明を渡せます。`getExtensionDescription(metadata, locale)`でも同じ選択処理を利用できます。
 
-上のスクリーンショットは以前の公開ビルドの記録です。日本語画像内の説明が英語なのは、この説明文の言語対応を加える前の撮影だからです。公開Editorへの反映には、翻訳を含む拡張の再ビルドとホスト側の依存更新が必要です。
+上の画像は、日本語説明へ対応した公開Editorと公開済みの3拡張を使用しています。英語版では各拡張の従来の`Description`、日本語版では`Description[ja]`を表示します。対応する翻訳がない拡張は元の説明を表示します。説明の言語が変わっても、必要な実行モードや許可の選択は変わりません。パッケージを更新しても、既存SB3に埋め込まれたコードは自動で差し替わりません。
 
 ## 実行モードの選択
 
