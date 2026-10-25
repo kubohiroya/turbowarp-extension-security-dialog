@@ -1,6 +1,6 @@
 # turbowarp-extension-security-dialog
 
-**English** | [日本語](./README.ja.md)
+English | [日本語](README.ja.md)
 
 A shared package that reviews every custom extension a TurboWarp project is about to load
 in **one single list**, instead of one prompt per extension.

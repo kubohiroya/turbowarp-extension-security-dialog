@@ -1,6 +1,6 @@
 # turbowarp-extension-security-dialog
 
-[English](./README.md) | **日本語**
+[English](README.md) | 日本語
 
 TurboWarpの複数の機能拡張を、1つの一覧で確認するための共通パッケージです。
 関連タスクと受け入れ基準は [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33) に記録しています。
