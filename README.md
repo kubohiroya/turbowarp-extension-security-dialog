@@ -7,6 +7,29 @@ in **one single list**, instead of one prompt per extension.
 Related tasks and acceptance criteria are tracked in
 [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33).
 
+## Screenshots from the public Editor
+
+[English](./README.md) and [Japanese](./README.ja.md) use the same dialog with localized labels.
+This capture shows Camera Source 0.19.3, Asset Cache 0.3.1 and Bubble 0.13.4 in the
+[public Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=en)
+on 25 October 2026.
+
+![English extension review: With sandbox is disabled as Unsupported for all three extensions; Without sandbox is marked Required to run, with the reason This extension cannot run inside the sandbox.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/required-modes-en-20261025.png)
+
+All three extensions declare `Unsandboxed: required`. **With sandbox** is disabled, with
+**This extension cannot run inside the sandbox.** shown as the reason. **Without sandbox**
+is marked **Required to run**. Deny remains available, and running still requires an explicit
+choice and OK. These labels describe execution requirements, not a safety certification.
+
+| Extension | Why it needs to run without a sandbox |
+| --- | --- |
+| Camera Source | Accesses the host runtime to share one browser camera stream between extensions and provides camera-selection and mirroring controls. Browser camera permission is a separate decision. |
+| Asset Cache | Accesses the host runtime and renderer directly to display and play cached image, audio and runtime-text assets. |
+| Bubble | Accesses the host runtime and renderer directly to draw and update layered speech bubbles and portraits on the stage. |
+
+The PNG is an unmodified, modal-only browser capture. Source versions, Editor build and image
+hashes are recorded in [the capture manifest](./assets/screenshots/capture-20261025.json).
+
 ## How it fits together
 
 The package sits between the host GUI and `scratch-vm`. It never patches `scratch-vm`
