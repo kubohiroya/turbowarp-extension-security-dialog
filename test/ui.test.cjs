@@ -81,7 +81,7 @@ test('bundle ID and license are visible without expanding source in both locales
         assert.match(document.querySelector('label[data-mode="unsandboxed"]').textContent,
             locale==='ja'?/動作に必要/:/Required to run/);
         assert.equal(document.querySelectorAll('textarea').length,0);
-        act(()=>ReactDOM.unmountComponentAtNode(document.getElementById('app')));
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
 });
 
@@ -263,3 +263,47 @@ test('missing or failed metadata does not invent required permissions', async ()
 });
 
 test.after(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));dom.window.close();});
+
+test('Editor locale switches descriptions without reloading source or changing permission choices', async () => {
+    const {parseExtensionMetadata} = require('../dist/index.cjs');
+    const entries = ['Camera Source','Asset Cache','Bubble'].map((name,index)=>({url:`data:text/javascript,${index}`,ids:[name]}));
+    const english = ['Share one camera stream.','Cache image and audio assets.','Layered speech bubbles.'];
+    const japanese = ['カメラ映像を共有します。','画像と音声を保持します。','吹き出しを重ねて表示します。'];
+    let requests=0;
+    const loadInfo=async url=>{
+        requests++;
+        const index=entries.findIndex(entry=>entry.url===url);
+        const source=`// Name: ${entries[index].ids[0]}\n// Description: ${english[index]}\n// Description[ja]: ${japanese[index]}\n// Unsandboxed: required\nthrow new Error("Never execute metadata");`;
+        return {source,metadata:parseExtensionMetadata(source)};
+    };
+    const render=locale=>act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries,locale,loadInfo,initialChoices:new Map(entries.map(entry=>[entry.url,'unsandboxed'])),onComplete:()=>{}
+    }),document.getElementById('app'));});
+    render('ja-JP');await wait(0);
+    for(const description of japanese)assert.ok(document.querySelector('main').textContent.includes(description));
+    for(const description of english)assert.ok(!document.querySelector('main').textContent.includes(description));
+    assert.equal(document.querySelectorAll('input:checked').length,3);
+    assert.equal(document.querySelectorAll('input[value="sandboxed"]:disabled').length,3);
+    render('en');await wait(0);
+    for(const description of english)assert.ok(document.querySelector('main').textContent.includes(description));
+    for(const description of japanese)assert.ok(!document.querySelector('main').textContent.includes(description));
+    assert.equal(document.querySelectorAll('input:checked').length,3);
+    assert.equal(requests,3);
+    render('fr');await wait(0);
+    for(const description of english)assert.ok(document.querySelector('main').textContent.includes(description));
+    assert.equal(requests,3);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('localized description markup remains text instead of becoming executable HTML', async () => {
+    const entry={url:'data:text/javascript,description-markup',ids:['text']};
+    const description='<img src=x onerror="globalThis.descriptionExecuted=true">';
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[entry],locale:'ja',loadInfo:async()=>({metadata:{description:'Default',descriptions:{ja:description}},source:''}),onComplete:()=>{}
+    }),document.getElementById('app'));});
+    await wait(0);
+    assert.ok(document.querySelector('article').textContent.includes(description));
+    assert.equal(document.querySelector('img[onerror]'),null);
+    assert.equal(globalThis.descriptionExecuted,undefined);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});

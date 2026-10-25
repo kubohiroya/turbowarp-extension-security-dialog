@@ -28,6 +28,20 @@ const parseExtensionMetadata = source => {
     // Read declarative header comments only; never evaluate getInfo() or extension code.
     const header = source.slice(0, 16384).match(/^\s*(?:(?:\/\/[^\n]*(?:\n|$))|(?:\/\*[\s\S]*?\*\/)\s*)*/)[0];
     for (const line of header.split('\n')) {
+        // Member notices describe different extensions, not the enclosing bundle.
+        if (/^\s*(?:\/\/|\/\*|\*)\s*Bundled extensions:\s*$/i.test(line)) break;
+        const localized = /^\s*(?:\/\/|\/\*|\*) ?Description\[([a-z]{2,8}(?:-[a-z0-9]{1,8})*)\]:\s*(.*?)\s*(?:\*\/)?$/i.exec(line);
+        if (localized) {
+            const locale = localized[1].toLowerCase();
+            const description = localized[2].slice(0, 1000);
+            if (description.trim() && !/[\r\n\u2028\u2029]/.test(description)) {
+                if (!metadata.descriptions) metadata.descriptions = {};
+                if (!Object.prototype.hasOwnProperty.call(metadata.descriptions, locale)) {
+                    metadata.descriptions[locale] = description;
+                }
+            }
+            continue;
+        }
         const match = /^\s*(?:\/\/|\/\*|\*)\s*([\w -]+):\s*(.*?)\s*(?:\*\/)?$/.exec(line);
         const field = match && Object.prototype.hasOwnProperty.call(fields, match[1].toLowerCase()) &&
             fields[match[1].toLowerCase()];
@@ -37,6 +51,20 @@ const parseExtensionMetadata = source => {
         }
     }
     return metadata;
+};
+
+const getExtensionDescription = (metadata, locale) => {
+    const normalized = typeof locale === 'string' ? locale.trim().toLowerCase() : '';
+    const descriptions = metadata.descriptions || {};
+    if (/^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/.test(normalized)) {
+        for (const candidate of [normalized, normalized.split('-')[0]]) {
+            if (Object.prototype.hasOwnProperty.call(descriptions, candidate) &&
+                typeof descriptions[candidate] === 'string' && descriptions[candidate].trim()) {
+                return descriptions[candidate];
+            }
+        }
+    }
+    return metadata.description || '';
 };
 
 const decodeExtensionDataURL = url => {
@@ -101,4 +129,5 @@ const getPreviewCandidates = (entry, metadata = {}, fallback) => {
     return [...new Set(candidates)];
 };
 
-export {parseExtensionMetadata, decodeExtensionDataURL, loadExtensionInfo, getGitHubRepository, getPreviewCandidates};
+export {parseExtensionMetadata, getExtensionDescription, decodeExtensionDataURL, loadExtensionInfo,
+    getGitHubRepository, getPreviewCandidates};

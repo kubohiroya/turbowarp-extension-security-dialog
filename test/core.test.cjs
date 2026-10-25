@@ -158,3 +158,30 @@ test('unavailable IndexedDB is nonfatal', async () => {
     assert.deepEqual(await readPreferences('key'), {});
     assert.equal(await writePreferences('key', {}), false);
 });
+
+test('localized descriptions are declarative and cannot leak from bundled member notices', () => {
+    const {getExtensionDescription} = require('../dist/index.cjs');
+    const metadata = parseExtensionMetadata('// Name: Bundle\n// Description: Default\n' +
+        '// Description[JA]: 日本語\n// Description[ja]: ignored duplicate\n' +
+        '// Description[ja-JP]: 日本向け\n// Description[bad_locale]: ignored\n' +
+        '// Description[de]: \n// Bundled extensions:\n// - Name: Nested\n' +
+        '//   Description[fr]: Nested French\n// Description[en]: Nested English\n' +
+        'throw new Error("Do not execute");\n// Description[es]: Code comment');
+    assert.deepEqual(metadata, {name:'Bundle',description:'Default',descriptions:{ja:'日本語','ja-jp':'日本向け'}});
+    assert.equal(getExtensionDescription(metadata,'JA-jp'),'日本向け');
+    assert.equal(getExtensionDescription(metadata,'ja-Hira'),'日本語');
+    for (const locale of ['en','fr','de','es','bad_locale',undefined,null,{}]) {
+        assert.equal(getExtensionDescription(metadata,locale),'Default');
+    }
+    assert.equal(getExtensionDescription({},'ja'),'');
+    assert.equal(getExtensionDescription({description:'Legacy'},'ja'),'Legacy');
+});
+
+test('localized descriptions also support block-comment headers and embedded source URLs', () => {
+    const source = '/*\n * Description: English\n * Description[ja]: 日本語\n */\nthrow 0;';
+    const {getExtensionDescription} = require('../dist/index.cjs');
+    const metadata = parseExtensionMetadata(decodeExtensionDataURL('data:text/javascript;base64,' + Buffer.from(source).toString('base64')));
+    assert.equal(getExtensionDescription(metadata,'ja-JP'),'日本語');
+    assert.equal(getExtensionDescription(metadata,'en-US'),'English');
+    assert.deepEqual(parseExtensionMetadata('//   Description[ja]: Nested notice\nvoid 0;'),{});
+});

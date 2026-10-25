@@ -1,6 +1,6 @@
 import React from 'react';
 import BannerPreview from './banner-preview.jsx';
-import {loadExtensionInfo, getPreviewCandidates} from './info.js';
+import {loadExtensionInfo, getPreviewCandidates, getExtensionDescription} from './info.js';
 const commonBanner = __SECURITY_COMMON_BANNER__;
 import {formatMessage} from './messages.js';
 import styles from './style-names.js';
@@ -205,6 +205,7 @@ class ExtensionSecurityDialog extends React.Component {
     renderRow (entry, index) {
         const row = this.state.rows[entry.url] || {};
         const metadata = row.metadata || {};
+        const description = getExtensionDescription(metadata, this.props.locale);
         const required = requiresUnsandboxed(metadata);
         const reasonId = `extension-mode-reason-${index}`;
         const requiredId = `extension-mode-required-${index}`;
@@ -254,7 +255,7 @@ class ExtensionSecurityDialog extends React.Component {
                             {metadata.updatedAt && (
                                 <div className={styles.secondary}>{this.t('updated', {updated: metadata.updatedAt})}</div>
                             )}
-                            {metadata.description && <div>{metadata.description}</div>}
+                            {description && <div>{description}</div>}
                             {metadata.license && (
                                 <div className={styles.secondary}>{this.t('license', {license: metadata.license})}</div>
                             )}
