@@ -193,6 +193,27 @@ or a file timestamp.
 
 Run modes remain selectable while metadata is still loading.
 
+### Localized extension descriptions
+
+The dialog reads optional language-tagged header comments, without evaluating extension code:
+
+```js
+// Description: Share one camera stream between extensions.
+// Description[ja]: 1つのカメラ映像を複数の機能拡張で共有します。
+// Description[ja-JP]: 日本語の説明（日本向け）。
+```
+
+Tags are case-insensitive. Display selection uses the exact Editor locale, then its base
+language, then the original `Description`. A locale change updates the text without refetching
+source or changing permission choices. Missing translations keep existing extensions compatible.
+Only the enclosing header is used; bundled member notices cannot supply its translation.
+HTML-looking text is rendered as text. The optional `ExtensionMetadata.descriptions` record uses
+lowercase keys, and `getExtensionDescription(metadata, locale)` exposes the same lookup.
+
+The screenshots above record the previously published build; their English descriptions in the
+Japanese capture predate this localization support. New translated bundles and a host dependency
+update are needed to show it in a deployed Editor.
+
 ## Choosing a run mode
 
 Per-row choices, the bulk choices and the list heading are ordered: **Deny** (prohibition

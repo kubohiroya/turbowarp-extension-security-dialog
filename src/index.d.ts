@@ -3,9 +3,11 @@ export interface ExtensionEntry { url: string; ids: string[]; banner?: string; }
 export interface ExtensionMetadata {
     name?: string; id?: string; description?: string; author?: string; version?: string; updatedAt?: string;
     license?: string; repository?: string; banner?: string; unsandboxed?: string;
+    descriptions?: Record<string, string>;
 }
 export interface ExtensionInfo { source: string; metadata: ExtensionMetadata; }
 export function parseExtensionMetadata(source: string): ExtensionMetadata;
+export function getExtensionDescription(metadata: ExtensionMetadata, locale?: string): string;
 export function decodeExtensionDataURL(url: string): string;
 export function loadExtensionInfo(url: string, signal: AbortSignal): Promise<ExtensionInfo>;
 export function getGitHubRepository(value?: string): string | null;
