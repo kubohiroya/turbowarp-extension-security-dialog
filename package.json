@@ -20,9 +20,10 @@
   "files": ["dist", "react.js", "turbowarp.js", "styles.css", "webpack4.css", "README.md", "README.ja.md", "NOTICE.md", "LICENSE"],
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "npm run build && node --test test/*.test.cjs",
-    "prepack": "npm run build",
-    "prepare": "npm run build"
+    "test": "pnpm run build && node --test test/*.test.cjs",
+    "check": "pnpm run test && npm pack --dry-run --ignore-scripts",
+    "prepack": "pnpm run build",
+    "prepare": "pnpm run build"
   },
   "dependencies": {"@turbowarp/jszip": "3.11.1"},
   "peerDependencies": {"react": "^16.14.0 || ^17 || ^18 || ^19", "react-dom": "^16.14.0 || ^17 || ^18 || ^19"},
@@ -33,6 +34,7 @@
     "react": "16.14.0",
     "react-dom": "16.14.0"
   },
-  "engines": {"node": ">=22"},
+  "packageManager": "pnpm@11.28.8",
+  "engines": {"node": ">=24"},
   "publishConfig": {"access": "public"}
 }
