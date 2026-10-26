@@ -254,8 +254,8 @@ scratch-guiは既定OFFの起動時フラグで導入し、ホスト独自のセ
 ## 開発と検証
 
 ```sh
-npm install
-npm test
+pnpm install
+pnpm test
 ```
 
 GUIとの統合では、実VMでの拒否後の表示・保存、エディター初期画面への遷移、

@@ -275,8 +275,8 @@ own security policy take precedence.
 ## Development and verification
 
 ```sh
-npm install
-npm test
+pnpm install
+pnpm test
 ```
 
 GUI integration additionally verifies display and storage after a real-VM denial, the
