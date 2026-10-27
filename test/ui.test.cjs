@@ -233,24 +233,27 @@ test('late requirements invalidate restored choices without increasing permissio
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
 
-test('all controls use deny, sandboxed, unsandboxed order and unavailable bulk mode stays disabled', async () => {
+test('mixed batches retain ordered bulk controls and required-mode row restrictions', async () => {
     for(const locale of ['ja','en']) {
         const entry={url:'https://required.test/e.js',ids:['required']};
         act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
-            entries:[entry],locale,initialChoices:new Map([[entry.url,'unsandboxed']]),
-            loadInfo:async()=>({metadata:{unsandboxed:'required'},source:'source'}),onComplete:()=>{}
+            entries:[entry,{url:'https://ordinary.test/e.js',ids:['ordinary']}],locale,
+            initialChoices:new Map([[entry.url,'unsandboxed']]),
+            loadInfo:async url=>({metadata:url===entry.url?{unsandboxed:'required'}:{},source:'source'}),onComplete:()=>{}
         }),document.getElementById('app'));});
         await wait(0);
-        for(const selector of ['.twextsec-bulk button','.twextsec-row input']) {
+        for(const selector of ['.twextsec-bulk button','.twextsec-row:first-child input']) {
             assert.deepEqual([...document.querySelectorAll(selector)].map(e=>e.value),['deny','sandboxed','unsandboxed']);
         }
         assert.deepEqual([...document.querySelectorAll('.twextsec-columns svg')].map(e=>e.dataset.mode),
             ['deny','sandboxed','unsandboxed']);
-        assert.equal(document.querySelector('.twextsec-bulk button[value="sandboxed"]').disabled,true);
-        assert.equal(document.querySelector('.twextsec-bulk button[value="deny"]').disabled,true);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="sandboxed"]').disabled,false);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="deny"]').disabled,false);
         assert.equal(document.querySelector('.twextsec-bulk button[value="unsandboxed"]').disabled,false);
         assert.equal(document.querySelector('input[value="unsandboxed"]').checked,true);
         assert.equal(document.querySelectorAll('.twextsec-required-mode').length,1);
+        assert.equal(document.querySelector('input[value="deny"]').disabled,true);
+        assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
         for(const icon of document.querySelectorAll('.twextsec-mode-icon')) assert.equal(icon.getAttribute('aria-hidden'),'true');
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
@@ -312,15 +315,18 @@ test('all-required batches are preset only after the last declaration and still 
         }),document.getElementById('app'));});
         await wait(0);
         assert.equal(document.querySelectorAll('input:checked').length,0);
+        assert.ok(document.querySelector('.twextsec-bulk'));
         for(const entry of entries.slice(0,2)) {
             act(()=>pending.get(entry.url)({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
             assert.equal(document.querySelectorAll('input:checked').length,0);
+            assert.ok(document.querySelector('.twextsec-bulk'));
         }
         await wait(760);
         assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
         act(()=>instance.handleOK());assert.deepEqual(completed,[]);
         act(()=>pending.get(entries[2].url)({metadata:{unsandboxed:' REQUIRED '},source:'source'}));await wait(0);
         assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
+        assert.equal(document.querySelector('.twextsec-bulk'),null);
         assert.equal(document.querySelectorAll('input[value="deny"]:disabled').length,3);
         assert.equal(document.querySelectorAll('input[value="sandboxed"]:disabled').length,3);
         assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/選択済み/:/already selected/);
@@ -345,6 +351,7 @@ test('mixed, optional and failed declarations leave required extensions unselect
         }),document.getElementById('app'));});
         await wait(0);
         assert.equal(document.querySelectorAll('input:checked').length,0);
+        assert.ok(document.querySelector('.twextsec-bulk'));
         assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
         assert.deepEqual(completed,[]);
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
@@ -365,17 +372,22 @@ test('batch defaults follow entry changes without refetching settled metadata or
         entries,locale:'ja',loadInfo,onComplete:()=>{}
     }),document.getElementById('app'));});
     render([]);await wait(0);
+    assert.ok(document.querySelector('.twextsec-bulk'));
     assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
     render([a,b,ordinary]);await wait(0);
     assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.ok(document.querySelector('.twextsec-bulk'));
     render([a,b]);await wait(0);
     assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,2);
+    assert.equal(document.querySelector('.twextsec-bulk'),null);
     assert.equal(requests,3);
     render([a,b,added]);await wait(0);
+    assert.ok(document.querySelector('.twextsec-bulk'));
     assert.equal(document.querySelectorAll('input:checked').length,2);
     assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
     act(()=>resolveAdded({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
     assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
+    assert.equal(document.querySelector('.twextsec-bulk'),null);
     assert.match(document.querySelector('.twextsec-intro').textContent,/選択済み/);
     assert.equal(requests,4);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});

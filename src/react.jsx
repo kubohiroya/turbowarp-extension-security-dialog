@@ -352,6 +352,7 @@ class ExtensionSecurityDialog extends React.Component {
         });
         const done = entries.filter(entry => (this.state.rows[entry.url] || {}).status).length;
         const confirmation = this.state.confirmation;
+        const allRequired = allRequireUnsandboxed(entries, this.state.rows);
         return (
             <Modal
                 id="extension-security-batch"
@@ -390,24 +391,26 @@ class ExtensionSecurityDialog extends React.Component {
                 ) : (
                     <div className={styles.body}>
                         <div className={styles.intro}>
-                            <p>{this.t(allRequireUnsandboxed(entries, this.state.rows) ? 'allRequiredIntro' : 'intro')}</p>
+                            <p>{this.t(allRequired ? 'allRequiredIntro' : 'intro')}</p>
                             <div
                                 className={styles.secondary}
                                 aria-live="polite"
                             >{this.t('progress', {done, total: entries.length})}</div>
                         </div>
-                        <div className={styles.bulk}>
-                            <span>{this.t('bulk')}</span>
-                            {MODES.map(mode => (<button
-                                type="button"
-                                key={mode}
-                                value={mode}
-                                disabled={entries.every(entry => !this.canChoose(entry, mode))}
-                                title={this.t('bulkNote')}
-                                onClick={this.handleBulk}
-                            ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
-                            <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
-                        </div>
+                        {!allRequired && (
+                            <div className={styles.bulk}>
+                                <span>{this.t('bulk')}</span>
+                                {MODES.map(mode => (<button
+                                    type="button"
+                                    key={mode}
+                                    value={mode}
+                                    disabled={entries.every(entry => !this.canChoose(entry, mode))}
+                                    title={this.t('bulkNote')}
+                                    onClick={this.handleBulk}
+                                ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
+                                <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
+                            </div>
+                        )}
                         <div
                             className={styles.columns}
                             aria-hidden="true"
