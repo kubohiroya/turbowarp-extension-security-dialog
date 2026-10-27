@@ -10,7 +10,7 @@ const MODES = ['deny', 'sandboxed', 'unsandboxed'];
 const requiresUnsandboxed = metadata => metadata && typeof metadata.unsandboxed === 'string' &&
     metadata.unsandboxed.trim().toLowerCase() === 'required';
 const isModeAllowed = (mode, metadata) => MODES.includes(mode) &&
-    !(mode === 'sandboxed' && requiresUnsandboxed(metadata));
+    (!requiresUnsandboxed(metadata) || mode === 'unsandboxed');
 
 const ModeIcon = ({mode}) => (
     <svg
@@ -125,9 +125,9 @@ class ExtensionSecurityDialog extends React.Component {
         return this.props.entries.every(entry => {
             const mode = this.state.choices[entry.url];
             const row = this.state.rows[entry.url] || {};
-            // An executing choice must wait for metadata to settle before approval.
+            // Even denial must wait: a late requirement may invalidate the choice.
             return this.canChoose(entry, mode) &&
-                (mode === 'deny' || row.status === 'ready' || row.status === 'failed');
+                (row.status === 'ready' || row.status === 'failed');
         });
     }
     handleChoice (event) {

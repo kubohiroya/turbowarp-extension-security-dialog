@@ -18,8 +18,9 @@ on 25 October 2026.
 
 All three extensions declare `Unsandboxed: required`. **With sandbox** is disabled, with
 **This extension cannot run inside the sandbox.** shown as the reason. **Without sandbox**
-is marked **Required to run**. Deny remains available, and running still requires an explicit
-choice and OK. These labels describe execution requirements, not a safety certification.
+is marked **Required to run**. In the current implementation, **Deny** is also disabled;
+choose **Without sandbox** and OK, or **Cancel** to stop loading the project. The capture
+above predates this change. These labels describe execution requirements, not a safety certification.
 
 | Extension | Why it needs to run without a sandbox |
 | --- | --- |
@@ -222,12 +223,13 @@ Per-row choices, the bulk choices and the list heading are ordered: **Deny** (pr
 icon), **With sandbox** (shield), **Without sandbox** (warning). Icons and colour support the
 text labels; they are not a safety certification.
 
-If the leading declaration comment contains `// Unsandboxed: required`, *With sandbox* is
-disabled with the reason shown, and *Without sandbox* is marked *Required to run*. Deny stays
-selectable. This declaration is the author's own claim; a required mode is never inferred from
+If the leading declaration comment contains `// Unsandboxed: required`, *Deny* and *With sandbox*
+are disabled with the reason shown, and *Without sandbox* is the only available mode, marked
+*Required to run*. Choose it explicitly and press OK to continue, or Cancel to stop loading
+the project. This declaration is the author's own claim; a required mode is never inferred from
 a missing declaration or a failed fetch.
 
-A choice to run is only committed once metadata has loaded or failed. A selection that
+A choice, including Deny, is only committed once metadata has loaded or failed. A selection that
 contradicts a late-arriving declaration is cleared — including a restored saved value — and
 the user is asked to choose again. The mode is never silently widened. A bulk choice applies
 only to extensions that support it, and a bulk button is disabled when no listed extension does.
