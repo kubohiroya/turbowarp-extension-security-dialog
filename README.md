@@ -18,7 +18,9 @@ on 28 October 2026, after the required-mode approval update.
 
 All three extensions declare `Unsandboxed: required`. **Deny** and **With sandbox** are
 disabled, with the reason shown. **Without sandbox** is enabled and marked **Required to run**.
-Choose it explicitly and press OK to continue, or **Cancel** to stop loading the project.
+When every listed extension requires this mode, it is preselected after all metadata loads.
+Press OK to continue, or **Cancel** to stop loading the project. The capture above predates
+automatic preselection.
 These labels describe execution requirements, not a safety certification.
 
 | Extension | Why it needs to run without a sandbox |
@@ -224,14 +226,17 @@ text labels; they are not a safety certification.
 
 If the leading declaration comment contains `// Unsandboxed: required`, *Deny* and *With sandbox*
 are disabled with the reason shown, and *Without sandbox* is the only available mode, marked
-*Required to run*. Choose it explicitly and press OK to continue, or Cancel to stop loading
+*Required to run*. Press OK to approve the selected modes, or Cancel to stop loading
 the project. This declaration is the author's own claim; a required mode is never inferred from
 a missing declaration or a failed fetch.
 
-A choice, including Deny, is only committed once metadata has loaded or failed. A selection that
-contradicts a late-arriving declaration is cleared — including a restored saved value — and
-the user is asked to choose again. The mode is never silently widened. A bulk choice applies
-only to extensions that support it, and a bulk button is disabled when no listed extension does.
+A choice, including Deny, is only committed once metadata has loaded or failed. When every
+listed extension has loaded metadata declaring this requirement, *Without sandbox* is
+preselected for all entries, including entries with incompatible saved choices. Nothing runs
+until the user presses OK; Cancel still stops loading the project. Pending, missing, optional
+or failed declarations prevent this batch default. In mixed batches, incompatible choices
+are cleared and the user is asked to choose again. A bulk choice applies only to extensions
+that support it, and a bulk button is disabled when no listed extension does.
 
 ## Wiring it up
 

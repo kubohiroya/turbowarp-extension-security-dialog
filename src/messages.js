@@ -2,6 +2,7 @@ const messages = {
     "en": {
         "title": "Extension Security",
         "intro": "Choose how to run each extension (you can choose while metadata loads).",
+        "allRequiredIntro": "All extensions require Without sandbox, which is already selected. Choose OK to load the project, or Cancel to stop.",
         "progress": "Extension information: {done}/{total}",
         "bulk": "Apply to all listed extensions",
         "extension": "Extension",
@@ -39,6 +40,7 @@ const messages = {
     "ja": {
         "title": "機能拡張セキュリティ",
         "intro": "実行方法を選んでください（取得中でも選択できます）",
+        "allRequiredIntro": "すべての機能拡張で必要な「サンドボックスなし」を選択済みです。「OK」で読み込むか、「キャンセル」で中止してください。",
         "progress": "機能拡張の情報：{done}/{total} 件を確認",
         "bulk": "表示中のすべてに適用",
         "extension": "機能拡張",
