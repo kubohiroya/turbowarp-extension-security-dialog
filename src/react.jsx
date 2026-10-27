@@ -11,6 +11,10 @@ const requiresUnsandboxed = metadata => metadata && typeof metadata.unsandboxed 
     metadata.unsandboxed.trim().toLowerCase() === 'required';
 const isModeAllowed = (mode, metadata) => MODES.includes(mode) &&
     (!requiresUnsandboxed(metadata) || mode === 'unsandboxed');
+const allRequireUnsandboxed = (entries, rows) => entries.length > 0 && entries.every(entry => {
+    const row = rows[entry.url];
+    return row && row.status === 'ready' && requiresUnsandboxed(row.metadata);
+});
 
 const ModeIcon = ({mode}) => (
     <svg
@@ -60,6 +64,13 @@ class ExtensionSecurityDialog extends React.Component {
     }
     componentDidUpdate () {
         this.startRequests();
+        const {entries} = this.props;
+        if (allRequireUnsandboxed(entries, this.state.rows) &&
+            entries.some(entry => this.state.choices[entry.url] !== 'unsandboxed')) {
+            // Preset the sole supported mode; execution still requires the user's OK.
+            this.setState(previous => ({choices: Object.assign({}, previous.choices,
+                Object.fromEntries(entries.map(entry => [entry.url, 'unsandboxed'])))}));
+        }
     }
     componentWillUnmount () {
         this.alive = false;
@@ -88,7 +99,7 @@ class ExtensionSecurityDialog extends React.Component {
                         const choices = {...previous.choices};
                         const invalidated = Boolean(choices[entry.url] &&
                             !isModeAllowed(choices[entry.url], result.metadata));
-                        // Clear an incompatible choice; never grant broader access automatically.
+                        // Clear incompatible choices before applying any batch defaults.
                         if (invalidated) delete choices[entry.url];
                         return {choices, rows: {
                             ...previous.rows,
@@ -379,7 +390,7 @@ class ExtensionSecurityDialog extends React.Component {
                 ) : (
                     <div className={styles.body}>
                         <div className={styles.intro}>
-                            <p>{this.t('intro')}</p>
+                            <p>{this.t(allRequireUnsandboxed(entries, this.state.rows) ? 'allRequiredIntro' : 'intro')}</p>
                             <div
                                 className={styles.secondary}
                                 aria-live="polite"

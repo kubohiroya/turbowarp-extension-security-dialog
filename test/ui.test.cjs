@@ -256,7 +256,7 @@ test('all controls use deny, sandboxed, unsandboxed order and unavailable bulk m
     }
 });
 
-test('restored denial waits for metadata and is cleared when unsandboxed execution is required', async () => {
+test('restored denial waits for metadata and becomes a preset when every extension requires unsandboxed execution', async () => {
     const entry={url:'https://required.test/denied.js',ids:['required']};
     const completed=[];let instance,resolveInfo;
     act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
@@ -271,14 +271,13 @@ test('restored denial waits for metadata and is cleared when unsandboxed executi
     assert.equal(document.querySelector('[role="alertdialog"]'),null);
     assert.deepEqual(completed,[]);
     act(()=>resolveInfo({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
-    assert.equal(instance.state.choices[entry.url],undefined);
-    assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.equal(instance.state.choices[entry.url],'unsandboxed');
+    assert.equal(document.querySelectorAll('input:checked').length,1);
     assert.equal(document.querySelector('input[value="deny"]').disabled,true);
-    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
-    assert.match(document.querySelector('[role="status"]').textContent,/選び直してください/);
+    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,false);
+    assert.equal(document.querySelector('[role="status"]'),null);
     act(()=>instance.handleBulk({currentTarget:{value:'deny'}}));
-    assert.equal(instance.state.choices[entry.url],undefined);
-    click('サンドボックスなし');
+    assert.equal(instance.state.choices[entry.url],'unsandboxed');
     assert.deepEqual(completed,[]);
     click('OK');
     assert.equal(document.querySelector('[role="alertdialog"]'),null);
@@ -294,12 +293,91 @@ test('required extensions can be cancelled without granting unsandboxed executio
         onComplete:value=>completed.push(value)
     }),document.getElementById('app'));});
     await wait(0);
-    assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.equal(document.querySelector('input[value="unsandboxed"]').checked,true);
     click('キャンセル');click('いいえ');
-    assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.equal(document.querySelector('input[value="unsandboxed"]').checked,true);
     assert.deepEqual(completed,[]);
     click('キャンセル');await wait(760);click('はい');
     assert.deepEqual(completed,[null]);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('all-required batches are preset only after the last declaration and still require OK in both locales', async () => {
+    for(const locale of ['ja','en']) {
+        const entries=['a','b','c'].map(id=>({url:`https://required.test/${id}.js`,ids:[id]}));
+        const pending=new Map(),completed=[];let instance;
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            ref:value=>{instance=value;},entries,locale,
+            loadInfo:url=>new Promise(resolve=>pending.set(url,resolve)),onComplete:value=>completed.push(value)
+        }),document.getElementById('app'));});
+        await wait(0);
+        assert.equal(document.querySelectorAll('input:checked').length,0);
+        for(const entry of entries.slice(0,2)) {
+            act(()=>pending.get(entry.url)({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
+            assert.equal(document.querySelectorAll('input:checked').length,0);
+        }
+        await wait(760);
+        assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
+        act(()=>instance.handleOK());assert.deepEqual(completed,[]);
+        act(()=>pending.get(entries[2].url)({metadata:{unsandboxed:' REQUIRED '},source:'source'}));await wait(0);
+        assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
+        assert.equal(document.querySelectorAll('input[value="deny"]:disabled').length,3);
+        assert.equal(document.querySelectorAll('input[value="sandboxed"]:disabled').length,3);
+        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/選択済み/:/already selected/);
+        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/キャンセル/:/Cancel/);
+        assert.deepEqual(completed,[]);
+        click('OK');
+        assert.deepEqual([...completed[0]],entries.map(entry=>[entry.url,'unsandboxed']));
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
+});
+
+test('mixed, optional and failed declarations leave required extensions unselected', async () => {
+    for(const other of [{},{unsandboxed:'recommended'},null]) {
+        const entries=[{url:'https://required.test/e.js',ids:['required']},{url:'https://other.test/e.js',ids:['other']}];
+        const completed=[];
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries,locale:'ja',loadInfo:async url=>{
+                if(url===entries[0].url)return {metadata:{unsandboxed:'required'},source:'source'};
+                if(other===null)throw Error('offline');
+                return {metadata:other,source:'source'};
+            },onComplete:value=>completed.push(value)
+        }),document.getElementById('app'));});
+        await wait(0);
+        assert.equal(document.querySelectorAll('input:checked').length,0);
+        assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+        assert.deepEqual(completed,[]);
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
+});
+
+test('batch defaults follow entry changes without refetching settled metadata or applying to empty batches', async () => {
+    const a={url:'https://required.test/a.js',ids:['a']},b={url:'https://required.test/b.js',ids:['b']};
+    const ordinary={url:'https://ordinary.test/e.js',ids:['ordinary']};
+    const added={url:'https://added.test/e.js',ids:['added']};
+    let requests=0,resolveAdded;
+    const loadInfo=url=>{
+        requests++;
+        if(url===added.url)return new Promise(resolve=>{resolveAdded=resolve;});
+        return Promise.resolve({metadata:url===ordinary.url?{}:{unsandboxed:'required'},source:'source'});
+    };
+    const render=entries=>act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries,locale:'ja',loadInfo,onComplete:()=>{}
+    }),document.getElementById('app'));});
+    render([]);await wait(0);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+    render([a,b,ordinary]);await wait(0);
+    assert.equal(document.querySelectorAll('input:checked').length,0);
+    render([a,b]);await wait(0);
+    assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,2);
+    assert.equal(requests,3);
+    render([a,b,added]);await wait(0);
+    assert.equal(document.querySelectorAll('input:checked').length,2);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+    act(()=>resolveAdded({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
+    assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/選択済み/);
+    assert.equal(requests,4);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
 
