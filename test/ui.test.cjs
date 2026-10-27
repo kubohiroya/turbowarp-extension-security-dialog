@@ -77,7 +77,10 @@ test('bundle ID and license are visible without expanding source in both locales
             assert.ok(row.includes(value),value);
         }
         assert.match(row,locale==='ja'?/サンドボックス内では動作しません/:/cannot run inside the sandbox/);
+        assert.match(row,locale==='ja'?/キャンセル/:/Cancel/);
+        assert.equal(document.querySelector('input[value="deny"]').disabled,true);
         assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+        assert.equal(document.querySelector('input[value="unsandboxed"]').disabled,false);
         assert.match(document.querySelector('label[data-mode="unsandboxed"]').textContent,
             locale==='ja'?/動作に必要/:/Required to run/);
         assert.equal(document.querySelectorAll('textarea').length,0);
@@ -202,6 +205,8 @@ test('late requirements invalidate restored choices without increasing permissio
     await wait(0);
     const required=document.querySelectorAll('article')[0];
     const sandboxed=required.querySelector('input[value="sandboxed"]');
+    const deny=required.querySelector('input[value="deny"]');
+    assert.equal(deny.disabled,true);assert.equal(deny.checked,false);
     assert.equal(sandboxed.disabled,true);assert.equal(sandboxed.checked,false);
     assert.equal(instance.state.choices[entries[0].url],undefined);
     assert.match(required.textContent,/選び直してください/);
@@ -209,8 +214,14 @@ test('late requirements invalidate restored choices without increasing permissio
     click('サンドボックスあり');
     assert.equal(instance.state.choices[entries[0].url],undefined);
     assert.equal(instance.state.choices[entries[1].url],'sandboxed');
+    click('拒否');
+    assert.equal(instance.state.choices[entries[0].url],undefined);
+    assert.equal(instance.state.choices[entries[1].url],'deny');
     act(()=>Simulate.change(required.querySelector('input[value="unsandboxed"]')));
     act(()=>Simulate.change(sandboxed));
+    act(()=>Simulate.change(deny));
+    assert.equal(instance.state.choices[entries[0].url],'unsandboxed');
+    click('拒否');
     assert.equal(instance.state.choices[entries[0].url],'unsandboxed');
     click('サンドボックスあり');
     assert.equal(instance.state.choices[entries[0].url],'unsandboxed');
@@ -236,13 +247,60 @@ test('all controls use deny, sandboxed, unsandboxed order and unavailable bulk m
         assert.deepEqual([...document.querySelectorAll('.twextsec-columns svg')].map(e=>e.dataset.mode),
             ['deny','sandboxed','unsandboxed']);
         assert.equal(document.querySelector('.twextsec-bulk button[value="sandboxed"]').disabled,true);
-        assert.equal(document.querySelector('.twextsec-bulk button[value="deny"]').disabled,false);
+        assert.equal(document.querySelector('.twextsec-bulk button[value="deny"]').disabled,true);
         assert.equal(document.querySelector('.twextsec-bulk button[value="unsandboxed"]').disabled,false);
         assert.equal(document.querySelector('input[value="unsandboxed"]').checked,true);
         assert.equal(document.querySelectorAll('.twextsec-required-mode').length,1);
         for(const icon of document.querySelectorAll('.twextsec-mode-icon')) assert.equal(icon.getAttribute('aria-hidden'),'true');
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
+});
+
+test('restored denial waits for metadata and is cleared when unsandboxed execution is required', async () => {
+    const entry={url:'https://required.test/denied.js',ids:['required']};
+    const completed=[];let instance,resolveInfo;
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        ref:value=>{instance=value;},entries:[entry],locale:'ja',
+        initialChoices:new Map([[entry.url,'deny']]),
+        loadInfo:()=>new Promise(resolve=>{resolveInfo=resolve;}),onComplete:value=>completed.push(value)
+    }),document.getElementById('app'));});
+    await wait(760);
+    assert.equal(document.querySelector('input[value="deny"]').checked,true);
+    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
+    act(()=>{instance.handleOK();instance.complete();});
+    assert.equal(document.querySelector('[role="alertdialog"]'),null);
+    assert.deepEqual(completed,[]);
+    act(()=>resolveInfo({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
+    assert.equal(instance.state.choices[entry.url],undefined);
+    assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.equal(document.querySelector('input[value="deny"]').disabled,true);
+    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
+    assert.match(document.querySelector('[role="status"]').textContent,/選び直してください/);
+    act(()=>instance.handleBulk({currentTarget:{value:'deny'}}));
+    assert.equal(instance.state.choices[entry.url],undefined);
+    click('サンドボックスなし');
+    assert.deepEqual(completed,[]);
+    click('OK');
+    assert.equal(document.querySelector('[role="alertdialog"]'),null);
+    assert.deepEqual([...completed[0]],[[entry.url,'unsandboxed']]);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('required extensions can be cancelled without granting unsandboxed execution', async () => {
+    const entry={url:'https://required.test/cancel.js',ids:['required']};
+    const completed=[];
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[entry],locale:'ja',loadInfo:async()=>({metadata:{unsandboxed:'required'},source:'source'}),
+        onComplete:value=>completed.push(value)
+    }),document.getElementById('app'));});
+    await wait(0);
+    assert.equal(document.querySelectorAll('input:checked').length,0);
+    click('キャンセル');click('いいえ');
+    assert.equal(document.querySelectorAll('input:checked').length,0);
+    assert.deepEqual(completed,[]);
+    click('キャンセル');await wait(760);click('はい');
+    assert.deepEqual(completed,[null]);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
 
 test('missing or failed metadata does not invent required permissions', async () => {
