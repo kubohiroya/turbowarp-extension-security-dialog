@@ -12,15 +12,14 @@ Related tasks and acceptance criteria are tracked in
 [English](./README.md) and [Japanese](./README.ja.md) use the same dialog with localized labels and extension descriptions.
 This capture shows Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5 in the
 [public Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=en)
-on 28 October 2026, after the required-mode approval update.
+on 28 October 2026, with **Without sandbox** already selected for all three extensions.
 
-![English descriptions for Camera Source, Asset Cache and Bubble: Deny and With sandbox are disabled for all three extensions; Without sandbox is enabled and marked Required to run. Cancel stops loading the project.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/required-approval-en-20261028.png)
+![English descriptions for Camera Source, Asset Cache and Bubble: Deny and With sandbox are disabled for all three extensions; Without sandbox is preselected and marked Required to run. Choose OK to load the project or Cancel to stop.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/preselected-required-en-20261028.png)
 
 All three extensions declare `Unsandboxed: required`. **Deny** and **With sandbox** are
 disabled, with the reason shown. **Without sandbox** is enabled and marked **Required to run**.
 When every listed extension requires this mode, it is preselected after all metadata loads.
-Press OK to continue, or **Cancel** to stop loading the project. The capture above predates
-automatic preselection.
+Press OK to continue, or **Cancel** to stop loading the project.
 These labels describe execution requirements, not a safety certification.
 
 | Extension | Why it needs to run without a sandbox |
@@ -30,7 +29,7 @@ These labels describe execution requirements, not a safety certification.
 | Bubble | Accesses the host runtime and renderer directly to draw and update layered speech bubbles and portraits on the stage. |
 
 The PNG is an unmodified, modal-only browser capture. Source versions, Editor build and image
-hashes are recorded in [the capture manifest](./assets/screenshots/required-approval-20261028.json).
+hashes are recorded in [the capture manifest](./assets/screenshots/preselected-required-20261028.json).
 
 ## How it fits together
 
