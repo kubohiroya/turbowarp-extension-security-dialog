@@ -35,6 +35,21 @@ const list = <ExtensionSelectionList entries={entries} locale="ja"
 `busy` で選択・フッター操作を無効にします。取得失敗・再試行・カタログの取得中止・VMエラーの表示と、
 読み込み成功に応じた `loadedIds` 更新はホスト側の担当です。
 
+各行は「手動で選択」（青）・「依存関係で自動選択」（紫）・「未選択」（中立色）を、背景・左枠・
+アイコン・状態名で区別します。「読み込み済み」も独立した表示です。一覧の上部には凡例を表示します。
+自動選択した行には「Bubble、Sprite に必要」のように、必要としている明示選択元すべてを表示します。
+手動で選んだ拡張がほかの選択元の依存先になった場合も、「手動で選択」を維持し、依存元を併記して
+チェックボックスを解除不可にします。DOMの `data-selection-state` は順に `selected` / `dependency` /
+`unselected` / `loaded` です。
+
+任意のカテゴリ定義がある場合、ダッシュボードと同じ順序でカテゴリ見出し（`h2`）を表示します。
+日本語は `titleJa` があれば使用し、なければ `title` にフォールバックします。
+検索で空になったカテゴリは非表示になりますが、選択状態と「詳細」の対象は維持します。
+カテゴリのない旧JSONは従来の平坦な一覧です。カテゴリ付きと未指定の項目が混在する場合、未指定分は
+末尾の「その他の機能拡張」へ表示します。配色はホストのモーダル背景色・文字色に従います。
+強調色は `--twextsec-manual-accent` / `--twextsec-dependency-accent` /
+`--twextsec-unselected-accent` / `--twextsec-loaded-accent` で調整できます。
+
 一覧の表示・選択だけでは機能拡張のコードを読み込み・実行しません。
 JSONのメタデータを直ちに表示し、「詳細」を開いたときだけソースを文字列として取得します。
 取得に失敗してもカタログのメタデータと選択は利用できます。
@@ -57,8 +72,15 @@ JSON契約は `schemaVersion: 1` と `extensions` 配列です。各要素の必
 完全なJSON例は[英語版のAPI例](README.md#selecting-extensions-from-a-pages-catalog)を参照してください。
 生成側でパッケージ依存を拡張IDへ変換し、ビルド専用パッケージを除外します。
 
+カテゴリはトップレベルの任意項目 `categories: [{id, title, titleJa?}]` としてダッシュボード順に定義し、
+各 `extensions[].category` にそのIDを指定します。カテゴリIDの重複・不正な定義・未定義IDの参照は拒否します。
+`parseExtensionCatalog` の返り値は従来どおり配列で、カテゴリ参照は各要素の
+`category: {id, title, titleJa?, order}` へ解決します。`order` は定義の配列順です。
+
 `parseExtensionCatalog` は未対応schema、ID/URL重複、存在しない依存先、循環依存、HTTPS以外や認証情報付きのURLを拒否します。
 `resolveExtensionSelection(entries, explicitIds, loadedIds)` はReactなしでも同じ選択集合・依存順を計算します。
+返り値の `requiredBy` は依存先IDをキー、必要としている明示選択元IDの集合を値とするMapです。
+推移的依存・共有依存を含め、選択を解除すると依存元の集合も再計算します。
 `loadExtensionCatalog` は任意のAbortSignalを受け付け、認証情報・Refererを送らずに取得し、HTTP失敗や不正なJSON契約を例外として返します。
 
 切り戻しはホストの起動時固定・既定OFFのフラグをOFFにして再読み込みするか、カタログ接続差分をrevertします。

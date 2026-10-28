@@ -288,6 +288,23 @@ disabled. Search and locale changes preserve selection. `busy` disables selectio
 footer controls. The host owns fetch errors, retry, catalog cancellation, VM errors, and
 updating `loadedIds` after each successful load.
 
+Rows distinguish **Selected by you** (blue), **Selected automatically** (purple), and
+**Not selected** (neutral), using a background, left border, icon and label together.
+Already loaded rows have their own label and accent. A legend explains the states above
+the list. Automatically selected dependencies name every selected root that needs them,
+for example “Required by Bubble, Sprite”. An explicitly selected dependency keeps its
+“Selected by you” state while another root requires it; its checkbox stays disabled and
+the dependency reason is also shown. The row's `data-selection-state` is `selected`,
+`dependency`, `unselected` or `loaded`.
+
+Optional catalog categories render as semantic `h2` sections in dashboard order. Japanese
+uses `titleJa` when available, otherwise `title`; other locales use `title`. Search hides
+empty sections without changing selection or source controls. Catalogs without categories
+keep a flat list. If categorized and uncategorized entries are mixed, the latter appear
+under “Other extensions” at the end. Theme colors use the host's modal background and
+foreground; accent overrides are `--twextsec-manual-accent`, `--twextsec-dependency-accent`,
+`--twextsec-unselected-accent`, and `--twextsec-loaded-accent`.
+
 The selection list never loads or runs extension code. Catalog metadata renders immediately;
 only Details fetches the source as text. Source failures leave catalog metadata and selection
 usable. `ExtensionSecurityDialog context="catalog"` provides permission review with cancel
@@ -299,10 +316,12 @@ The Pages document has the following contract (`schemaVersion: 1`):
 ```json
 {
   "schemaVersion": 1,
+  "categories": [{"id": "camera", "title": "Camera", "titleJa": "カメラ"}],
   "extensions": [
     {
       "id": "cameraSource",
       "name": "Camera Source",
+      "category": "camera",
       "version": "1.2.3",
       "package": "@example/camera-source",
       "url": "https://cdn.jsdelivr.net/npm/@example/camera-source@1.2.3/dist/extension.js",
@@ -325,7 +344,13 @@ uses version-pinned, published distribution URLs and excludes build-only package
 `parseExtensionCatalog` rejects unsupported schemas, duplicate IDs/URLs, missing dependencies,
 cycles, and non-HTTPS or credential-bearing URLs before the UI or VM receives entries.
 `resolveExtensionSelection(entries, explicitIds, loadedIds)` exposes the same closure and
-load order independently of React. `loadExtensionCatalog` accepts an optional AbortSignal,
+load order independently of React. Its `requiredBy` map associates each dependency ID with
+a set of the explicit root IDs that require it, including transitive and shared dependencies.
+Optional `categories: [{id, title, titleJa?}]` are declared once, in dashboard order;
+`extensions[].category` references one of those IDs. Duplicate category IDs, invalid
+definitions and unknown references are rejected. `parseExtensionCatalog` retains its array
+return type and resolves each reference to `entry.category: {id, title, titleJa?, order}`.
+`loadExtensionCatalog` accepts an optional AbortSignal,
 omits credentials/referrers, and rejects failed HTTP responses or invalid JSON contracts.
 
 To roll back catalog integration, turn off the host's startup flag (off by default) and
