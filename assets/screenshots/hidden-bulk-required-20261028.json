@@ -1,0 +1,184 @@
+{
+  "formatVersion": 1,
+  "capturedOn": "2026-10-28",
+  "checkedAt": "2026-10-28T00:12:11.423Z",
+  "relatedIssues": [
+    "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/25",
+    "https://github.com/kubohiroya/turbowarp-extension-data-editor/issues/89"
+  ],
+  "editor": "https://kubohiroya.github.io/turbowarp-extension-data-editor/",
+  "editorBuild": {
+    "repository": "https://github.com/kubohiroya/scratch-gui",
+    "revision": "c8af8b124be3bd74b6f54abda3b127c2bb23dd95",
+    "coreRepository": "https://github.com/kubohiroya/turbowarp-extension-data-editor",
+    "coreRevision": "8b03b9e9b281fd01220a7e36540178c1c7d4fa95",
+    "siteRepository": "https://github.com/kubohiroya/turbowarp-extension-data-editor",
+    "siteRevision": "ac55563c6b889e1d1ba0864d5b310c6df2387b26"
+  },
+  "method": "Public Editor File menu/filechooser; SHA-256 and npm integrity verified published bundles embedded in a generated SB3; Android user agent with desktop viewport. Modal-only browser screenshots without image editing, source/VM/UI overrides, or extension execution.",
+  "browser": {
+    "name": "Chromium",
+    "version": "156.0.8078.4",
+    "viewport": {
+      "width": 1280,
+      "height": 1500
+    },
+    "deviceScaleFactor": 2,
+    "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Mobile Safari/537.36"
+  },
+  "fixture": {
+    "sha256": "407db7bdba8932dd59126b2a3b76aff92803e9dfad55db56901f5e899f66f1f3",
+    "size": 229012
+  },
+  "extensions": [
+    {
+      "name": "Camera Source",
+      "version": "0.19.4",
+      "sourceCommit": "39258a51fceecb22dc866ecf0d39e0e47763f8ac",
+      "description": "Share one MediaDevices camera stream between TurboWarp extensions.",
+      "descriptionJa": "1つのカメラ映像を複数のTurboWarp機能拡張で共有します。",
+      "distSha256": "4867ca8024d55468cc54c68ddcd524b3475a1f8ac98c7b134438885ae14c30c2",
+      "distSize": 189855,
+      "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-camera-source/-/turbowarp-camera-source-0.19.4.tgz",
+      "integrity": "sha512-/3KYLTm7IVRM/l24XSvQUO1wKSNclWRmbaBSHHwu7CJ6PTim+J0nmp4CRK8bkO2kZ2rCKMosNnVW76seIKf8kg==",
+      "id": "kubohiroyacamerasource",
+      "distFile": "package/dist/camera-source.js",
+      "packageName": "@kubohiroya/turbowarp-camera-source"
+    },
+    {
+      "name": "Asset Cache",
+      "version": "0.3.2",
+      "sourceCommit": "dd8a790d0617117d7859587656f84e9e1874f9a6",
+      "description": "Register, cache, display, and play image, audio, and runtime text assets in TurboWarp.",
+      "descriptionJa": "TurboWarpで画像・音声・実行時テキストの素材を登録・保持し、表示・再生します。",
+      "distSha256": "6fa0692280f1c7c4e1ea33974d8c0591bdb276db8f2e5f44c5e07d70299b7745",
+      "distSize": 179815,
+      "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-asset-cache/-/turbowarp-asset-cache-0.3.2.tgz",
+      "integrity": "sha512-XFFh+jO8/xBj71dCn8Ogxaacer92YcdUYlrYBttS/0wNOxJeZnplywYxdBeXID+S0HPBdGIwMiK/Obujw0RoUQ==",
+      "id": "kubohiroyaassetcache",
+      "distFile": "package/dist/asset-cache.js",
+      "packageName": "@kubohiroya/turbowarp-asset-cache"
+    },
+    {
+      "name": "Bubble",
+      "version": "0.13.5",
+      "sourceCommit": "adec5efa5a447b56a89bbf6652ca415e0738d24e",
+      "description": "Layered say and think bubbles with portrait animation and continue indicators.",
+      "descriptionJa": "立ち絵のアニメーションや入力待ちの表示を伴う吹き出しを、重ねて表示します。",
+      "distSha256": "4b42edd1c2f051e0b7b93f5ab1c268211a93a0af505e633bed210c82a98a8b2f",
+      "distSize": 570537,
+      "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-bubble/-/turbowarp-bubble-0.13.5.tgz",
+      "integrity": "sha512-xIfG0QVrfF08I6+Jrz3kljvjqmx3VakErl3DUCpLLM13WTOvXq4dS7lahRfnynhSdjS/j+YSQvWDFqozxJo0hg==",
+      "id": "kubohiroyabubble",
+      "distFile": "package/dist/turbowarp-bubble.js",
+      "packageName": "@kubohiroya/turbowarp-bubble"
+    }
+  ],
+  "captures": [
+    {
+      "locale": "ja",
+      "file": "assets/screenshots/hidden-bulk-required-ja-20261028.png",
+      "capturedAt": "2026-10-28T00:12:09.374Z",
+      "size": 399955,
+      "width": 1760,
+      "height": 2160,
+      "sha256": "d5f566212648ff3ede579d67e40b5c9b5d7f03159b38204991b48517b304b530"
+    },
+    {
+      "locale": "en",
+      "file": "assets/screenshots/hidden-bulk-required-en-20261028.png",
+      "capturedAt": "2026-10-28T00:12:11.419Z",
+      "size": 323222,
+      "width": 1760,
+      "height": 1808,
+      "sha256": "52b031c2ec744427db234e761879a6a8e43ba75ba639afd972d5815e65fcfe9d"
+    }
+  ],
+  "checks": [
+    {
+      "locale": "ja",
+      "rows": [
+        {
+          "name": "Camera Source",
+          "description": "1つのカメラ映像を複数のTurboWarp機能拡張で共有します。",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        },
+        {
+          "name": "Asset Cache",
+          "description": "TurboWarpで画像・音声・実行時テキストの素材を登録・保持し、表示・再生します。",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        },
+        {
+          "name": "Bubble",
+          "description": "立ち絵のアニメーションや入力待ちの表示を伴う吹き出しを、重ねて表示します。",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        }
+      ],
+      "bulkHidden": true,
+      "cancelEnabled": true,
+      "okEnabledWithPreset": true,
+      "extensionsLoaded": [
+        false,
+        false,
+        false
+      ],
+      "listBounds": {
+        "clientHeight": 770,
+        "scrollHeight": 770
+      },
+      "unchangedBuild": true
+    },
+    {
+      "locale": "en",
+      "rows": [
+        {
+          "name": "Camera Source",
+          "description": "Share one MediaDevices camera stream between TurboWarp extensions.",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        },
+        {
+          "name": "Asset Cache",
+          "description": "Register, cache, display, and play image, audio, and runtime text assets in TurboWarp.",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        },
+        {
+          "name": "Bubble",
+          "description": "Layered say and think bubbles with portrait animation and continue indicators.",
+          "denyDisabled": true,
+          "sandboxedDisabled": true,
+          "unsandboxedEnabled": true,
+          "selected": true
+        }
+      ],
+      "bulkHidden": true,
+      "cancelEnabled": true,
+      "okEnabledWithPreset": true,
+      "extensionsLoaded": [
+        false,
+        false,
+        false
+      ],
+      "listBounds": {
+        "clientHeight": 650,
+        "scrollHeight": 650
+      },
+      "unchangedBuild": true
+    }
+  ],
+  "pageErrors": []
+}
