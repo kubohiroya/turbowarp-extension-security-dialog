@@ -5,6 +5,65 @@
 TurboWarpの複数の機能拡張を、1つの一覧で確認するための共通パッケージです。
 関連タスクと受け入れ基準は [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33) に記録しています。
 
+## Pagesのカタログから機能拡張を選択する
+
+`ExtensionSelectionList` は既存のバナー・メタデータ・詳細表示を共有し、各行の右端へチェックボックスを1つ表示します。
+TurboWarp Plus一覧の対応範囲は [#28](https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/28) に記録しています。
+ホスト側でGitHub PagesのJSONをHTTPS取得し、このコンポーネントへ渡します。
+
+```jsx
+import {loadExtensionCatalog} from '@kubohiroya/turbowarp-extension-security-dialog';
+import {ExtensionSelectionList} from '@kubohiroya/turbowarp-extension-security-dialog/react';
+
+const controller = new AbortController();
+const entries = await loadExtensionCatalog(
+  'https://kubohiroya.github.io/turbowarp-plus-packages/extensions-v1.json',
+  controller.signal
+);
+
+const list = <ExtensionSelectionList entries={entries} locale="ja"
+  filterQuery={searchText} loadedIds={loadedExtensionIds} busy={loading}
+  onCancel={closeLibrary}
+  onComplete={ordered => host.reviewAndLoadInOrder(ordered)} />;
+```
+
+例の `host.reviewAndLoadInOrder` はホスト側で実装する実行許可確認・VM読み込み処理です。
+`onComplete` は依存先を先に並べた重複のない配列を返し、`loadedIds` は除外します。
+ある拡張を選ぶと推移的な依存先すべてがchecked・disabledになります。
+親を解除すると依存関係を再計算し、ほかの選択やユーザー自身の明示選択が必要としている拡張は選択を保ちます。
+読み込み済みの行はchecked・disabledです。検索と表示言語を切り替えても選択を保ちます。
+`busy` で選択・フッター操作を無効にします。取得失敗・再試行・カタログの取得中止・VMエラーの表示と、
+読み込み成功に応じた `loadedIds` 更新はホスト側の担当です。
+
+一覧の表示・選択だけでは機能拡張のコードを読み込み・実行しません。
+JSONのメタデータを直ちに表示し、「詳細」を開いたときだけソースを文字列として取得します。
+取得に失敗してもカタログのメタデータと選択は利用できます。
+実行許可確認には `ExtensionSecurityDialog context="catalog"` を使用でき、キャンセル文言が選択一覧へ戻る案内になります。
+既定の `context="project"` はプロジェクト読み込み用の文言を維持します。
+ホストは確定された実行モードと独自のセキュリティ方針を尊重して読み込んでください。
+
+JSON契約は `schemaVersion: 1` と `extensions` 配列です。各要素の必須項目は次のとおりです。
+
+| 項目 | 内容 |
+| --- | --- |
+| `id` | ASCII英数字の機能拡張ID |
+| `name` | 表示名 |
+| `version` | 配布バージョン |
+| `url` | バージョン固定の公開済み機能拡張JSへのHTTPS URL |
+| `dependencies` | 同じJSONに含まれる依存先の機能拡張ID配列。npmパッケージ名ではない |
+
+`package`・`description`・`descriptions`（`ja`等の小文字言語タグをキーとする説明）・`author`・`license`・
+`banner`・`repository`・`unsandboxed`（例: `required`）は任意のメタデータです。
+完全なJSON例は[英語版のAPI例](README.md#selecting-extensions-from-a-pages-catalog)を参照してください。
+生成側でパッケージ依存を拡張IDへ変換し、ビルド専用パッケージを除外します。
+
+`parseExtensionCatalog` は未対応schema、ID/URL重複、存在しない依存先、循環依存、HTTPS以外や認証情報付きのURLを拒否します。
+`resolveExtensionSelection(entries, explicitIds, loadedIds)` はReactなしでも同じ選択集合・依存順を計算します。
+`loadExtensionCatalog` は任意のAbortSignalを受け付け、認証情報・Refererを送らずに取得し、HTTP失敗や不正なJSON契約を例外として返します。
+
+切り戻しはホストの起動時固定・既定OFFのフラグをOFFにして再読み込みするか、カタログ接続差分をrevertします。
+既存の3つの実行モードを持つセキュリティ確認は、そのまま利用できます。
+
 ## 公開Editorのスクリーンショット
 
 [英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替え、ラベルと拡張の説明文を各言語で表示しています。

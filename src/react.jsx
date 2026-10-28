@@ -4,6 +4,7 @@ import {loadExtensionInfo, getPreviewCandidates, getExtensionDescription} from '
 const commonBanner = __SECURITY_COMMON_BANNER__;
 import {formatMessage} from './messages.js';
 import styles from './style-names.js';
+import {resolveExtensionSelection} from './selection.js';
 const bindAll = (instance, names) => names.forEach(name => {instance[name] = instance[name].bind(instance);});
 
 const MODES = ['deny', 'sandboxed', 'unsandboxed'];
@@ -213,8 +214,9 @@ class ExtensionSecurityDialog extends React.Component {
     focusNo (element) {
         if (element) element.focus();
     }
-    renderRow (entry, index) {
-        const row = this.state.rows[entry.url] || {};
+    renderRow (entry, index, selection) {
+        const row = selection ? {...this.state.rows[entry.url], metadata: entry.metadata, status: 'ready'} :
+            this.state.rows[entry.url] || {};
         const metadata = row.metadata || {};
         const description = getExtensionDescription(metadata, this.props.locale);
         const required = requiresUnsandboxed(metadata);
@@ -274,14 +276,16 @@ class ExtensionSecurityDialog extends React.Component {
                             {!row.status && <div className={styles.secondary}>{this.t('pending')}</div>}
                             {row.status === 'failed' && <div className={styles.error}>{this.t('failed')}</div>}
                             {required && (
-                                <div id={reasonId} className={styles.warningText}>{this.t('required')}</div>
+                                <div id={reasonId} className={styles.warningText}>
+                                    {this.t(selection ? 'selectionRequired' :
+                                        this.props.context === 'catalog' ? 'catalogRequired' : 'required')}</div>
                             )}
                             {row.invalidated && !this.state.choices[entry.url] && (
                                 <div className={styles.warningText} role="status">{this.t('choiceReset')}</div>
                             )}
                         </div>
                     </div>
-                    {MODES.map(mode => (
+                    {!selection && MODES.map(mode => (
                         <label
                             className={styles.choice}
                             key={mode}
@@ -321,6 +325,16 @@ class ExtensionSecurityDialog extends React.Component {
                         aria-controls={`extension-source-${index}`}
                         onClick={this.handleDetails}
                     >{this.t('details')}</button>
+                    {selection && (
+                        <label className={styles.choice} aria-disabled={selection.disabled}>
+                            <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
+                                aria-label={`${name}: ${this.t('selectExtension')}`}
+                                aria-describedby={selection.reason ? `extension-selection-reason-${index}` : undefined}
+                                onChange={() => this.toggleSelection(entry.id)} />
+                            {selection.reason && <span id={`extension-selection-reason-${index}`}
+                                className={styles.modeNote}>{this.t(selection.reason)}</span>}
+                        </label>
+                    )}
                 </div>
                 {expanded && (
                     <div
@@ -336,7 +350,8 @@ class ExtensionSecurityDialog extends React.Component {
                                 readOnly
                                 spellCheck={false}
                             />
-                        ) : <p>{this.t(row.status === 'failed' ? 'sourceFailed' : 'pending')}</p>}
+                        ) : <p>{this.t((selection ? row.sourceStatus : row.status) === 'failed' ?
+                            'sourceFailed' : 'pending')}</p>}
                     </div>
                 )}
             </article>
@@ -372,7 +387,8 @@ class ExtensionSecurityDialog extends React.Component {
                             {this.t(confirmation === 'cancel' ? 'cancelTitle' : 'denyTitle')}
                         </h3>
                         <p id="extension-confirm-question">
-                            {this.t(confirmation === 'cancel' ? 'cancelQuestion' : 'denyQuestion')}
+                            {this.t(confirmation === 'cancel' ?
+                                this.props.context === 'catalog' ? 'catalogCancelQuestion' : 'cancelQuestion' : 'denyQuestion')}
                         </p>
                         <div className={styles.buttons}>
                             <button
@@ -391,7 +407,8 @@ class ExtensionSecurityDialog extends React.Component {
                 ) : (
                     <div className={styles.body}>
                         <div className={styles.intro}>
-                            <p>{this.t(allRequired ? 'allRequiredIntro' : 'intro')}</p>
+                            <p>{this.t(allRequired ?
+                                this.props.context === 'catalog' ? 'catalogRequiredIntro' : 'allRequiredIntro' : 'intro')}</p>
                             <div
                                 className={styles.secondary}
                                 aria-live="polite"
@@ -454,7 +471,90 @@ const DefaultFrame = ({children, contentLabel, className}) => (
     <section role="dialog" aria-label={contentLabel} className={className}>{children}</section>
 );
 ExtensionSecurityDialog.defaultProps = {
-    loadInfo: loadExtensionInfo, initialChoices: new Map(), locale: 'en', DialogFrame: DefaultFrame
+    loadInfo: loadExtensionInfo, initialChoices: new Map(), locale: 'en', context: 'project', DialogFrame: DefaultFrame
 };
 export {ExtensionSecurityDialog};
 export default ExtensionSecurityDialog;
+
+
+class ExtensionSelectionList extends ExtensionSecurityDialog {
+    constructor (props) {
+        super(props);
+        this.state.explicitIds = new Set();
+    }
+    componentDidMount () {
+        this.alive = true;
+    }
+    componentDidUpdate () {
+        const available = new Set(this.props.entries.map(entry => entry.id));
+        if ([...this.state.explicitIds].some(id => !available.has(id))) {
+            this.setState(previous => ({explicitIds: new Set([...previous.explicitIds].filter(id => available.has(id)))}));
+        }
+    }
+    startRequests () {}
+    selection () {
+        return resolveExtensionSelection(this.props.entries, this.state.explicitIds, this.props.loadedIds);
+    }
+    toggleSelection (id) {
+        if (this.props.busy) return;
+        const selection = this.selection();
+        if (selection.required.has(id) || selection.loaded.has(id)) return;
+        this.setState(previous => {
+            const explicitIds = new Set(previous.explicitIds);
+            if (explicitIds.has(id)) explicitIds.delete(id);
+            else explicitIds.add(id);
+            return {explicitIds};
+        });
+    }
+    handleDetails (event) {
+        const entry = this.entryForEvent(event);
+        if (!this.requests.has(entry.url)) {
+            const controller = new AbortController();
+            this.controllers.add(controller);
+            const timeout = this.delay(() => controller.abort(), 15000);
+            const request = Promise.resolve().then(() => this.props.loadInfo(entry.url, controller.signal));
+            this.requests.set(entry.url, request);
+            request.catch(() => {
+                if (this.alive) this.setState(previous => ({rows: {...previous.rows,
+                    [entry.url]: {...previous.rows[entry.url], sourceStatus: 'failed'}}}));
+            }).finally(() => {
+                clearTimeout(timeout);
+                this.timeouts.delete(timeout);
+                this.controllers.delete(controller);
+            });
+        }
+        super.handleDetails(event);
+    }
+    render () {
+        const selection = this.selection();
+        const query = (this.props.filterQuery || '').trim().toLowerCase();
+        const visible = this.props.entries.map((entry, index) => ({entry, index})).filter(({entry}) =>
+            [entry.id, (entry.metadata || {}).name, getExtensionDescription(entry.metadata || {}, this.props.locale)]
+                .join(' ').toLowerCase().includes(query));
+        return (<div className={`${styles.body} twextsec-selection`} aria-busy={this.props.busy}>
+            <div className={styles.intro}><p>{this.t('selectionIntro')}</p></div>
+            <div className={styles.list}>
+                {visible.map(({entry, index}) => this.renderRow(entry, index, {
+                    checked: selection.selected.has(entry.id) || selection.loaded.has(entry.id),
+                    disabled: this.props.busy || selection.required.has(entry.id) || selection.loaded.has(entry.id),
+                    reason: selection.loaded.has(entry.id) ? 'alreadyLoaded' :
+                        selection.required.has(entry.id) ? 'dependency' : null
+                }))}
+                {!visible.length && <p role="status">{this.t('noResults')}</p>}
+            </div>
+            <footer className={styles.footer}>
+                <span aria-live="polite">{this.t('selectedSummary', {count: selection.ordered.length})}</span>
+                <div className={styles.buttons}>
+                    <button type="button" disabled={this.props.busy} onClick={this.props.onCancel}>
+                        {this.t('cancel')}</button>
+                    <button type="button" className={styles.primary}
+                        disabled={this.props.busy || !selection.ordered.length}
+                        onClick={() => this.props.onComplete(this.selection().ordered)}>
+                        {this.t(this.props.busy ? 'loadingExtensions' : 'loadSelected')}</button>
+                </div>
+            </footer>
+        </div>);
+    }
+}
+ExtensionSelectionList.defaultProps = {...ExtensionSecurityDialog.defaultProps, loadedIds: [], busy: false};
+export {ExtensionSelectionList};

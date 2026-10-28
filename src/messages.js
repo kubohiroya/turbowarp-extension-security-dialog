@@ -1,5 +1,13 @@
 const messages = {
     "en": {
+        "selectionIntro": "Choose extensions to add. Required extensions are selected automatically.",
+        "selectionRequired": "Requires running without a sandbox.",
+        "catalogRequiredIntro": "All selected extensions require Without sandbox, which is already selected. Choose OK to load them, or Cancel to return to the selection list.",
+        "catalogRequired": "This extension cannot run inside the sandbox. Choose Without sandbox, or Cancel to return to the selection list.",
+        "catalogCancelQuestion": "Cancel loading the selected extensions and return to the selection list?",
+        "selectExtension": "Select", "dependency": "Required by another selection", "alreadyLoaded": "Already loaded",
+        "noResults": "No matching extensions", "selectedSummary": "{count} extensions to load",
+        "loadSelected": "Load selected extensions", "loadingExtensions": "Loading…",
         "title": "Extension Security",
         "intro": "Choose how to run each extension (you can choose while metadata loads).",
         "allRequiredIntro": "All extensions require Without sandbox, which is already selected. Choose OK to load the project, or Cancel to stop.",
@@ -38,6 +46,14 @@ const messages = {
         "warning": "Extensions without a sandbox can access your project and browser information."
     },
     "ja": {
+        "selectionIntro": "追加する機能拡張を選んでください。依存する機能拡張も自動で選択されます。",
+        "selectionRequired": "サンドボックスなしでの実行が必要です。",
+        "catalogRequiredIntro": "選択したすべての機能拡張で必要な「サンドボックスなし」を選択済みです。「OK」で読み込むか、「キャンセル」で選択一覧に戻ります。",
+        "catalogRequired": "この拡張はサンドボックス内では動作しません。「サンドボックスなし」を選ぶか、「キャンセル」で選択一覧に戻ります。",
+        "catalogCancelQuestion": "選択した機能拡張の読み込みを取り消して、選択一覧に戻りますか？",
+        "selectExtension": "選択", "dependency": "選択した拡張に必要", "alreadyLoaded": "読み込み済み",
+        "noResults": "一致する機能拡張がありません", "selectedSummary": "読み込む機能拡張 {count} 件",
+        "loadSelected": "選択した拡張を読み込む", "loadingExtensions": "読み込み中…",
         "title": "機能拡張セキュリティ",
         "intro": "実行方法を選んでください（取得中でも選択できます）",
         "allRequiredIntro": "すべての機能拡張で必要な「サンドボックスなし」を選択済みです。「OK」で読み込むか、「キャンセル」で中止してください。",

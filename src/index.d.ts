@@ -24,3 +24,13 @@ export const preferences: {
 };
 export const messages: Record<string, Record<string, string>>;
 export function formatMessage(locale: string, key: string, values?: Record<string, string | number>): string;
+
+export interface SelectableExtension extends ExtensionEntry {
+    id: string; dependencies: string[]; metadata: ExtensionMetadata;
+}
+export interface ExtensionSelection {
+    selected: Set<string>; required: Set<string>; loaded: Set<string>; ordered: SelectableExtension[];
+}
+export function resolveExtensionSelection(entries: SelectableExtension[], explicitIds?: Iterable<string>, loadedIds?: Iterable<string>): ExtensionSelection;
+export function parseExtensionCatalog(data: unknown): SelectableExtension[];
+export function loadExtensionCatalog(url: string, signal?: AbortSignal): Promise<SelectableExtension[]>;
