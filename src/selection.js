@@ -5,6 +5,25 @@ const httpsURL = value => {
     return url.href;
 };
 
+const authorURL = value => {
+    if (typeof value !== 'string' || !value.trim()) throw new Error('Expected an HTTP or HTTPS author URL');
+    const url = new URL(value);
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+        throw new Error('Expected an HTTP or HTTPS author URL');
+    }
+    return url.href;
+};
+
+const npmPackageName = value => {
+    if (typeof value !== 'string') throw new Error('Invalid npm package name');
+    const name = value.trim();
+    if (name.length > 214 || !/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(name) ||
+        ['node_modules', 'favicon.ico'].includes(name)) {
+        throw new Error('Invalid npm package name');
+    }
+    return name;
+};
+
 /** Resolve runtime extension dependencies without executing extension code. */
 export const resolveExtensionSelection = (entries, explicitIds = [], loadedIds = []) => {
     const byId = new Map();
@@ -96,6 +115,9 @@ export const parseExtensionCatalog = data => {
         }
         if (item.banner) metadata.banner = httpsURL(item.banner);
         if (item.repository) metadata.repository = httpsURL(item.repository);
+        if (item.docsURL !== undefined) metadata.docsURL = httpsURL(item.docsURL);
+        if (item.authorURL !== undefined) metadata.authorURL = authorURL(item.authorURL);
+        if (item.package !== undefined) metadata.package = npmPackageName(item.package);
         const entry = {id: item.id, ids: [item.id], url, dependencies: [...new Set(item.dependencies)], metadata};
         if (item.category !== undefined) {
             if (typeof item.category !== 'string' || !categories.has(item.category)) {

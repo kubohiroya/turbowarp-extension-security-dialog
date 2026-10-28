@@ -1,8 +1,11 @@
 export type Decision = 'deny' | 'sandboxed' | 'unsandboxed';
-export interface ExtensionEntry { url: string; ids: string[]; banner?: string; }
+export interface ExtensionEntry {
+    url: string; ids: string[]; banner?: string; metadata?: ExtensionMetadata; category?: ExtensionCategory;
+}
 export interface ExtensionMetadata {
     name?: string; id?: string; description?: string; author?: string; version?: string; updatedAt?: string;
     license?: string; repository?: string; banner?: string; unsandboxed?: string;
+    docsURL?: string; package?: string; authorURL?: string;
     descriptions?: Record<string, string>;
 }
 export interface ExtensionInfo { source: string; metadata: ExtensionMetadata; }

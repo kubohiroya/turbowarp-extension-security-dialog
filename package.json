@@ -1,8 +1,13 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
+  "author": {
+    "name": "Hiroya Kubo",
+    "email": "hiroya@cuc.ac.jp",
+    "url": "https://github.com/kubohiroya"
+  },
   "license": "GPL-3.0-only",
   "repository": {"type": "git", "url": "git+https://github.com/kubohiroya/turbowarp-extension-security-dialog.git"},
   "bugs": {"url": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues"},
