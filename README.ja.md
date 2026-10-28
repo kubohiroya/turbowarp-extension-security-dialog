@@ -8,14 +8,14 @@ TurboWarpの複数の機能拡張を、1つの一覧で確認するための共�
 ## 公開Editorのスクリーンショット
 
 [英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替え、ラベルと拡張の説明文を各言語で表示しています。
-全件必須時の自動選択に対応した[公開Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=ja)で、
+全件必須時の自動選択と一括選択欄の非表示に対応した[公開Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=ja)で、
 2026年10月28日にCamera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。
 
-![Camera Source・Asset Cache・Bubbleの説明が日本語で表示された修正後の確認画面。拒否とサンドボックスありは無効、サンドボックスなしを選択済みで動作に必要と表示。OKで読み込むかキャンセルで中止できる](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/preselected-required-ja-20261028.png)
+![Camera Source・Asset Cache・Bubbleの説明が日本語で表示された修正後の確認画面。拒否とサンドボックスありは無効、サンドボックスなしを選択済みで動作に必要と表示。一括選択欄は非表示。OKで読み込むかキャンセルで中止できる](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/hidden-bulk-required-ja-20261028.png)
 
 3拡張とも`Unsandboxed: required`を宣言しています。「拒否」と「サンドボックスあり」は無効化され、
 理由が表示されます。「サンドボックスなし」だけが有効で、「動作に必要」と表示します。
-全拡張がこのモードを必要とする場合、全件のメタデータ取得後に選択済みになります。
+全拡張がこのモードを必要とする場合、全件のメタデータ取得後に選択済みになり、一括選択欄は非表示になります。
 「OK」で続行するか、「キャンセル」でプロジェクトの読み込みを中止します。
 必要なモードの表示は、安全性や配布元の信頼性の認定ではありません。
 
@@ -26,7 +26,7 @@ TurboWarpの複数の機能拡張を、1つの一覧で確認するための共�
 | Bubble | ホストの実行環境と描画機能へ直接アクセスして、ステージ上に重ねた吹き出しや立ち絵を描画・更新します。 |
 
 画像はダイアログ部分をブラウザーで直接撮影したもので、加工していません。
-取得元の版・Editor build・画像hashは[撮影台帳](./assets/screenshots/preselected-required-20261028.json)に記録しています。
+取得元の版・Editor build・画像hashは[撮影台帳](./assets/screenshots/hidden-bulk-required-20261028.json)に記録しています。
 
 ## 連動するパッケージ
 
