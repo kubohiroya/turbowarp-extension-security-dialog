@@ -249,8 +249,9 @@ class ExtensionSecurityDialog extends React.Component {
                             locale={this.props.locale} index={index} idPrefix={idPrefix}
                             requirementId={reasonId}
                             previewIndex={row.previewIndex} status={row.status} onImageError={this.handleImageError}
-                            linkCreator={Boolean(selection)} showMissingMetadata={Boolean(selection)}
-                            documentation={Boolean(selection)}
+                            linkCreator={Boolean(selection || (metadata.author && metadata.authorURL))}
+                            showMissingMetadata={Boolean(selection)}
+                            documentation={Boolean(selection || metadata.docsURL)}
                             provenance={!selection && <div className={styles.secondary}>{sourceLink}</div>}>
                             {selection && <div className={styles.selectionStatus}>
                                 <span className={styles.selectionBadge} id={`${idPrefix}-state-${index}`}>

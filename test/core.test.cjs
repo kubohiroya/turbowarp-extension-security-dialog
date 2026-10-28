@@ -185,3 +185,24 @@ test('localized descriptions also support block-comment headers and embedded sou
     assert.equal(getExtensionDescription(metadata,'en-US'),'English');
     assert.deepEqual(parseExtensionMetadata('//   Description[ja]: Nested notice\nvoid 0;'),{});
 });
+
+test('bundle display links accept canonical header aliases with existing boundaries and limits', () => {
+    for (const [field, keys] of Object.entries({authorURL:['Author URL','authorURL','Author-URL'],
+        docsURL:['Docs URL','docsURL','Docs-URL'],package:['Package','PACKAGE']})) {
+        for (const key of keys) {
+            const value = field === 'package' ? '@example/bundle' : 'https://example.test/profile';
+            assert.deepEqual(parseExtensionMetadata(`/*\n * ${key}: ${value}\n */\nvoid 0;`),{[field]:value});
+        }
+    }
+    const source = '// By: Enclosing Creator\n// Author URL: https://creator.test/first\n' +
+        '// authorURL: https://creator.test/second\n// Docs URL: https://docs.test/first\n' +
+        '// Docs-URL: https://docs.test/second\n// Package: @example/bundle\n// Package: other\n' +
+        '// Bundled extensions:\n// Author URL: https://nested.test/\n// Docs URL: https://nested.test/\n' +
+        '// Package: nested\nvoid 0;\n// Author URL: https://code.test/';
+    assert.deepEqual(parseExtensionMetadata(source),{author:'Enclosing Creator',authorURL:'https://creator.test/first',
+        docsURL:'https://docs.test/first',package:'@example/bundle'});
+    assert.deepEqual(parseExtensionMetadata('// Bundled extensions:\n// Package: nested\nvoid 0;'),{});
+    assert.deepEqual(parseExtensionMetadata('void 0;\n// Docs URL: https://code.test/\n// Package: injected'),{});
+    assert.equal(parseExtensionMetadata(`// Docs URL: ${'x'.repeat(1100)}\nvoid 0;`).docsURL.length,1000);
+    assert.deepEqual(parseExtensionMetadata(`// ${'x'.repeat(16384)}\n// Package: outside`),{});
+});

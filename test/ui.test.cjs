@@ -863,3 +863,70 @@ test('shared service links reject unsafe raw metadata and category-free projects
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
 });
+
+test('embedded bundle headers supply bilingual display metadata and explicit creator and documentation links', async () => {
+    globalThis.bundleDisplaySourceExecuted = false;
+    const source = '// Name: Generated Bundle\n// ID: generatedbundle\n' +
+        '// Description: English bundle description.\n// Description[ja]: 日本語のバンドル説明。\n' +
+        '// By: Bundle Creator\n// Author URL: https://creator.test/profile\n// Version: 2.3.4\n' +
+        '// Updated: 2026-10-29\n// Repository: https://github.com/example/bundle.git\n' +
+        '// Docs URL: https://docs.test/bundle/\n// Banner: https://images.test/bundle.svg\n' +
+        '// Package: @example/bundle\n// License: MPL-2.0\n// Unsandboxed: required\n' +
+        '// Bundled extensions:\n// Docs URL: https://nested.test/\n// Package: nested\n' +
+        'globalThis.bundleDisplaySourceExecuted = true;';
+    const entry = {url:`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`,ids:['bundle']};
+    let instance;
+    const render = locale => act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[entry],locale,ref:value=>{instance=value;},onComplete:()=>{}
+    }),document.getElementById('app'));});
+    render('ja');await wait(20);
+    for (const locale of ['ja','en']) {
+        render(locale);
+        const row=document.querySelector('article');
+        assert.equal(row.querySelector('strong').textContent,'Generated Bundle');
+        assert.equal(row.querySelector('.twextsec-version').textContent,'v2.3.4');
+        assert.match(row.textContent,/generatedbundle/);
+        assert.match(row.textContent,/2026-10-29/);
+        assert.ok(row.textContent.includes(locale==='ja'?'日本語のバンドル説明。':'English bundle description.'));
+        assert.equal(row.querySelector('img').src,'https://images.test/bundle.svg');
+        const links=[...row.querySelectorAll('a')];
+        assert.deepEqual(links.map(link=>link.href),['https://github.com/example/bundle',
+            'https://www.npmjs.com/package/@example/bundle','https://creator.test/profile','https://docs.test/bundle/']);
+        assert.equal(links[2].textContent,'Bundle Creator');
+        for(const link of links) {assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener noreferrer');}
+        assert.equal(row.querySelectorAll('button,textarea').length,0);
+        assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+        assert.equal(document.querySelector('input[value="deny"]').disabled,true);
+        assert.equal(instance.state.choices[entry.url],'unsandboxed');
+        assert.equal(globalThis.bundleDisplaySourceExecuted,false);
+    }
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('embedded bundle links reject unsafe URLs and legacy metadata gains no missing creator or documentation rows', async () => {
+    const sources = [
+        '// By: Unsafe Creator\n// Author URL: javascript:alert(1)\n// Docs URL: http://docs.test/\n' +
+            '// Repository: https://user:secret@github.com/example/bundle\n// Package: ../escape\n',
+        '// By: Unsafe Creator\n// Author URL: https://user:secret@creator.test/\n// Docs URL: javascript:alert(1)\n',
+        '// By: HTTP Creator\n// Author URL: http://creator.test/\n// Docs URL: https://user:secret@docs.test/\n',
+        '// By: Legacy Creator\n',
+        '// Author URL: https://creator.test/no-author\n',
+        ''
+    ];
+    for (let index=0;index<sources.length;index++) {
+        const entry={url:`data:text/javascript,${encodeURIComponent(sources[index]+'void 0;')}`,ids:['legacy']};
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[entry],locale:'ja',onComplete:()=>{}
+        }),document.getElementById('app'));});
+        await wait(20);
+        const row=document.querySelector('article');
+        const links=[...row.querySelectorAll('a')];
+        assert.deepEqual(links.map(link=>link.href),index===2?['http://creator.test/']:[]);
+        assert.equal(row.querySelector('.twextsec-version'),null);
+        assert.doesNotMatch(row.textContent,/未記載/);
+        if(index===3)assert.match(row.textContent,/Legacy Creator/);
+        if(index>=4)assert.doesNotMatch(row.textContent,/製作者/);
+        assert.equal(row.querySelectorAll('input[type="radio"]:disabled').length,0);
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
+});
