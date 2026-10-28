@@ -1,0 +1,80 @@
+const httpsURL = value => {
+    if (typeof value !== 'string' || !value.trim()) throw new Error('Expected an HTTPS URL');
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Expected an HTTPS URL');
+    return url.href;
+};
+
+/** Resolve runtime extension dependencies without executing extension code. */
+export const resolveExtensionSelection = (entries, explicitIds = [], loadedIds = []) => {
+    const byId = new Map();
+    for (const entry of entries) {
+        if (!entry || typeof entry.id !== 'string' || !entry.id || byId.has(entry.id)) {
+            throw new Error(`Duplicate or missing extension ID: ${entry && entry.id}`);
+        }
+        if (entry.dependencies !== undefined && (!Array.isArray(entry.dependencies) ||
+            entry.dependencies.some(id => typeof id !== 'string' || !id))) {
+            throw new Error(`Invalid extension dependencies: ${entry.id}`);
+        }
+        byId.set(entry.id, entry);
+    }
+    const selected = new Set();
+    const required = new Set();
+    const visiting = new Set();
+    const ordered = [];
+    const visit = id => {
+        const entry = byId.get(id);
+        if (!entry) throw new Error(`Missing extension dependency: ${id}`);
+        if (visiting.has(id)) throw new Error(`Cyclic extension dependency: ${id}`);
+        if (selected.has(id)) return;
+        visiting.add(id);
+        for (const dependency of entry.dependencies || []) {
+            required.add(dependency);
+            visit(dependency);
+        }
+        visiting.delete(id);
+        selected.add(id);
+        ordered.push(entry);
+    };
+    for (const id of explicitIds) if (byId.has(id)) visit(id);
+    const loaded = new Set(loadedIds);
+    return {selected, required, loaded, ordered: ordered.filter(entry => !loaded.has(entry.id))};
+};
+
+/** Validate the Pages JSON contract before it reaches the selection UI or VM. */
+export const parseExtensionCatalog = data => {
+    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.extensions)) {
+        throw new Error('Unsupported extension catalog');
+    }
+    const urls = new Set();
+    const entries = data.extensions.map(item => {
+        if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9]+$/.test(item.id) || typeof item.name !== 'string' ||
+            !item.name.trim() || typeof item.version !== 'string' || !item.version ||
+            !Array.isArray(item.dependencies) || item.dependencies.some(id =>
+                typeof id !== 'string' || !/^[a-zA-Z0-9]+$/.test(id))) {
+            throw new Error('Invalid extension catalog entry');
+        }
+        const url = httpsURL(item.url);
+        if (urls.has(url)) throw new Error(`Duplicate extension URL: ${url}`);
+        urls.add(url);
+        const metadata = {name: item.name, id: item.id, version: item.version};
+        for (const field of ['description', 'author', 'license', 'updatedAt', 'unsandboxed']) {
+            if (typeof item[field] === 'string') metadata[field] = item[field];
+        }
+        if (item.descriptions && typeof item.descriptions === 'object') {
+            metadata.descriptions = Object.fromEntries(Object.entries(item.descriptions)
+                .filter(([locale, text]) => /^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/.test(locale) && typeof text === 'string'));
+        }
+        if (item.banner) metadata.banner = httpsURL(item.banner);
+        if (item.repository) metadata.repository = httpsURL(item.repository);
+        return {id: item.id, ids: [item.id], url, dependencies: [...new Set(item.dependencies)], metadata};
+    });
+    resolveExtensionSelection(entries, entries.map(entry => entry.id));
+    return entries;
+};
+
+export const loadExtensionCatalog = async (url, signal) => {
+    const response = await fetch(httpsURL(url), {signal, credentials: 'omit', referrerPolicy: 'no-referrer'});
+    if (!response.ok) throw new Error(`Extension catalog HTTP ${response.status}`);
+    return parseExtensionCatalog(await response.json());
+};

@@ -104,3 +104,15 @@
     .twextsec-footer .twextsec-buttons { flex-shrink: 0; }
     .twextsec-footer .twextsec-primary { min-width: 64px; }
 }
+
+/* The catalog uses the same metadata row with one checkbox at the far right. */
+.twextsec-selection { height: 100%; width: 100%; }
+.twextsec-selection .twextsec-row-main { grid-template-columns: minmax(0, 1fr) 48px 100px; }
+.twextsec-selection .twextsec-metadata { grid-column: auto; }
+.twextsec-selection .twextsec-details-button { grid-row: auto; grid-column: auto; }
+.twextsec-selection .twextsec-choice { grid-row: auto; }
+@media (max-width: 580px) {
+    .twextsec-selection .twextsec-row-main { grid-template-columns: minmax(0, 1fr) 42px 72px; gap: 6px; }
+    .twextsec-selection .twextsec-metadata { grid-template-columns: minmax(0, 1fr); }
+    .twextsec-selection .twextsec-preview { max-width: 128px; }
+}

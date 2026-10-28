@@ -455,3 +455,127 @@ test('localized description markup remains text instead of becoming executable H
     assert.equal(globalThis.descriptionExecuted,undefined);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
+
+test('catalog checkboxes share metadata rows, lock transitive dependencies, and preserve selection during search', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entries=[['parent',['middle']],['middle',['leaf']],['leaf',[]],['other',['leaf']]]
+        .map(([id,dependencies])=>({id,ids:[id],dependencies,url:`https://catalog.test/${id}.js`,metadata:{name:id,description:'Default',descriptions:{ja:`${id}の説明`}}}));
+    const completed=[];let requests=0;
+    const render=(filterQuery='',locale='ja',loadedIds=[])=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,filterQuery,locale,loadedIds,loadInfo:async()=>{requests++;return {source:'globalThis.catalogSourceExecuted = true;',metadata:{}};},
+        onComplete:value=>completed.push(value),onCancel:()=>{}
+    }),document.getElementById('app'));});
+    const boxes=()=>[...document.querySelectorAll('input[type="checkbox"]')];
+    const toggle=index=>act(()=>Simulate.change(boxes()[index]));
+    render();await wait(0);
+    assert.equal(requests,0);assert.equal(boxes().length,4);
+    assert.equal(document.querySelectorAll('input[type="radio"]').length,0);
+    toggle(0);
+    assert.deepEqual(boxes().map(x=>[x.checked,x.disabled]),[[true,false],[true,true],[true,true],[false,false]]);
+    toggle(3);toggle(0);
+    assert.deepEqual(boxes().map(x=>[x.checked,x.disabled]),[[false,false],[false,false],[true,true],[true,false]]);
+    render('other');assert.equal(boxes().length,1);assert.ok(boxes()[0].checked);
+    render('', 'en');assert.deepEqual(boxes().map(x=>x.checked),[false,false,true,true]);
+    click('Load selected extensions');assert.deepEqual(completed[0].map(e=>e.id),['leaf','other']);
+    render('', 'ja', ['leaf']);assert.ok(boxes()[2].disabled);
+    click('詳細');await wait(0);
+    assert.equal(document.querySelector('textarea').value,'globalThis.catalogSourceExecuted = true;');
+    assert.equal(globalThis.catalogSourceExecuted,undefined);assert.equal(requests,1);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('explicit catalog selections survive dependency locking; busy and loaded rows explain only their own reasons', () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entries=[['parent',['leaf']],['leaf',[]],['loaded',[]]].map(([id,dependencies])=>({
+        id,ids:[id],url:`https://catalog.test/${id}.js`,dependencies,metadata:{name:id}
+    }));
+    let instance;
+    const render=(busy=false)=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        ref:value=>{instance=value;},entries,loadedIds:['loaded'],busy,
+        onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    const boxes=()=>[...document.querySelectorAll('input[type="checkbox"]')];
+    const toggle=index=>act(()=>Simulate.change(boxes()[index]));
+    render();toggle(1);toggle(0);
+    assert.deepEqual(boxes().map(box=>[box.checked,box.disabled]),[[true,false],[true,true],[true,true]]);
+    const dependency=boxes()[1];
+    assert.match(document.getElementById(dependency.getAttribute('aria-describedby')).textContent,/Required by/);
+    toggle(1);assert.ok(boxes()[1].checked);
+    toggle(0);
+    assert.deepEqual(boxes().map(box=>[box.checked,box.disabled]),[[false,false],[true,false],[true,true]]);
+    render(true);
+    assert.equal(boxes()[0].getAttribute('aria-describedby'),null);
+    assert.ok(boxes().every(box=>box.disabled));
+    assert.match(document.getElementById(boxes()[2].getAttribute('aria-describedby')).textContent,/Already loaded/);
+    act(()=>instance.toggleSelection('parent'));
+    assert.equal(boxes()[0].checked,false);
+    render();toggle(1);
+    assert.equal(boxes()[1].checked,false);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog details fetch lazily, preserve metadata on failure, and abort pending requests on unmount', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entries=['failed','pending'].map(id=>({id,ids:[id],dependencies:[],
+        url:`https://catalog.test/${id}.js`,metadata:{name:id,description:`${id} metadata`}
+    }));
+    let requests=0,pendingSignal;
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,locale:'ja',loadInfo:(url,signal)=>{
+            requests++;
+            if(url===entries[0].url)return Promise.reject(Error('offline'));
+            pendingSignal=signal;
+            return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))));
+        },onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    assert.equal(requests,0);
+    click('詳細');await wait(0);
+    assert.match(document.querySelector('.twextsec-details').textContent,/ソースコードを取得できませんでした/);
+    assert.match(document.querySelector('article').textContent,/failed metadata/);
+    assert.equal(document.querySelector('.twextsec-error'),null);
+    click('詳細');click('詳細');await wait(0);
+    assert.equal(requests,1);
+    act(()=>Simulate.click(document.querySelectorAll('.twextsec-details-button')[1]));await wait(0);
+    assert.equal(requests,2);assert.equal(pendingSignal.aborted,false);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    assert.equal(pendingSignal.aborted,true);
+    await wait(0);
+});
+
+test('catalog entry changes recalculate dependencies and forget removed explicit selections', () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const item=(id,dependencies=[])=>({id,ids:[id],url:`https://catalog.test/${id}.js`,dependencies,metadata:{name:id}});
+    const parent=item('parent',['leaf']),leaf=item('leaf'),extra=item('extra');
+    const render=entries=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    const boxes=()=>[...document.querySelectorAll('input[type="checkbox"]')];
+    render([parent,leaf,extra]);
+    act(()=>Simulate.change(boxes()[0]));
+    render([{...parent,dependencies:['extra']},leaf,extra]);
+    assert.deepEqual(boxes().map(box=>[box.checked,box.disabled]),[[true,false],[false,false],[true,true]]);
+    render([leaf,extra]);render([parent,leaf,extra]);
+    assert.ok(boxes().every(box=>!box.checked));
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog permission context returns to the selection list without changing project defaults', async () => {
+    const entry={url:'https://catalog.test/required.js',ids:['required']};
+    for(const locale of ['ja','en']) {
+        for(const context of ['project','catalog']) {
+            let instance;
+            act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+                entries:[entry],locale,context,ref:value=>{instance=value;},
+                loadInfo:async()=>({metadata:{unsandboxed:'required'},source:'source'}),onComplete:()=>{}
+            }),document.getElementById('app'));});
+            await wait(0);
+            const wording=locale==='ja'?/選択一覧/:/selection list/;
+            if(context==='catalog')assert.match(document.querySelector('.twextsec-intro').textContent,wording);
+            else assert.doesNotMatch(document.querySelector('.twextsec-intro').textContent,wording);
+            act(()=>instance.handleCancel());
+            if(context==='catalog')assert.match(document.querySelector('[role="alertdialog"]').textContent,wording);
+            else assert.doesNotMatch(document.querySelector('[role="alertdialog"]').textContent,wording);
+            act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+        }
+    }
+});

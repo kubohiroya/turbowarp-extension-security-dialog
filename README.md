@@ -256,6 +256,82 @@ surfacing as a VM error is identified with `isExtensionSecurityCancelled(error)`
 Under Webpack 4 with CSS Modules, load `webpack4.css` instead of `styles.css`; root-level
 compatibility entries resolve for older Webpack 4 setups that do not read package exports.
 
+## Selecting extensions from a Pages catalog
+
+`ExtensionSelectionList` shares the security dialog's banners, metadata and Details view,
+with one checkbox at the right of each row. This API supports the TurboWarp Plus library
+tracked in [#28](https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/28).
+The host fetches a versioned JSON catalog over HTTPS:
+
+```jsx
+import {loadExtensionCatalog} from '@kubohiroya/turbowarp-extension-security-dialog';
+import {ExtensionSelectionList} from '@kubohiroya/turbowarp-extension-security-dialog/react';
+
+const controller = new AbortController();
+const entries = await loadExtensionCatalog(
+  'https://kubohiroya.github.io/turbowarp-plus-packages/extensions-v1.json',
+  controller.signal
+);
+
+const list = <ExtensionSelectionList entries={entries} locale="en"
+  filterQuery={searchText} loadedIds={loadedExtensionIds} busy={loading}
+  onCancel={closeLibrary}
+  onComplete={ordered => host.reviewAndLoadInOrder(ordered)} />;
+```
+
+`host.reviewAndLoadInOrder` represents the host's permission review and VM loading path.
+The callback receives dependencies before their dependants, each once, excluding
+`loadedIds`. Selecting an extension checks and disables all transitive dependencies.
+Removing its selection recomputes the closure; dependencies remain checked if another
+selection needs them or the user selected them explicitly. Loaded rows are checked and
+disabled. Search and locale changes preserve selection. `busy` disables selection and the
+footer controls. The host owns fetch errors, retry, catalog cancellation, VM errors, and
+updating `loadedIds` after each successful load.
+
+The selection list never loads or runs extension code. Catalog metadata renders immediately;
+only Details fetches the source as text. Source failures leave catalog metadata and selection
+usable. `ExtensionSecurityDialog context="catalog"` provides permission review with cancel
+wording that returns to this list; its default `context="project"` retains project wording.
+The host must respect the committed execution modes and its own security policy.
+
+The Pages document has the following contract (`schemaVersion: 1`):
+
+```json
+{
+  "schemaVersion": 1,
+  "extensions": [
+    {
+      "id": "cameraSource",
+      "name": "Camera Source",
+      "version": "1.2.3",
+      "package": "@example/camera-source",
+      "url": "https://cdn.jsdelivr.net/npm/@example/camera-source@1.2.3/dist/extension.js",
+      "description": "Share a camera stream.",
+      "descriptions": {"ja": "カメラ映像を共有します。"},
+      "repository": "https://github.com/example/camera-source",
+      "banner": "https://example.com/camera-source.svg",
+      "unsandboxed": "required",
+      "dependencies": []
+    }
+  ]
+}
+```
+
+IDs contain ASCII letters and digits. `name`, `version`, `url`, and `dependencies` are
+required. Dependencies are extension IDs in this document, not npm package names;
+the generator resolves package dependencies to these IDs. `package`, descriptions, author,
+license, banner, repository and execution requirement are optional metadata. The generator
+uses version-pinned, published distribution URLs and excludes build-only packages.
+`parseExtensionCatalog` rejects unsupported schemas, duplicate IDs/URLs, missing dependencies,
+cycles, and non-HTTPS or credential-bearing URLs before the UI or VM receives entries.
+`resolveExtensionSelection(entries, explicitIds, loadedIds)` exposes the same closure and
+load order independently of React. `loadExtensionCatalog` accepts an optional AbortSignal,
+omits credentials/referrers, and rejects failed HTTP responses or invalid JSON contracts.
+
+To roll back catalog integration, turn off the host's startup flag (off by default) and
+reload, or revert the catalog wiring. The existing three-way security dialog remains
+available without the catalog API.
+
 ## Stored preferences
 
 Preferences are saved only when OK was pressed **and** the project then opened successfully.
