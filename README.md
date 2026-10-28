@@ -85,32 +85,17 @@ three choices — **Deny**, **With sandbox**, **Without sandbox** — and a bulk
 one choice to every listed extension that supports it. The heading, the bulk row and the
 OK/Cancel buttons stay visible; only the list scrolls, so the dialog always fits the viewport.
 
-```
-+--------------------------------------------------------------------+
-| Extension Security                                                 |
-| Choose how to run each extension (you can choose while metadata    |
-| loads).                                 Extension information: 2/3 |
-|                                                                    |
-| Apply to all listed: [(x) Deny] [(o) With sandbox] [(!) Without]   |
-| Applies only to extensions that support this mode.                 |
-| +----------------------------------------------------------------+ |
-| | Extension             |  (x) Deny |   (o) With  | (!) Without  | |  <- only this
-| +----------------------------------------------------------------+ |     area scrolls
-| | [banner] Fetch        |    ( )    | Unsupported |     (*)      | |
-| |   Author: ... | ID: fetch | License: MIT | Updated: ...        | |
-| |   (!) This extension cannot run inside the sandbox.            | |
-| |       Without sandbox: Required to run             [ Details ] | |
-| +----------------------------------------------------------------+ |
-| | [banner] Storage      |    (*)    |     ( )     |     ( )      | |
-| |   Getting metadata...                              [ Details ] | |
-| +----------------------------------------------------------------+ |
-| Metadata is provided by the author.                                |
-| Extensions without a sandbox can access your project and browser   |
-| information.                                                       |
-| Deny 1 · With 0 · Without 1 · Unselected 1                         |
-|                                      [ Cancel ]       [  OK  ]     |
-+--------------------------------------------------------------------+
-```
+The security dialog and selection list use the same internal package-description renderer
+and category-section helper. They share uncropped images at their original aspect ratio,
+GitHub/npm service links, execution-requirement badges and supplied category headings.
+Neither view includes a Details button or inline source code. Radio buttons and checkboxes
+remain outside the description; selection-state badges use a slot in the shared renderer.
+
+The security dialog explains the warning badge once above the list: “To make extensions
+marked ⚠️ work as their creators intended, choose Without sandbox.” Metadata progress
+appears below it. With `context="catalog"`, a separate footer row above the buttons says
+“Choose Cancel to return to the selection list.” Project context retains its own cancellation
+confirmation and does not show that destination.
 
 Two confirmation dialogs can follow:
 
@@ -121,8 +106,7 @@ Two confirmation dialogs can follow:
   when it runs. Continue?" Answering *No* returns to the list and saves nothing.
 
 Hovering or keyboard-focusing a banner opens a full-size preview; images larger than the
-screen scroll inside the preview frame. *Details* is the only thing that shows extension
-source code inline.
+screen scroll inside the preview frame. Thumbnails use the same uncropped display in both views.
 
 ```mermaid
 sequenceDiagram
@@ -139,7 +123,7 @@ sequenceDiagram
     A->>A: read saved per-project defaults
     V->>A: wrapped _loadExtensions with ids and urls
     A->>D: all pending entries plus restored choices
-    D-->>U: one list, per-row and bulk choices, Details
+    D-->>U: one list, per-row and bulk choices
     D->>D: metadata and banners arrive asynchronously
     U->>D: OK
     D-->>U: continue-with-denied confirmation, only if anything is denied
@@ -165,10 +149,10 @@ implementation. The author would be glad to see it made redundant by TurboWarp E
 
 ## Responsibilities
 
-- Comparison list UI, per-row and bulk three-way choice, confirmation dialogs, source detail view
+- Comparison list UI, per-row and bulk three-way choice, confirmation dialogs
 - Metadata retrieval that never executes extension code, candidate selection between the real
   banner and GitHub images, fallback to a common banner
-- Asynchronous image and metadata updates that keep selection and detail state independent
+- Asynchronous image and metadata updates that preserve selection
 - Per-project IndexedDB storage and restoration of initial choices
 - A VM compatibility adapter, isolated in `./turbowarp`
 
@@ -177,13 +161,14 @@ after a cancel. React and React DOM are optional peer dependencies; supply both 
 the React UI. Neither is needed for the core or the VM adapter.
 
 The dialog's total height is constrained to the viewport. The heading, bulk choice and
-OK/Cancel stay in place while only the list — including details and notices — scrolls.
+OK/Cancel stay in place while only the list — including notices — scrolls.
 Spacing tightens on short viewports.
 
 ## Metadata and previews
 
-HTTP/HTTPS origin URLs are shown in full and open in a new tab. Embedded extensions and other
-schemes are not linked.
+The security dialog retains its HTTP/HTTPS source-origin URL as a separate provenance line,
+opening in a new tab. Embedded extensions and other schemes are not linked. The selection
+list keeps its documentation URL instead; it never displays the JavaScript distribution URL.
 
 If the leading declaration comment in the source carries an update timestamp such as
 `// Updated: 2026-10-19T10:30:00+09:00`, the written value is displayed verbatim.
@@ -258,7 +243,7 @@ compatibility entries resolve for older Webpack 4 setups that do not read packag
 
 ## Selecting extensions from a Pages catalog
 
-`ExtensionSelectionList` shares the security dialog's banners, metadata and Details view,
+`ExtensionSelectionList` shares the security dialog's banners and metadata,
 with one checkbox at the right of each row. This API supports the TurboWarp Plus library
 tracked in [#28](https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/28).
 The host fetches a versioned JSON catalog over HTTPS:
@@ -299,17 +284,34 @@ the dependency reason is also shown. The row's `data-selection-state` is `select
 
 Optional catalog categories render as semantic `h2` sections in dashboard order. Japanese
 uses `titleJa` when available, otherwise `title`; other locales use `title`. Search hides
-empty sections without changing selection or source controls. Catalogs without categories
+empty sections without changing selection. Catalogs without categories
 keep a flat list. If categorized and uncategorized entries are mixed, the latter appear
 under “Other extensions” at the end. Theme colors use the host's modal background and
 foreground; accent overrides are `--twextsec-manual-accent`, `--twextsec-dependency-accent`,
 `--twextsec-unselected-accent`, and `--twextsec-loaded-accent`.
 
-The selection list never loads or runs extension code. Catalog metadata renders immediately;
-only Details fetches the source as text. Source failures leave catalog metadata and selection
-usable. `ExtensionSecurityDialog context="catalog"` provides permission review with cancel
+Package selection states and dependency reasons appear below the preview image. The heading places the name, version, parenthesized ID and GitHub/npm icons in that order. Items after the name use regular weight and a font size 2pt smaller than the name, wrapping as needed.
+
+The selection list never loads or runs extension code. Catalog metadata renders immediately.
+It shows the verified GitHub Pages `docsURL`, and GitHub/ npm icon links to the repository
+and package page. Neither screen has a Details control or inline source; the JavaScript
+distribution URL remains confined to the security dialog’s provenance line.
+Creator names use `authorURL` only when explicitly supplied by the published package.json
+`author.url`. Every row discloses its unsandboxed requirement as required, optional, not needed
+or not confirmed; required mode includes a warning icon. `ExtensionSecurityDialog context="catalog"` provides permission review with cancel
 wording that returns to this list; its default `context="project"` retains project wording.
 The host must respect the committed execution modes and its own security policy.
+
+For shared images, service links and execution requirements, optional `entry.metadata`
+complements the fetched source metadata. If either declares `unsandboxed: required`, the
+shared badge, allowed choices, invalidation and batch defaults all honor that requirement.
+Security still waits for source metadata to settle (success or failure) before accepting OK;
+fetching declarations never executes the code. Its source-header version, plain creator
+label and source provenance stay as before. Selection keeps catalog versions, explicit
+creator links and documentation links. Those unrequested presentation differences are not
+changed by the shared renderer. Supplied `entry.category` is rendered in either view;
+category-free project entries stay flat without any catalog lookup or inferred category.
+
 
 The Pages document has the following contract (`schemaVersion: 1`):
 

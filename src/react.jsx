@@ -1,20 +1,19 @@
 import React from 'react';
-import BannerPreview from './banner-preview.jsx';
-import {loadExtensionInfo, getPreviewCandidates, getExtensionDescription} from './info.js';
-const commonBanner = __SECURITY_COMMON_BANNER__;
+import {loadExtensionInfo, getExtensionDescription} from './info.js';
+import PackageDescription, {getPackagePreviewCandidates, requiresUnsandboxed, resolveSharedPackageMetadata}
+    from './package-description.jsx';
+import PackageSections from './package-sections.jsx';
 import {formatMessage} from './messages.js';
 import styles from './style-names.js';
 import {resolveExtensionSelection} from './selection.js';
 const bindAll = (instance, names) => names.forEach(name => {instance[name] = instance[name].bind(instance);});
 
 const MODES = ['deny', 'sandboxed', 'unsandboxed'];
-const requiresUnsandboxed = metadata => metadata && typeof metadata.unsandboxed === 'string' &&
-    metadata.unsandboxed.trim().toLowerCase() === 'required';
 const isModeAllowed = (mode, metadata) => MODES.includes(mode) &&
     (!requiresUnsandboxed(metadata) || mode === 'unsandboxed');
 const allRequireUnsandboxed = (entries, rows) => entries.length > 0 && entries.every(entry => {
     const row = rows[entry.url];
-    return row && row.status === 'ready' && requiresUnsandboxed(row.metadata);
+    return row && row.status === 'ready' && requiresUnsandboxed(resolveSharedPackageMetadata(entry, row.metadata));
 });
 
 const ModeIcon = ({mode}) => (
@@ -57,20 +56,21 @@ const SelectionIcon = ({state}) => (
     </svg>
 );
 
+
 class ExtensionSecurityDialog extends React.Component {
     constructor (props) {
         super(props);
         const choices = {};
         for (const entry of props.entries) {
             const mode = props.initialChoices.get(entry.url);
-            if (MODES.includes(mode)) choices[entry.url] = mode;
+            if (isModeAllowed(mode, resolveSharedPackageMetadata(entry))) choices[entry.url] = mode;
         }
-        this.state = {choices, rows: {}, expanded: {}, sources: {}, confirmation: null, ready: false};
+        this.state = {choices, rows: {}, confirmation: null, ready: false};
         this.requests = new Map();
         this.controllers = new Set();
         this.timeouts = new Set();
         this.alive = false;
-        bindAll(this, ['handleChoice', 'handleBulk', 'handleDetails', 'handleImageError', 'handleOK',
+        bindAll(this, ['handleChoice', 'handleBulk', 'handleImageError', 'handleOK',
             'handleCancel', 'handleNo', 'handleYes', 'handleRequestClose', 'focusNo']);
     }
     componentDidMount () {
@@ -107,14 +107,15 @@ class ExtensionSecurityDialog extends React.Component {
             const controller = new AbortController();
             this.controllers.add(controller);
             const timeout = this.delay(() => controller.abort(), 15000);
-            const request = Promise.resolve().then(() => this.props.loadInfo(entry.url, controller.signal));
+            const request = Promise.resolve().then(() => this.props.loadInfo(entry.url, controller.signal))
+                .then(result => ({metadata: result.metadata}));
             this.requests.set(entry.url, request);
             request.then(result => {
                 if (this.alive) {
                     this.setState(previous => {
                         const choices = {...previous.choices};
                         const invalidated = Boolean(choices[entry.url] &&
-                            !isModeAllowed(choices[entry.url], result.metadata));
+                            !isModeAllowed(choices[entry.url], resolveSharedPackageMetadata(entry, result.metadata)));
                         // Clear incompatible choices before applying any batch defaults.
                         if (invalidated) delete choices[entry.url];
                         return {choices, rows: {
@@ -146,7 +147,7 @@ class ExtensionSecurityDialog extends React.Component {
         return this.props.entries[Number(event.currentTarget.dataset.index)];
     }
     canChoose (entry, mode, state = this.state) {
-        return isModeAllowed(mode, (state.rows[entry.url] || {}).metadata);
+        return isModeAllowed(mode, resolveSharedPackageMetadata(entry, (state.rows[entry.url] || {}).metadata));
     }
     selectionReady () {
         return this.props.entries.every(entry => {
@@ -171,25 +172,12 @@ class ExtensionSecurityDialog extends React.Component {
             Object.fromEntries(this.props.entries.filter(entry => this.canChoose(entry, mode, previous))
                 .map(entry => [entry.url, mode])))}));
     }
-    handleDetails (event) {
-        const entry = this.entryForEvent(event);
-        this.setState(previous => ({expanded: {
-            ...previous.expanded, [entry.url]: !previous.expanded[entry.url]
-        }}), () => {
-            if (!this.state.expanded[entry.url]) return;
-            this.requests.get(entry.url).then(result => {
-                if (this.alive) {
-                    this.setState(previous => ({sources: {...previous.sources, [entry.url]: result.source}}));
-                }
-            }, () => {});
-        });
-    }
     handleImageError (event) {
         const entry = this.entryForEvent(event);
         const failedURL = event.currentTarget.getAttribute('src');
         this.setState(previous => {
             const row = previous.rows[entry.url] || {};
-            const candidates = getPreviewCandidates(entry, row.metadata, commonBanner);
+            const candidates = getPackagePreviewCandidates(entry, resolveSharedPackageMetadata(entry, row.metadata));
             const index = row.previewIndex || 0;
             if (candidates[index] !== failedURL || index >= candidates.length - 1) return null;
             return {rows: {...previous.rows, [entry.url]: {...row, previewIndex: index + 1}}};
@@ -233,13 +221,12 @@ class ExtensionSecurityDialog extends React.Component {
         const row = selection ? {...this.state.rows[entry.url], metadata: entry.metadata, status: 'ready'} :
             this.state.rows[entry.url] || {};
         const metadata = row.metadata || {};
-        const description = getExtensionDescription(metadata, this.props.locale);
-        const required = requiresUnsandboxed(metadata);
-        const reasonId = `extension-mode-reason-${index}`;
-        const requiredId = `extension-mode-required-${index}`;
+        const sharedMetadata = resolveSharedPackageMetadata(entry, row.metadata);
+        const required = requiresUnsandboxed(sharedMetadata);
+        const idPrefix = selection ? 'selection-extension' : 'security-extension';
+        const reasonId = `${idPrefix}-mode-reason-${index}`;
+        const requiredId = `${idPrefix}-mode-required-${index}`;
         const name = metadata.name || entry.ids.join(', ');
-        const candidates = getPreviewCandidates(entry, metadata, commonBanner);
-        const expanded = Boolean(this.state.expanded[entry.url]);
         let origin = this.t('embedded');
         let sourceURL = null;
         try {
@@ -250,63 +237,33 @@ class ExtensionSecurityDialog extends React.Component {
             origin = entry.url;
         }
         const sourceLink = sourceURL ? (
-            <a
-                className={styles.sourceLink}
-                href={sourceURL}
-                target="_blank"
-                rel="noopener noreferrer"
-            >{sourceURL}</a>
+            <a className={styles.sourceLink} href={sourceURL}
+                target="_blank" rel="noopener noreferrer">{sourceURL}</a>
         ) : origin;
         return (
-            <article
-                className={styles.row}
-                key={entry.url}
-                data-selection-state={selection ? selection.state : undefined}
-            >
+            <article className={styles.row} key={entry.url}
+                data-selection-state={selection ? selection.state : undefined}>
                 <div className={styles.rowMain}>
-                    <div className={styles.metadata}>
-                        <BannerPreview
-                            previewId={`extension-preview-${index}`}
-                            className={styles.preview}
-                            src={candidates[row.previewIndex || 0]}
-                            alt={this.t('preview', {name})}
-                            referrerPolicy="no-referrer"
-                            data-index={index}
-                            onError={this.handleImageError}
-                        />
-                        <div className={styles.info}>
-                            <strong>{name}</strong>
+                    <div className={styles.packageColumn}>
+                        <PackageDescription entry={entry} metadata={metadata} sharedMetadata={sharedMetadata}
+                            locale={this.props.locale} index={index} idPrefix={idPrefix}
+                            requirementId={reasonId}
+                            previewIndex={row.previewIndex} status={row.status} onImageError={this.handleImageError}
+                            linkCreator={Boolean(selection)} showMissingMetadata={Boolean(selection)}
+                            documentation={Boolean(selection)}
+                            provenance={!selection && <div className={styles.secondary}>{sourceLink}</div>}>
                             {selection && <div className={styles.selectionStatus}>
-                                <span className={styles.selectionBadge} id={`extension-selection-state-${index}`}>
+                                <span className={styles.selectionBadge} id={`${idPrefix}-state-${index}`}>
                                     <SelectionIcon state={selection.state} />{this.t(`${selection.state}State`)}
                                 </span>
                                 {selection.dependencyReason && <span className={styles.selectionReason}
-                                    id={`extension-selection-reason-${index}`}>{selection.dependencyReason}</span>}
+                                    id={`${idPrefix}-reason-${index}`}>{selection.dependencyReason}</span>}
                             </div>}
-                            <div className={styles.secondary}>{this.t('id', {id: metadata.id || entry.ids.join(', ')})}</div>
-                            {metadata.version && <span className={styles.version}>{`v${metadata.version}`}</span>}
-                            {metadata.author && (
-                                <div className={styles.secondary}>{this.t('author', {author: metadata.author})}</div>
-                            )}
-                            {metadata.updatedAt && (
-                                <div className={styles.secondary}>{this.t('updated', {updated: metadata.updatedAt})}</div>
-                            )}
-                            {description && <div>{description}</div>}
-                            {metadata.license && (
-                                <div className={styles.secondary}>{this.t('license', {license: metadata.license})}</div>
-                            )}
-                            <div className={styles.secondary}>{sourceLink}</div>
-                            {!row.status && <div className={styles.secondary}>{this.t('pending')}</div>}
-                            {row.status === 'failed' && <div className={styles.error}>{this.t('failed')}</div>}
-                            {required && (
-                                <div id={reasonId} className={styles.warningText}>
-                                    {this.t(selection ? 'selectionRequired' :
-                                        this.props.context === 'catalog' ? 'catalogRequired' : 'required')}</div>
-                            )}
-                            {row.invalidated && !this.state.choices[entry.url] && (
+                        </PackageDescription>
+                        {!selection && row.invalidated && !this.state.choices[entry.url] &&
+                            <div className={styles.packageNotices}>
                                 <div className={styles.warningText} role="status">{this.t('choiceReset')}</div>
-                            )}
-                        </div>
+                            </div>}
                     </div>
                     {!selection && MODES.map(mode => (
                         <label
@@ -314,7 +271,7 @@ class ExtensionSecurityDialog extends React.Component {
                             key={mode}
                             data-mode={mode}
                             aria-disabled={!this.canChoose(entry, mode)}
-                            title={!this.canChoose(entry, mode) ? this.t('required') : undefined}
+                            title={!this.canChoose(entry, mode) ? this.t('requiredToRun') : undefined}
                         >
                             <span className={styles.choiceControl}>
                                 <input
@@ -340,45 +297,18 @@ class ExtensionSecurityDialog extends React.Component {
                             )}
                         </label>
                     ))}
-                    <button
-                        type="button"
-                        className={styles.detailsButton}
-                        data-index={index}
-                        aria-expanded={expanded}
-                        aria-controls={`extension-source-${index}`}
-                        onClick={this.handleDetails}
-                    >{this.t('details')}</button>
-                    {selection && (
-                        <label className={styles.choice} aria-disabled={selection.disabled}>
-                            <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
-                                aria-label={`${name}: ${this.t('selectExtension')}`}
-                                aria-describedby={selection.dependencyReason ? `extension-selection-reason-${index}` :
-                                    `extension-selection-state-${index}`}
-                                onChange={() => this.toggleSelection(entry.id)} />
-                        </label>
-                    )}
+                    {selection && <label className={styles.choice} aria-disabled={selection.disabled}>
+                        <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
+                            aria-label={`${name}: ${this.t('selectExtension')}`}
+                            aria-describedby={selection.dependencyReason ? `${idPrefix}-reason-${index}` :
+                                `${idPrefix}-state-${index}`}
+                            onChange={() => this.toggleSelection(entry.id)} />
+                    </label>}
                 </div>
-                {expanded && (
-                    <div
-                        className={styles.details}
-                        id={`extension-source-${index}`}
-                    >
-                        <strong>{this.t('source')}</strong>
-                        <p>{`${entry.ids.join(', ')} · `}{sourceLink}</p>
-                        {Object.prototype.hasOwnProperty.call(this.state.sources, entry.url) ? (
-                            <textarea
-                                aria-label={`${name}: ${this.t('source')}`}
-                                value={this.state.sources[entry.url]}
-                                readOnly
-                                spellCheck={false}
-                            />
-                        ) : <p>{this.t((selection ? row.sourceStatus : row.status) === 'failed' ?
-                            'sourceFailed' : 'pending')}</p>}
-                    </div>
-                )}
             </article>
         );
     }
+
     render () {
         const Modal = this.props.DialogFrame;
         const {entries} = this.props;
@@ -429,8 +359,7 @@ class ExtensionSecurityDialog extends React.Component {
                 ) : (
                     <div className={styles.body}>
                         <div className={styles.intro}>
-                            <p>{this.t(allRequired ?
-                                this.props.context === 'catalog' ? 'catalogRequiredIntro' : 'allRequiredIntro' : 'intro')}</p>
+                            <p>{this.t('securityInstruction')}</p>
                             <div
                                 className={styles.secondary}
                                 aria-live="polite"
@@ -457,29 +386,35 @@ class ExtensionSecurityDialog extends React.Component {
                             <span>{this.t('extension')}</span>
                             {MODES.map(mode => <span key={mode} className={styles.modeHeading}>
                                 <ModeIcon mode={mode} />{this.t(mode)}
-                            </span>)}<span />
+                            </span>)}
                         </div>
                         <div className={styles.list}>
-                            {entries.map((entry, index) => this.renderRow(entry, index))}
+                            <PackageSections entries={entries} items={entries.map((entry, index) => ({entry, index}))}
+                                locale={this.props.locale} idPrefix="security-extension"
+                                renderItem={({entry, index}) => this.renderRow(entry, index)} />
                             <p className={styles.note}>{this.t('note')}</p>
                             {counts.unsandboxed > 0 && <p className={styles.warning}>{this.t('warning')}</p>}
                         </div>
-                        <footer className={styles.footer}>
-                            <span
-                                className={styles.secondary}
-                                aria-live="polite"
-                            >{this.t('summary', counts)}</span>
-                            <div className={styles.buttons}>
-                                <button
-                                    type="button"
-                                    onClick={this.handleCancel}
-                                >{this.t('cancel')}</button>
-                                <button
-                                    type="button"
-                                    className={styles.primary}
-                                    disabled={!this.state.ready || !this.selectionReady()}
-                                    onClick={this.handleOK}
-                                >{this.t('ok')}</button>
+                        <footer className={`${styles.footer} ${styles.securityFooter}`}>
+                            {this.props.context === 'catalog' &&
+                                <p className={styles.cancelDestination}>{this.t('catalogCancelDestination')}</p>}
+                            <div className={styles.footerControls}>
+                                <span
+                                    className={styles.secondary}
+                                    aria-live="polite"
+                                >{this.t('summary', counts)}</span>
+                                <div className={styles.buttons}>
+                                    <button
+                                        type="button"
+                                        onClick={this.handleCancel}
+                                    >{this.t('cancel')}</button>
+                                    <button
+                                        type="button"
+                                        className={styles.primary}
+                                        disabled={!this.state.ready || !this.selectionReady()}
+                                        onClick={this.handleOK}
+                                    >{this.t('ok')}</button>
+                                </div>
                             </div>
                         </footer>
                     </div>
@@ -528,25 +463,6 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
             return {explicitIds};
         });
     }
-    handleDetails (event) {
-        const entry = this.entryForEvent(event);
-        if (!this.requests.has(entry.url)) {
-            const controller = new AbortController();
-            this.controllers.add(controller);
-            const timeout = this.delay(() => controller.abort(), 15000);
-            const request = Promise.resolve().then(() => this.props.loadInfo(entry.url, controller.signal));
-            this.requests.set(entry.url, request);
-            request.catch(() => {
-                if (this.alive) this.setState(previous => ({rows: {...previous.rows,
-                    [entry.url]: {...previous.rows[entry.url], sourceStatus: 'failed'}}}));
-            }).finally(() => {
-                clearTimeout(timeout);
-                this.timeouts.delete(timeout);
-                this.controllers.delete(controller);
-            });
-        }
-        super.handleDetails(event);
-    }
     render () {
         const selection = this.selection();
         const query = (this.props.filterQuery || '').trim().toLowerCase();
@@ -568,18 +484,6 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
                 dependencyReason: !loaded && rootNames.length ? this.t('requiredBy', {names: rootNames.join(separator)}) : null
             });
         };
-        const sections = new Map();
-        for (const item of visible) {
-            const category = item.entry.category;
-            const key = category ? category.id : null;
-            if (!sections.has(key)) sections.set(key, {category, items: []});
-            sections.get(key).items.push(item);
-        }
-        const orderedSections = [...sections.values()].sort((a, b) =>
-            (a.category && Number.isFinite(a.category.order) ? a.category.order : Infinity) -
-            (b.category && Number.isFinite(b.category.order) ? b.category.order : Infinity));
-        const hasCategories = this.props.entries.some(entry => entry.category);
-        const japanese = String(this.props.locale).toLowerCase().startsWith('ja');
         return (<div className={`${styles.body} twextsec-selection`} aria-busy={this.props.busy}>
             <div className={styles.intro}><p>{this.t('selectionIntro')}</p>
                 <ul className={styles.selectionLegend} aria-label={this.t('selectionLegend')}>
@@ -590,14 +494,8 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
                 </ul>
             </div>
             <div className={styles.list}>
-                {hasCategories ? orderedSections.map(({category, items}, sectionIndex) => (
-                    <section key={category ? category.id : ''} aria-labelledby={`extension-category-${sectionIndex}`}>
-                        <h2 className={styles.categoryHeading} id={`extension-category-${sectionIndex}`}>
-                            {category ? japanese && category.titleJa ? category.titleJa : category.title : this.t('otherCategory')}
-                        </h2>
-                        {items.map(renderSelectionRow)}
-                    </section>
-                )) : visible.map(renderSelectionRow)}
+                <PackageSections entries={this.props.entries} items={visible} locale={this.props.locale}
+                    idPrefix="selection-extension" renderItem={renderSelectionRow} />
                 {!visible.length && <p role="status">{this.t('noResults')}</p>}
             </div>
             <footer className={styles.footer}>

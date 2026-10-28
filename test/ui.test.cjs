@@ -22,7 +22,7 @@ function click(text) {
     act(()=>Simulate.click(button));
 }
 
-test('asynchronous metadata/images/new rows preserve choices and detail state; source mounts only after Details', async () => {
+test('asynchronous metadata/images/new rows preserve choices without source controls or code execution', async () => {
     const pending = new Map();
     const completed = [];
     let instance;
@@ -33,7 +33,7 @@ test('asynchronous metadata/images/new rows preserve choices and detail state; s
         ref:value=>{instance=value;}, entries,locale:'ja',loadInfo,onComplete:value=>completed.push(value),
         initialChoices:new Map([[a.url,'sandboxed']])}),document.getElementById('app'));});}
     render([a,b]);await wait(0);
-    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください（取得中でも選択できます）/);
+    assert.equal(document.querySelector('.twextsec-intro p').textContent,'⚠️マークの表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
     assert.doesNotMatch(document.querySelector('.twextsec-note').textContent,/取得中でも選択/);
     assert.doesNotMatch(document.querySelector('article').textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
@@ -46,23 +46,23 @@ test('asynchronous metadata/images/new rows preserve choices and detail state; s
     assert.match(document.querySelector('article').textContent,/更新日時 2026-10-19T10:30:00\+09:00/);
     assert.doesNotMatch(document.querySelectorAll('article')[1].textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
-    click('詳細');await wait(0);
-    assert.match(document.querySelector('textarea').value,/shouldNeverExecute/);
+    assert.equal(document.querySelectorAll('article button, article textarea').length,0);
     assert.equal(globalThis.shouldNeverExecute,undefined);
     const image=document.querySelector('img');act(()=>Simulate.error(image));
     assert.match(document.querySelector('img').getAttribute('src'),/^data:image\/svg\+xml;base64,/);
     assert.equal(instance.state.choices[a.url],'sandboxed');
     const c={url:'https://c.test/e.js',ids:['c']};render([a,b,c]);await wait(0);
-    assert.equal(instance.state.expanded[a.url],true);assert.equal(instance.state.choices[b.url],'deny');
+    assert.equal(document.querySelector('article strong').textContent,'Extension A');
+    assert.equal(instance.state.choices[b.url],'deny');
     assert.equal(instance.state.choices[c.url],undefined);
-    assert.equal(document.querySelectorAll('textarea').length,1);
+    assert.equal(document.querySelectorAll('textarea').length,0);
     act(()=>pending.get(b.url)({metadata:{name:'Extension B'},source:'B'}));await wait(0);
     assert.equal(instance.state.choices[b.url],'deny');
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     assert.deepEqual(completed,[]);
 });
 
-test('bundle ID and license are visible without expanding source in both locales', async () => {
+test('bundle ID and license are visible with a concise shared execution badge in both locales', async () => {
     for (const locale of ['ja','en']) {
         const entry={url:'data:text/javascript,bundle',ids:['runtime']};
         const metadata={name:'Kamishibai DSL 4.0 Runtime',id:'kubohiroyakamishibai4',
@@ -76,8 +76,8 @@ test('bundle ID and license are visible without expanding source in both locales
         for (const value of [metadata.name,metadata.id,metadata.author,metadata.description,metadata.license]) {
             assert.ok(row.includes(value),value);
         }
-        assert.match(row,locale==='ja'?/サンドボックス内では動作しません/:/cannot run inside the sandbox/);
-        assert.match(row,locale==='ja'?/キャンセル/:/Cancel/);
+        assert.match(row,locale==='ja'?/⚠️サンドボックスなし：必要/:/⚠️Without sandbox: Required/);
+        assert.doesNotMatch(row,/サンドボックス内では動作しません|cannot run inside the sandbox/);
         assert.equal(document.querySelector('input[value="deny"]').disabled,true);
         assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
         assert.equal(document.querySelector('input[value="unsandboxed"]').disabled,false);
@@ -136,10 +136,10 @@ test('web source URLs open in a separate tab while embedded and non-web sources 
     for (const row of rows.slice(2)) assert.equal(row.querySelector('a'),null);
     assert.match(rows[2].textContent,/埋め込み/);
     assert.equal(document.querySelectorAll('textarea').length,0);
-    click('詳細');await wait(0);
-    assert.equal(rows[0].querySelectorAll('a').length,2);
+    assert.equal(document.querySelectorAll('article button').length,0);
+    assert.equal(rows[0].querySelectorAll('a').length,1);
     assert.equal(rows[0].querySelector('input[value="sandboxed"]').checked,true);
-    assert.equal(document.querySelectorAll('textarea').length,1);
+    assert.equal(document.querySelectorAll('textarea').length,0);
     assert.deepEqual(completed,[]);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
@@ -210,7 +210,7 @@ test('late requirements invalidate restored choices without increasing permissio
     assert.equal(sandboxed.disabled,true);assert.equal(sandboxed.checked,false);
     assert.equal(instance.state.choices[entries[0].url],undefined);
     assert.match(required.textContent,/選び直してください/);
-    assert.match(document.getElementById(sandboxed.getAttribute('aria-describedby')).textContent,/動作しません/);
+    assert.match(document.getElementById(sandboxed.getAttribute('aria-describedby')).textContent,/サンドボックスなし：必要/);
     click('サンドボックスあり');
     assert.equal(instance.state.choices[entries[0].url],undefined);
     assert.equal(instance.state.choices[entries[1].url],'sandboxed');
@@ -329,8 +329,8 @@ test('all-required batches are preset only after the last declaration and still 
         assert.equal(document.querySelector('.twextsec-bulk'),null);
         assert.equal(document.querySelectorAll('input[value="deny"]:disabled').length,3);
         assert.equal(document.querySelectorAll('input[value="sandboxed"]:disabled').length,3);
-        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/選択済み/:/already selected/);
-        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/キャンセル/:/Cancel/);
+        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/制作者の意図どおり/:/creators intended/);
+        assert.equal(document.querySelector('.twextsec-cancel-destination'),null);
         assert.deepEqual(completed,[]);
         click('OK');
         assert.deepEqual([...completed[0]],entries.map(entry=>[entry.url,'unsandboxed']));
@@ -352,7 +352,7 @@ test('mixed, optional and failed declarations leave required extensions unselect
         await wait(0);
         assert.equal(document.querySelectorAll('input:checked').length,0);
         assert.ok(document.querySelector('.twextsec-bulk'));
-        assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+        assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
         assert.deepEqual(completed,[]);
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
@@ -373,7 +373,7 @@ test('batch defaults follow entry changes without refetching settled metadata or
     }),document.getElementById('app'));});
     render([]);await wait(0);
     assert.ok(document.querySelector('.twextsec-bulk'));
-    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
     render([a,b,ordinary]);await wait(0);
     assert.equal(document.querySelectorAll('input:checked').length,0);
     assert.ok(document.querySelector('.twextsec-bulk'));
@@ -384,11 +384,11 @@ test('batch defaults follow entry changes without refetching settled metadata or
     render([a,b,added]);await wait(0);
     assert.ok(document.querySelector('.twextsec-bulk'));
     assert.equal(document.querySelectorAll('input:checked').length,2);
-    assert.match(document.querySelector('.twextsec-intro').textContent,/実行方法を選んでください/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
     act(()=>resolveAdded({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
     assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
     assert.equal(document.querySelector('.twextsec-bulk'),null);
-    assert.match(document.querySelector('.twextsec-intro').textContent,/選択済み/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
     assert.equal(requests,4);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
@@ -478,9 +478,8 @@ test('catalog checkboxes share metadata rows, lock transitive dependencies, and 
     render('', 'en');assert.deepEqual(boxes().map(x=>x.checked),[false,false,true,true]);
     click('Load selected extensions');assert.deepEqual(completed[0].map(e=>e.id),['leaf','other']);
     render('', 'ja', ['leaf']);assert.ok(boxes()[2].disabled);
-    click('詳細');await wait(0);
-    assert.equal(document.querySelector('textarea').value,'globalThis.catalogSourceExecuted = true;');
-    assert.equal(globalThis.catalogSourceExecuted,undefined);assert.equal(requests,1);
+    assert.equal(document.querySelectorAll('article button, article textarea').length,0);
+    assert.equal(globalThis.catalogSourceExecuted,undefined);assert.equal(requests,0);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
 
@@ -514,34 +513,6 @@ test('explicit catalog selections survive dependency locking; busy and loaded ro
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
 
-test('catalog details fetch lazily, preserve metadata on failure, and abort pending requests on unmount', async () => {
-    const {ExtensionSelectionList}=require('../dist/react.cjs');
-    const entries=['failed','pending'].map(id=>({id,ids:[id],dependencies:[],
-        url:`https://catalog.test/${id}.js`,metadata:{name:id,description:`${id} metadata`}
-    }));
-    let requests=0,pendingSignal;
-    act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
-        entries,locale:'ja',loadInfo:(url,signal)=>{
-            requests++;
-            if(url===entries[0].url)return Promise.reject(Error('offline'));
-            pendingSignal=signal;
-            return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(Error('aborted'))));
-        },onComplete:()=>{},onCancel:()=>{}
-    }),document.getElementById('app'));});
-    assert.equal(requests,0);
-    click('詳細');await wait(0);
-    assert.match(document.querySelector('.twextsec-details').textContent,/ソースコードを取得できませんでした/);
-    assert.match(document.querySelector('article').textContent,/failed metadata/);
-    assert.equal(document.querySelector('.twextsec-error'),null);
-    click('詳細');click('詳細');await wait(0);
-    assert.equal(requests,1);
-    act(()=>Simulate.click(document.querySelectorAll('.twextsec-details-button')[1]));await wait(0);
-    assert.equal(requests,2);assert.equal(pendingSignal.aborted,false);
-    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
-    assert.equal(pendingSignal.aborted,true);
-    await wait(0);
-});
-
 test('catalog entry changes recalculate dependencies and forget removed explicit selections', () => {
     const {ExtensionSelectionList}=require('../dist/react.cjs');
     const item=(id,dependencies=[])=>({id,ids:[id],url:`https://catalog.test/${id}.js`,dependencies,metadata:{name:id}});
@@ -570,8 +541,9 @@ test('catalog permission context returns to the selection list without changing 
             }),document.getElementById('app'));});
             await wait(0);
             const wording=locale==='ja'?/選択一覧/:/selection list/;
-            if(context==='catalog')assert.match(document.querySelector('.twextsec-intro').textContent,wording);
-            else assert.doesNotMatch(document.querySelector('.twextsec-intro').textContent,wording);
+            assert.doesNotMatch(document.querySelector('.twextsec-intro').textContent,wording);
+            if(context==='catalog')assert.match(document.querySelector('.twextsec-cancel-destination').textContent,wording);
+            else assert.equal(document.querySelector('.twextsec-cancel-destination'),null);
             act(()=>instance.handleCancel());
             if(context==='catalog')assert.match(document.querySelector('[role="alertdialog"]').textContent,wording);
             else assert.doesNotMatch(document.querySelector('[role="alertdialog"]').textContent,wording);
@@ -580,7 +552,7 @@ test('catalog permission context returns to the selection list without changing 
     }
 });
 
-test('catalog sections follow dashboard order with localized headings and stable source controls after filtering', async () => {
+test('catalog sections follow dashboard order with localized headings and dependency states after filtering', async () => {
     const {ExtensionSelectionList}=require('../dist/react.cjs');
     const {parseExtensionCatalog}=require('../dist/index.cjs');
     const entries=parseExtensionCatalog({schemaVersion:1,categories:[
@@ -619,13 +591,10 @@ test('catalog sections follow dashboard order with localized headings and stable
     assert.equal(state('Base'),'dependency');
     assert.match(row('Base').textContent,/依存関係で自動選択/);
     assert.match(row('Base').textContent,/Bubble に必要/);
-    const sourceId=row('Base').querySelector('button').getAttribute('aria-controls');
     render('Base');
     assert.deepEqual(headings(),['Tools']);
-    assert.equal(row('Base').querySelector('button').getAttribute('aria-controls'),sourceId);
-    act(()=>Simulate.click(row('Base').querySelector('button')));await wait(0);
-    assert.deepEqual(requests,['https://catalog.test/base.js']);
-    assert.equal(document.getElementById(sourceId).querySelector('textarea').value,'text only');
+    assert.equal(row('Base').querySelector('button'),null);
+    assert.deepEqual(requests,[]);
     render('', 'en');
     assert.deepEqual(headings(),['Display','Tools','Other extensions']);
     assert.match(row('Base').textContent,/Required by Bubble/);
@@ -636,4 +605,261 @@ test('catalog sections follow dashboard order with localized headings and stable
     render('no matching extension');assert.deepEqual(headings(),[]);
     assert.match(document.querySelector('[role="status"]').textContent,/一致する機能拡張がありません/);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog rows link documentation, GitHub and npm without displaying or fetching JavaScript sources', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const {parseExtensionCatalog}=require('../dist/index.cjs');
+    const entries=parseExtensionCatalog({schemaVersion:1,extensions:[{
+        id:'bubble',name:'Bubble',version:'1.0.0',dependencies:[],
+        url:'https://cdn.jsdelivr.net/npm/@example/bubble@1.0.0/dist/bubble.js',
+        docsURL:'https://example.github.io/bubble/',repository:'https://github.com/example/bubble.git',
+        package:'@example/bubble'
+    },{id:'legacy',name:'Legacy',version:'1.0.0',dependencies:[],url:'https://extensions.test/legacy.js'}]});
+    let requests=0;
+    const render=locale=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,locale,loadInfo:async()=>{requests++;throw Error('Unexpected source request');},
+        onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    render('ja');await wait(0);
+    const row=()=>document.querySelector('article');
+    const links=()=>[...row().querySelectorAll('a')];
+    assert.deepEqual(links().map(a=>a.href),['https://github.com/example/bubble',
+        'https://www.npmjs.com/package/@example/bubble','https://example.github.io/bubble/']);
+    assert.deepEqual(links().map(a=>a.getAttribute('aria-label')),
+        ['Bubble: GitHubリポジトリ','Bubble: npmパッケージ','Bubble: ドキュメント']);
+    for(const a of links()) {assert.equal(a.target,'_blank');assert.equal(a.rel,'noopener noreferrer');}
+    assert.equal(links()[2].textContent,'https://example.github.io/bubble/');
+    assert.equal(links()[0].querySelectorAll('svg').length,1);
+    assert.equal(links()[1].querySelectorAll('svg').length,1);
+    assert.equal(row().querySelector('button'),null);
+    assert.equal(document.querySelectorAll('article a[href*=".js"]').length,0);
+    assert.equal(document.querySelectorAll('article')[1].querySelectorAll('a').length,0);
+    act(()=>Simulate.change(row().querySelector('input')));
+    render('en');
+    assert.deepEqual(links().map(a=>a.getAttribute('aria-label')),
+        ['Bubble: GitHub repository','Bubble: npm package','Bubble: Documentation']);
+    assert.ok(row().querySelector('input').checked);
+    assert.equal(requests,0);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog packages disclose required, optional, not-needed and unknown runtime requirements in both locales', () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entries=['required','optional','not-needed','unknown',undefined].map((unsandboxed,index)=>({
+        id:`entry${index}`,ids:[`entry${index}`],url:`https://catalog.test/${index}.js`,dependencies:[],
+        metadata:{name:`Entry ${index}`,unsandboxed}
+    }));
+    const render=locale=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,locale,onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    render('ja');
+    const badges=()=>[...document.querySelectorAll('.twextsec-requirement')];
+    assert.deepEqual(badges().map(e=>e.textContent),['⚠️サンドボックスなし：必要','サンドボックスなし：任意',
+        'サンドボックスなし：不要','サンドボックスなし：未確認','サンドボックスなし：未確認']);
+    assert.deepEqual(badges().map(e=>e.dataset.requirement),['required','optional','not-needed','unknown','unknown']);
+    render('en');
+    assert.deepEqual(badges().map(e=>e.textContent),['⚠️Without sandbox: Required','Without sandbox: Optional',
+        'Without sandbox: Not needed','Without sandbox: Not confirmed','Without sandbox: Not confirmed']);
+    assert.equal(document.querySelectorAll('input[type="checkbox"]').length,5);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog creator names link only explicit author URLs and remain plain text when omitted', () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const {parseExtensionCatalog}=require('../dist/index.cjs');
+    const entries=parseExtensionCatalog({schemaVersion:1,extensions:[
+        {id:'linked',author:'First Creator',authorURL:'https://creator.test/profile'},
+        {id:'plain',author:'Second Creator'},
+        {id:'unspecified'}
+    ].map(item=>({...item,name:item.id,version:'1.0.0',dependencies:[],url:`https://catalog.test/${item.id}.js`}))});
+    const render=locale=>act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,locale,onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    render('ja');
+    const rows=[...document.querySelectorAll('article')];
+    assert.match(rows[0].textContent,/製作者： First Creator/);
+    const link=rows[0].querySelector('a');
+    assert.equal(link.textContent,'First Creator');assert.equal(link.href,'https://creator.test/profile');
+    assert.equal(link.target,'_blank');assert.equal(link.rel,'noopener noreferrer');
+    assert.match(rows[1].textContent,/製作者： Second Creator/);assert.equal(rows[1].querySelector('a'),null);
+    assert.match(rows[2].textContent,/製作者： 未記載/);
+    render('en');assert.match(rows[0].textContent,/Creator: First Creator/);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog licenses retain SPDX identifiers and bundled-notice declarations with explicit missing metadata', () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const licenses=['MPL-2.0','See the bundled extension notices below.',undefined];
+    const entries=licenses.map((license,index)=>({id:`licensed${index}`,ids:[`licensed${index}`],dependencies:[],
+        url:`https://catalog.test/${index}.js`,metadata:{name:`Licensed ${index}`,license}}));
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+        entries,locale:'ja',onComplete:()=>{},onCancel:()=>{}
+    }),document.getElementById('app'));});
+    const rows=[...document.querySelectorAll('article')];
+    assert.match(rows[0].textContent,/ライセンス: MPL-2\.0/);
+    assert.match(rows[1].textContent,/ライセンス: See the bundled extension notices below\./);
+    assert.match(rows[2].textContent,/ライセンス: 未記載/);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('both screens share package images, service links, execution badges and categories while preserving other security fields', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entry={id:'bubble',ids:['bubble'],dependencies:[],url:'https://cdn.example/bubble.js',
+        category:{id:'display',title:'Display',titleJa:'表示',order:0},
+        metadata:{name:'Bubble',id:'bubble',version:'9.9.9',author:'Catalog Creator',
+            authorURL:'https://catalog-creator.test/',docsURL:'https://docs.example/bubble/',
+            banner:'https://images.test/catalog.png',repository:'https://github.com/example/bubble.git',
+            package:'@example/bubble',unsandboxed:'required'}};
+    for(const locale of ['ja','en']) {
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+            entries:[entry],locale,onComplete:()=>{},onCancel:()=>{}
+        }),document.getElementById('app'));});
+        const describe=()=>({
+            image:document.querySelector('article img').src,
+            services:[...document.querySelectorAll('.twextsec-package-links a')].map(a=>[a.href,a.innerHTML]),
+            requirement:document.querySelector('.twextsec-requirement').textContent,
+            headings:[...document.querySelectorAll('h2')].map(heading=>heading.textContent)
+        });
+        const selectedDescription=describe();
+        assert.equal(document.querySelectorAll('article button, article textarea').length,0);
+        let finish,instance;
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[entry],locale,context:'catalog',ref:value=>{instance=value;},
+            initialChoices:new Map([[entry.url,'sandboxed']]),
+            loadInfo:()=>new Promise(resolve=>{finish=resolve;}),onComplete:()=>{}
+        }),document.getElementById('app'));});
+        await wait(760);
+        assert.equal(document.querySelector('article img').src,selectedDescription.image);
+        assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+        assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
+        assert.match(document.querySelector('article').textContent,locale==='ja'?/取得中/:/Getting metadata/);
+        act(()=>finish({metadata:{name:'Bubble',version:'1.0.0',author:'Source Creator',
+            banner:'https://images.test/source.png',repository:'https://github.com/other/source',
+            unsandboxed:'optional'},source:'globalThis.sharedPackageSourceExecuted=true;'}));
+        await wait(0);
+        assert.deepEqual(describe(),selectedDescription);
+        const row=document.querySelector('article');
+        assert.match(row.textContent,/v1\.0\.0/);
+        assert.match(row.textContent,/Source Creator/);
+        assert.doesNotMatch(row.textContent,/v9\.9\.9|Catalog Creator|docs\.example/);
+        assert.ok(row.querySelector('a[href="https://cdn.example/bubble.js"]'));
+        assert.equal(row.querySelector('a[href="https://catalog-creator.test/"]'),null);
+        assert.equal(row.querySelector('a[href="https://docs.example/bubble/"]'),null);
+        assert.equal(row.querySelectorAll('button, textarea').length,0);
+        assert.equal(instance.state.choices[entry.url],'unsandboxed');
+        assert.equal(buttons().find(button=>button.textContent==='OK').disabled,false);
+        assert.equal(globalThis.sharedPackageSourceExecuted,undefined);
+        const note=document.querySelector('.twextsec-cancel-destination');
+        assert.ok(note.closest('footer'));
+        assert.ok(note.compareDocumentPosition(note.closest('footer').querySelector('.twextsec-buttons')) &
+            dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
+        if(locale==='ja') {
+            assert.equal(document.querySelector('.twextsec-intro p').textContent,
+                '⚠️マークの表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
+            assert.equal(note.textContent,'『キャンセル』で選択一覧に戻ります。');
+        }
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
+});
+
+test('hidden selection and security categories have separate IDs and sorted radios still target their original entries', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const entries=[
+        {id:'late',dependencies:['early'],category:{id:'later',title:'Later',order:1}},
+        {id:'early',dependencies:[],category:{id:'first',title:'First',order:0}}
+    ].map(entry=>({...entry,ids:[entry.id],url:`https://catalog.test/${entry.id}.js`,
+        metadata:{name:entry.id,unsandboxed:'optional'}}));
+    let security;
+    act(()=>{ReactDOM.render(React.createElement('div',null,
+        React.createElement('div',{'data-screen':'selection',hidden:true},React.createElement(ExtensionSelectionList,{
+            entries,onComplete:()=>{},onCancel:()=>{}
+        })),
+        React.createElement('div',{'data-screen':'security'},React.createElement(ExtensionSecurityDialog,{
+            ref:value=>{security=value;},entries,
+            loadInfo:async url=>({metadata:{name:entries.find(entry=>entry.url===url).id},source:'not executed'}),
+            onComplete:()=>{}
+        }))
+    ),document.getElementById('app'));});
+    await wait(0);
+    const selected=document.querySelector('[data-screen="selection"]');
+    const reviewed=document.querySelector('[data-screen="security"]');
+    const root=[...selected.querySelectorAll('article')].find(row=>row.querySelector('strong').textContent==='late');
+    act(()=>Simulate.change(root.querySelector('input')));
+    for(const screen of [selected,reviewed]) {
+        assert.deepEqual([...screen.querySelectorAll('h2')].map(heading=>heading.textContent),['First','Later']);
+        assert.deepEqual([...screen.querySelectorAll('article strong')].map(name=>name.textContent),['early','late']);
+    }
+    const ids=[...document.querySelectorAll('[id]')].map(element=>element.id);
+    assert.equal(new Set(ids).size,ids.length);
+    const firstRadio=reviewed.querySelector('input[value="deny"]');
+    assert.equal(firstRadio.dataset.index,'1');
+    act(()=>Simulate.change(firstRadio));
+    assert.equal(security.state.choices[entries[1].url],'deny');
+    assert.equal(security.state.choices[entries[0].url],undefined);
+    assert.equal(selected.querySelector('article input').disabled,true);
+    for(const element of document.querySelectorAll('[aria-describedby]')) {
+        for(const id of element.getAttribute('aria-describedby').split(/\s+/))assert.ok(document.getElementById(id),id);
+    }
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('catalog requirements survive source failures while new source requirements still invalidate incompatible choices', async () => {
+    const required={id:'required',ids:['required'],url:'https://catalog.test/required.js',dependencies:[],
+        metadata:{name:'Catalog Required',unsandboxed:'required',package:'@example/required'}};
+    let fail,instance;
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[required],ref:value=>{instance=value;},initialChoices:new Map([[required.url,'unsandboxed']]),
+        loadInfo:()=>new Promise((resolve,reject)=>{fail=reject;}),onComplete:()=>{}
+    }),document.getElementById('app'));});
+    await wait(760);
+    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,true);
+    act(()=>fail(Error('offline')));await wait(0);
+    assert.equal(document.querySelector('.twextsec-requirement').dataset.requirement,'required');
+    assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+    assert.equal(document.querySelector('input[value="deny"]').disabled,true);
+    assert.equal(instance.state.choices[required.url],'unsandboxed');
+    assert.equal(buttons().find(button=>button.textContent==='OK').disabled,false);
+    assert.match(document.querySelector('.twextsec-error').textContent,/Could not retrieve/);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    const optional={...required,metadata:{unsandboxed:'optional'}};
+    const ordinary={id:'ordinary',ids:['ordinary'],url:'https://catalog.test/ordinary.js',dependencies:[]};
+    act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+        entries:[optional,ordinary],ref:value=>{instance=value;},initialChoices:new Map([[optional.url,'sandboxed']]),
+        loadInfo:async url=>({metadata:{unsandboxed:url===optional.url?'required':'optional'},source:'text only'}),
+        onComplete:()=>{}
+    }),document.getElementById('app'));});
+    await wait(0);
+    assert.equal(document.querySelector('.twextsec-requirement').dataset.requirement,'required');
+    assert.equal(instance.state.choices[optional.url],undefined);
+    assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
+    assert.ok(document.querySelector('[role="status"]'));
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+});
+
+test('shared service links reject unsafe raw metadata and category-free projects stay flat', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    for(const metadata of [
+        {repository:'http://github.com/example/repo',package:'../escape'},
+        {repository:'https://user:secret@github.com/example/repo',package:'@scope/pkg/extra'},
+        {repository:'javascript:alert(1)',package:'https://npmjs.com/package/example'}
+    ]) {
+        const entry={id:'test',ids:['test'],url:'https://catalog.test/test.js',dependencies:[],metadata};
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSelectionList,{
+            entries:[entry],onComplete:()=>{},onCancel:()=>{}
+        }),document.getElementById('app'));});
+        assert.equal(document.querySelectorAll('.twextsec-package-links a').length,0);
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+        let requests=0;
+        act(()=>{ReactDOM.render(React.createElement(ExtensionSecurityDialog,{
+            entries:[{...entry,metadata:undefined}],loadInfo:async()=>{
+                requests++;return {metadata:{...metadata,category:'unrelated'},source:'text only'};
+            },onComplete:()=>{}
+        }),document.getElementById('app'));});
+        await wait(0);
+        assert.equal(document.querySelectorAll('.twextsec-package-links a').length,0);
+        assert.equal(document.querySelectorAll('h2').length,0);
+        assert.equal(requests,1);
+        act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
+    }
 });
