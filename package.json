@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
   "author": {

@@ -167,8 +167,14 @@ Spacing tightens on short viewports.
 ## Metadata and previews
 
 The security dialog retains its HTTP/HTTPS source-origin URL as a separate provenance line,
-opening in a new tab. Embedded extensions and other schemes are not linked. The selection
+opening in a new tab. Embedded source URLs and other schemes are not linked. The selection
 list keeps its documentation URL instead; it never displays the JavaScript distribution URL.
+
+Embedded bundles can declare `// Author URL: https://example.org/creator`,
+`// Docs URL: https://example.org/docs/` and `// Package: @example/bundle` in the leading
+header. Security review displays the declared creator link (with `By`/`Author`), HTTPS
+documentation link and npm icon. `Repository`, `Banner`, `Version` and localized descriptions
+use the same package renderer. Bundle member notices do not supply the bundle's own fields.
 
 If the leading declaration comment in the source carries an update timestamp such as
 `// Updated: 2026-10-19T10:30:00+09:00`, the written value is displayed verbatim.
@@ -306,10 +312,9 @@ For shared images, service links and execution requirements, optional `entry.met
 complements the fetched source metadata. If either declares `unsandboxed: required`, the
 shared badge, allowed choices, invalidation and batch defaults all honor that requirement.
 Security still waits for source metadata to settle (success or failure) before accepting OK;
-fetching declarations never executes the code. Its source-header version, plain creator
-label and source provenance stay as before. Selection keeps catalog versions, explicit
-creator links and documentation links. Those unrequested presentation differences are not
-changed by the shared renderer. Supplied `entry.category` is rendered in either view;
+fetching declarations never executes the code. Security uses the source-header version,
+explicit creator/documentation links and source provenance; a creator without a URL stays
+plain text. Selection keeps catalog versions and links. Supplied `entry.category` is rendered in either view;
 category-free project entries stay flat without any catalog lookup or inferred category.
 
 
