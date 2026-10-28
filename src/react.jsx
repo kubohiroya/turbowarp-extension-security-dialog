@@ -42,6 +42,21 @@ const ModeIcon = ({mode}) => (
     </svg>
 );
 
+const SelectionIcon = ({state}) => (
+    <svg className={styles.selectionIcon} viewBox="0 0 20 20" width="16" height="16"
+        fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true" focusable="false">
+        {state === 'dependency' ? (
+            <React.Fragment><path d="M8 6l2-2a4 4 0 015 5l-2 2M12 14l-2 2a4 4 0 01-5-5l2-2M7 13l6-6" /></React.Fragment>
+        ) : state === 'loaded' ? (
+            <React.Fragment><rect x="2" y="2" width="16" height="16" rx="3" /><path d="M5 10l3 3 7-7" /></React.Fragment>
+        ) : (
+            <React.Fragment><circle cx="10" cy="10" r="8" />
+                {state === 'selected' && <path d="M6 10l3 3 5-6" />}</React.Fragment>
+        )}
+    </svg>
+);
+
 class ExtensionSecurityDialog extends React.Component {
     constructor (props) {
         super(props);
@@ -246,6 +261,7 @@ class ExtensionSecurityDialog extends React.Component {
             <article
                 className={styles.row}
                 key={entry.url}
+                data-selection-state={selection ? selection.state : undefined}
             >
                 <div className={styles.rowMain}>
                     <div className={styles.metadata}>
@@ -260,6 +276,13 @@ class ExtensionSecurityDialog extends React.Component {
                         />
                         <div className={styles.info}>
                             <strong>{name}</strong>
+                            {selection && <div className={styles.selectionStatus}>
+                                <span className={styles.selectionBadge} id={`extension-selection-state-${index}`}>
+                                    <SelectionIcon state={selection.state} />{this.t(`${selection.state}State`)}
+                                </span>
+                                {selection.dependencyReason && <span className={styles.selectionReason}
+                                    id={`extension-selection-reason-${index}`}>{selection.dependencyReason}</span>}
+                            </div>}
                             <div className={styles.secondary}>{this.t('id', {id: metadata.id || entry.ids.join(', ')})}</div>
                             {metadata.version && <span className={styles.version}>{`v${metadata.version}`}</span>}
                             {metadata.author && (
@@ -329,10 +352,9 @@ class ExtensionSecurityDialog extends React.Component {
                         <label className={styles.choice} aria-disabled={selection.disabled}>
                             <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
                                 aria-label={`${name}: ${this.t('selectExtension')}`}
-                                aria-describedby={selection.reason ? `extension-selection-reason-${index}` : undefined}
+                                aria-describedby={selection.dependencyReason ? `extension-selection-reason-${index}` :
+                                    `extension-selection-state-${index}`}
                                 onChange={() => this.toggleSelection(entry.id)} />
-                            {selection.reason && <span id={`extension-selection-reason-${index}`}
-                                className={styles.modeNote}>{this.t(selection.reason)}</span>}
                         </label>
                     )}
                 </div>
@@ -531,15 +553,51 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
         const visible = this.props.entries.map((entry, index) => ({entry, index})).filter(({entry}) =>
             [entry.id, (entry.metadata || {}).name, getExtensionDescription(entry.metadata || {}, this.props.locale)]
                 .join(' ').toLowerCase().includes(query));
+        const byId = new Map(this.props.entries.map(entry => [entry.id, entry]));
+        const renderSelectionRow = ({entry, index}) => {
+            const loaded = selection.loaded.has(entry.id);
+            const state = loaded ? 'loaded' : this.state.explicitIds.has(entry.id) ? 'selected' :
+                selection.selected.has(entry.id) ? 'dependency' : 'unselected';
+            const rootNames = [...(selection.requiredBy.get(entry.id) || [])].map(id =>
+                (byId.get(id).metadata || {}).name || id);
+            const separator = String(this.props.locale).toLowerCase().startsWith('ja') ? '、' : ', ';
+            return this.renderRow(entry, index, {
+                state,
+                checked: selection.selected.has(entry.id) || loaded,
+                disabled: this.props.busy || selection.required.has(entry.id) || loaded,
+                dependencyReason: !loaded && rootNames.length ? this.t('requiredBy', {names: rootNames.join(separator)}) : null
+            });
+        };
+        const sections = new Map();
+        for (const item of visible) {
+            const category = item.entry.category;
+            const key = category ? category.id : null;
+            if (!sections.has(key)) sections.set(key, {category, items: []});
+            sections.get(key).items.push(item);
+        }
+        const orderedSections = [...sections.values()].sort((a, b) =>
+            (a.category && Number.isFinite(a.category.order) ? a.category.order : Infinity) -
+            (b.category && Number.isFinite(b.category.order) ? b.category.order : Infinity));
+        const hasCategories = this.props.entries.some(entry => entry.category);
+        const japanese = String(this.props.locale).toLowerCase().startsWith('ja');
         return (<div className={`${styles.body} twextsec-selection`} aria-busy={this.props.busy}>
-            <div className={styles.intro}><p>{this.t('selectionIntro')}</p></div>
+            <div className={styles.intro}><p>{this.t('selectionIntro')}</p>
+                <ul className={styles.selectionLegend} aria-label={this.t('selectionLegend')}>
+                    {['selected', 'dependency', 'unselected', 'loaded'].map(state =>
+                        <li key={state} data-selection-state={state}>
+                            <SelectionIcon state={state} />{this.t(`${state}State`)}
+                        </li>)}
+                </ul>
+            </div>
             <div className={styles.list}>
-                {visible.map(({entry, index}) => this.renderRow(entry, index, {
-                    checked: selection.selected.has(entry.id) || selection.loaded.has(entry.id),
-                    disabled: this.props.busy || selection.required.has(entry.id) || selection.loaded.has(entry.id),
-                    reason: selection.loaded.has(entry.id) ? 'alreadyLoaded' :
-                        selection.required.has(entry.id) ? 'dependency' : null
-                }))}
+                {hasCategories ? orderedSections.map(({category, items}, sectionIndex) => (
+                    <section key={category ? category.id : ''} aria-labelledby={`extension-category-${sectionIndex}`}>
+                        <h2 className={styles.categoryHeading} id={`extension-category-${sectionIndex}`}>
+                            {category ? japanese && category.titleJa ? category.titleJa : category.title : this.t('otherCategory')}
+                        </h2>
+                        {items.map(renderSelectionRow)}
+                    </section>
+                )) : visible.map(renderSelectionRow)}
                 {!visible.length && <p role="status">{this.t('noResults')}</p>}
             </div>
             <footer className={styles.footer}>

@@ -504,7 +504,7 @@ test('explicit catalog selections survive dependency locking; busy and loaded ro
     toggle(0);
     assert.deepEqual(boxes().map(box=>[box.checked,box.disabled]),[[false,false],[true,false],[true,true]]);
     render(true);
-    assert.equal(boxes()[0].getAttribute('aria-describedby'),null);
+    assert.equal(document.getElementById(boxes()[0].getAttribute('aria-describedby')).textContent,'Not selected');
     assert.ok(boxes().every(box=>box.disabled));
     assert.match(document.getElementById(boxes()[2].getAttribute('aria-describedby')).textContent,/Already loaded/);
     act(()=>instance.toggleSelection('parent'));
@@ -578,4 +578,62 @@ test('catalog permission context returns to the selection list without changing 
             act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
         }
     }
+});
+
+test('catalog sections follow dashboard order with localized headings and stable source controls after filtering', async () => {
+    const {ExtensionSelectionList}=require('../dist/react.cjs');
+    const {parseExtensionCatalog}=require('../dist/index.cjs');
+    const entries=parseExtensionCatalog({schemaVersion:1,categories:[
+        {id:'display',title:'Display',titleJa:'表示'},{id:'tools',title:'Tools'}
+    ],extensions:[
+        {id:'base',name:'Base',category:'tools',dependencies:[]},
+        {id:'bubble',name:'Bubble',category:'display',dependencies:['base']},
+        {id:'sprite',name:'Sprite',category:'display',dependencies:['base']},
+        {id:'other',name:'Other',dependencies:[]}
+    ].map(item=>({...item,version:'1.2.3',url:`https://catalog.test/${item.id}.js`}))});
+    const requests=[];
+    const render=(filterQuery='',locale='ja',loadedIds=[])=>act(()=>{ReactDOM.render(
+        React.createElement(ExtensionSelectionList,{entries,filterQuery,locale,loadedIds,
+            loadInfo:async url=>{requests.push(url);return {source:'text only',metadata:{}};},
+            onComplete:()=>{},onCancel:()=>{}}),document.getElementById('app'));});
+    const headings=()=>[...document.querySelectorAll('h2')].map(node=>node.textContent);
+    const row=name=>[...document.querySelectorAll('article')].find(node=>node.querySelector('strong').textContent===name);
+    const toggle=name=>act(()=>Simulate.change(row(name).querySelector('input[type="checkbox"]')));
+    const state=name=>row(name).dataset.selectionState;
+    render();
+    assert.deepEqual(headings(),['表示','Tools','その他の機能拡張']);
+    assert.deepEqual([...document.querySelectorAll('article strong')].map(node=>node.textContent),['Bubble','Sprite','Base','Other']);
+    assert.equal(document.querySelectorAll('.twextsec-selection-legend li').length,4);
+    assert.equal(state('Base'),'unselected');
+    toggle('Base');toggle('Bubble');toggle('Sprite');
+    assert.equal(state('Base'),'selected');
+    assert.ok(row('Base').querySelector('input').disabled);
+    assert.match(row('Base').textContent,/Bubble、Sprite に必要/);
+    toggle('Bubble');
+    assert.match(row('Base').textContent,/Sprite に必要/);
+    assert.doesNotMatch(row('Base').textContent,/Bubble に必要/);
+    toggle('Sprite');
+    assert.equal(state('Base'),'selected');
+    assert.equal(row('Base').querySelector('input').disabled,false);
+    toggle('Base');toggle('Bubble');
+    assert.equal(state('Base'),'dependency');
+    assert.match(row('Base').textContent,/依存関係で自動選択/);
+    assert.match(row('Base').textContent,/Bubble に必要/);
+    const sourceId=row('Base').querySelector('button').getAttribute('aria-controls');
+    render('Base');
+    assert.deepEqual(headings(),['Tools']);
+    assert.equal(row('Base').querySelector('button').getAttribute('aria-controls'),sourceId);
+    act(()=>Simulate.click(row('Base').querySelector('button')));await wait(0);
+    assert.deepEqual(requests,['https://catalog.test/base.js']);
+    assert.equal(document.getElementById(sourceId).querySelector('textarea').value,'text only');
+    render('', 'en');
+    assert.deepEqual(headings(),['Display','Tools','Other extensions']);
+    assert.match(row('Base').textContent,/Required by Bubble/);
+    render('', 'ja', ['base']);
+    assert.equal(state('Base'),'loaded');
+    assert.match(row('Base').textContent,/読み込み済み/);
+    assert.doesNotMatch(row('Base').textContent,/Bubble に必要/);
+    render('no matching extension');assert.deepEqual(headings(),[]);
+    assert.match(document.querySelector('[role="status"]').textContent,/一致する機能拡張がありません/);
+    act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });

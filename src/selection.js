@@ -20,6 +20,7 @@ export const resolveExtensionSelection = (entries, explicitIds = [], loadedIds =
     }
     const selected = new Set();
     const required = new Set();
+    const requiredBy = new Map();
     const visiting = new Set();
     const ordered = [];
     const visit = id => {
@@ -36,15 +37,43 @@ export const resolveExtensionSelection = (entries, explicitIds = [], loadedIds =
         selected.add(id);
         ordered.push(entry);
     };
-    for (const id of explicitIds) if (byId.has(id)) visit(id);
+    const roots = [...explicitIds].filter(id => byId.has(id));
+    for (const id of roots) visit(id);
+    for (const root of roots) {
+        const seen = new Set();
+        const describeDependencies = id => {
+            for (const dependency of byId.get(id).dependencies || []) {
+                if (seen.has(dependency)) continue;
+                seen.add(dependency);
+                if (!requiredBy.has(dependency)) requiredBy.set(dependency, new Set());
+                requiredBy.get(dependency).add(root);
+                describeDependencies(dependency);
+            }
+        };
+        describeDependencies(root);
+    }
     const loaded = new Set(loadedIds);
-    return {selected, required, loaded, ordered: ordered.filter(entry => !loaded.has(entry.id))};
+    return {selected, required, requiredBy, loaded, ordered: ordered.filter(entry => !loaded.has(entry.id))};
 };
 
 /** Validate the Pages JSON contract before it reaches the selection UI or VM. */
 export const parseExtensionCatalog = data => {
     if (!data || data.schemaVersion !== 1 || !Array.isArray(data.extensions)) {
         throw new Error('Unsupported extension catalog');
+    }
+    const categories = new Map();
+    if (data.categories !== undefined) {
+        if (!Array.isArray(data.categories)) throw new Error('Invalid extension catalog categories');
+        data.categories.forEach((category, order) => {
+            if (!category || typeof category.id !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(category.id) ||
+                typeof category.title !== 'string' || !category.title.trim() ||
+                (category.titleJa !== undefined && (typeof category.titleJa !== 'string' || !category.titleJa.trim()))) {
+                throw new Error('Invalid extension catalog category');
+            }
+            if (categories.has(category.id)) throw new Error(`Duplicate extension category: ${category.id}`);
+            categories.set(category.id, {id: category.id, title: category.title, order,
+                ...(category.titleJa !== undefined ? {titleJa: category.titleJa} : {})});
+        });
     }
     const urls = new Set();
     const entries = data.extensions.map(item => {
@@ -67,7 +96,14 @@ export const parseExtensionCatalog = data => {
         }
         if (item.banner) metadata.banner = httpsURL(item.banner);
         if (item.repository) metadata.repository = httpsURL(item.repository);
-        return {id: item.id, ids: [item.id], url, dependencies: [...new Set(item.dependencies)], metadata};
+        const entry = {id: item.id, ids: [item.id], url, dependencies: [...new Set(item.dependencies)], metadata};
+        if (item.category !== undefined) {
+            if (typeof item.category !== 'string' || !categories.has(item.category)) {
+                throw new Error(`Missing extension category: ${item.category}`);
+            }
+            entry.category = categories.get(item.category);
+        }
+        return entry;
     });
     resolveExtensionSelection(entries, entries.map(entry => entry.id));
     return entries;

@@ -2,6 +2,10 @@ const messages = {
     "en": {
         "selectionIntro": "Choose extensions to add. Required extensions are selected automatically.",
         "selectionRequired": "Requires running without a sandbox.",
+        "selectedState": "Selected by you", "dependencyState": "Selected automatically",
+        "unselectedState": "Not selected", "loadedState": "Already loaded",
+        "selectionLegend": "Selection states", "requiredBy": "Required by {names}",
+        "otherCategory": "Other extensions",
         "catalogRequiredIntro": "All selected extensions require Without sandbox, which is already selected. Choose OK to load them, or Cancel to return to the selection list.",
         "catalogRequired": "This extension cannot run inside the sandbox. Choose Without sandbox, or Cancel to return to the selection list.",
         "catalogCancelQuestion": "Cancel loading the selected extensions and return to the selection list?",
@@ -48,6 +52,10 @@ const messages = {
     "ja": {
         "selectionIntro": "追加する機能拡張を選んでください。依存する機能拡張も自動で選択されます。",
         "selectionRequired": "サンドボックスなしでの実行が必要です。",
+        "selectedState": "手動で選択", "dependencyState": "依存関係で自動選択",
+        "unselectedState": "未選択", "loadedState": "読み込み済み",
+        "selectionLegend": "選択状態の凡例", "requiredBy": "{names} に必要",
+        "otherCategory": "その他の機能拡張",
         "catalogRequiredIntro": "選択したすべての機能拡張で必要な「サンドボックスなし」を選択済みです。「OK」で読み込むか、「キャンセル」で選択一覧に戻ります。",
         "catalogRequired": "この拡張はサンドボックス内では動作しません。「サンドボックスなし」を選ぶか、「キャンセル」で選択一覧に戻ります。",
         "catalogCancelQuestion": "選択した機能拡張の読み込みを取り消して、選択一覧に戻りますか？",

@@ -25,11 +25,15 @@ export const preferences: {
 export const messages: Record<string, Record<string, string>>;
 export function formatMessage(locale: string, key: string, values?: Record<string, string | number>): string;
 
+export interface ExtensionCategory {
+    id: string; title: string; titleJa?: string; order?: number;
+}
 export interface SelectableExtension extends ExtensionEntry {
-    id: string; dependencies: string[]; metadata: ExtensionMetadata;
+    id: string; dependencies: string[]; metadata: ExtensionMetadata; category?: ExtensionCategory;
 }
 export interface ExtensionSelection {
-    selected: Set<string>; required: Set<string>; loaded: Set<string>; ordered: SelectableExtension[];
+    selected: Set<string>; required: Set<string>; requiredBy: Map<string, Set<string>>;
+    loaded: Set<string>; ordered: SelectableExtension[];
 }
 export function resolveExtensionSelection(entries: SelectableExtension[], explicitIds?: Iterable<string>, loadedIds?: Iterable<string>): ExtensionSelection;
 export function parseExtensionCatalog(data: unknown): SelectableExtension[];
