@@ -27,7 +27,7 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ```
 
-## Public Editor screenshots
+## Editor screenshots captured before the TurboWarp-Plus-Editor migration
 
 `assets/screenshots/required-modes-{en,ja}-20261025.png` are unmodified browser captures of the public Editor on 25 October 2026, showing Camera Source 0.19.3, Asset Cache 0.3.1 and Bubble 0.13.4. Their origin, Editor revisions and hashes are recorded in `assets/screenshots/capture-20261025.json`. The captured UI, icons and banners retain their respective rights holders and applicable licenses; this package does not relicense those elements.
 

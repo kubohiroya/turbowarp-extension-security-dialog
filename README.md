@@ -7,12 +7,14 @@ in **one single list**, instead of one prompt per extension.
 Related tasks and acceptance criteria are tracked in
 [scratch-gui #33](https://github.com/kubohiroya/scratch-gui/issues/33).
 
-## Screenshots from the public Editor
+## TurboWarp-Plus-Editor and screenshots
 
 [English](./README.md) and [Japanese](./README.ja.md) use the same dialog with localized labels and extension descriptions.
-This capture shows Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5 in the
-[public Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=en)
-on 28 October 2026, with **Without sandbox** already selected for all three extensions and the unnecessary bulk selection section hidden.
+<p><a class="twpe-edit-button" href="https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en"><img src="https://kubohiroya.github.io/turbowarp-plus-editor/assets/icon.svg" width="32" height="32" alt=""> Edit in TurboWarp-Plus-Editor</a></p>
+
+The downstream [TurboWarp-Plus-Editor](https://github.com/kubohiroya/turbowarp-plus-editor) owns integrated builds, validation and distribution. Its README also documents the reusable button HTML and stylesheet.
+
+The following capture records the Editor before this migration, on 28 October 2026, with Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5. **Without sandbox** is selected for all three extensions and the unnecessary bulk selection section is hidden. This is a historical capture, not a new image of the current UI.
 
 ![English descriptions for Camera Source, Asset Cache and Bubble: Deny and With sandbox are disabled for all three extensions; Without sandbox is preselected and marked Required to run. The bulk selection section is hidden. Choose OK to load the project or Cancel to stop.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/hidden-bulk-required-en-20261028.png)
 
@@ -202,7 +204,7 @@ Only the enclosing header is used; bundled member notices cannot supply its tran
 HTML-looking text is rendered as text. The optional `ExtensionMetadata.descriptions` record uses
 lowercase keys, and `getExtensionDescription(metadata, locale)` exposes the same lookup.
 
-The public Editor and the three published bundles shown above support localized descriptions.
+The pre-migration Editor capture and the three published bundles shown above demonstrate localized descriptions.
 The English capture uses each original `Description`; the Japanese capture uses `Description[ja]`.
 Extensions without a matching translation retain their original description. The selected language
 does not change required modes or permission choices. Updating a package does not replace code

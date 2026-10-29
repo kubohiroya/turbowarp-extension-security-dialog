@@ -98,11 +98,14 @@ JSON契約は `schemaVersion: 1` と `extensions` 配列です。各要素の必
 切り戻しはホストの起動時固定・既定OFFのフラグをOFFにして再読み込みするか、カタログ接続差分をrevertします。
 既存の3つの実行モードを持つセキュリティ確認は、そのまま利用できます。
 
-## 公開Editorのスクリーンショット
+## TurboWarp-Plus-Editorとスクリーンショット
 
 [英語版](./README.md)と日本語版は、同じダイアログの表示言語を切り替え、ラベルと拡張の説明文を各言語で表示しています。
-全件必須時の自動選択と一括選択欄の非表示に対応した[公開Editor](https://kubohiroya.github.io/turbowarp-extension-data-editor/editor.html?lang=ja)で、
-2026年10月28日にCamera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。
+<p><a class="twpe-edit-button" href="https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja"><img src="https://kubohiroya.github.io/turbowarp-plus-editor/assets/icon.svg" width="32" height="32" alt=""> TurboWarp-Plus-Editorで編集</a></p>
+
+統合Editorのビルド・検証・配信は、下流の [TurboWarp-Plus-Editor](https://github.com/kubohiroya/turbowarp-plus-editor) が所有します。ボタンのHTMLとスタイルも同リポジトリのREADMEで説明しています。
+
+以下は移行前のEditorで2026年10月28日にCamera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。全件必須時の自動選択と一括選択欄の非表示を確認した当時の記録であり、現在のUIの撮り直しではありません。
 
 ![Camera Source・Asset Cache・Bubbleの説明が日本語で表示された修正後の確認画面。拒否とサンドボックスありは無効、サンドボックスなしを選択済みで動作に必要と表示。一括選択欄は非表示。OKで読み込むかキャンセルで中止できる](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/hidden-bulk-required-ja-20261028.png)
 
@@ -283,7 +286,7 @@ coreとVMアダプターの利用にReact/React DOMは必要ありません。
 
 同梱メンバーのnoticeにある説明は親バンドルへ混ぜません。HTMLに見える説明も文字列として表示します。独自の`loadInfo`を使う場合は、任意の`ExtensionMetadata.descriptions`へ小文字の言語タグをキーとした説明を渡せます。`getExtensionDescription(metadata, locale)`でも同じ選択処理を利用できます。
 
-上の画像は、日本語説明へ対応した公開Editorと公開済みの3拡張を使用しています。英語版では各拡張の従来の`Description`、日本語版では`Description[ja]`を表示します。対応する翻訳がない拡張は元の説明を表示します。説明の言語が変わっても、必要な実行モードや許可の選択は変わりません。パッケージを更新しても、既存SB3に埋め込まれたコードは自動で差し替わりません。
+上の画像は、日本語説明へ対応した移行前のEditorと公開済みの3拡張を使用した記録です。英語版では各拡張の従来の`Description`、日本語版では`Description[ja]`を表示します。対応する翻訳がない拡張は元の説明を表示します。説明の言語が変わっても、必要な実行モードや許可の選択は変わりません。パッケージを更新しても、既存SB3に埋め込まれたコードは自動で差し替わりません。
 
 ## 実行モードの選択
 
