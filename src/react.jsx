@@ -1,6 +1,6 @@
 import React from 'react';
 import {loadExtensionInfo, getExtensionDescription} from './info.js';
-import PackageDescription, {getPackagePreviewCandidates, requiresUnsandboxed, resolveSharedPackageMetadata}
+import PackageDescription, {PackageRequirement, getPackagePreviewCandidates, requiresUnsandboxed, resolveSharedPackageMetadata}
     from './package-description.jsx';
 import PackageSections from './package-sections.jsx';
 import {formatMessage} from './messages.js';
@@ -248,6 +248,7 @@ class ExtensionSecurityDialog extends React.Component {
                         <PackageDescription entry={entry} metadata={metadata} sharedMetadata={sharedMetadata}
                             locale={this.props.locale} index={index} idPrefix={idPrefix}
                             requirementId={reasonId}
+                            showRequirement={Boolean(selection)}
                             previewIndex={row.previewIndex} status={row.status} onImageError={this.handleImageError}
                             linkCreator={Boolean(selection || (metadata.author && metadata.authorURL))}
                             showMissingMetadata={Boolean(selection)}
@@ -266,38 +267,41 @@ class ExtensionSecurityDialog extends React.Component {
                                 <div className={styles.warningText} role="status">{this.t('choiceReset')}</div>
                             </div>}
                     </div>
-                    {!selection && MODES.map(mode => (
-                        <label
-                            className={styles.choice}
-                            key={mode}
-                            data-mode={mode}
-                            aria-disabled={!this.canChoose(entry, mode)}
-                            title={!this.canChoose(entry, mode) ? this.t('requiredToRun') : undefined}
-                        >
-                            <span className={styles.choiceControl}>
-                                <input
-                                    type="radio"
-                                    name={`extension-security-${index}`}
-                                    value={mode}
-                                    checked={this.state.choices[entry.url] === mode}
-                                    aria-label={`${name}: ${this.t(mode)}`}
-                                    aria-describedby={!this.canChoose(entry, mode) ? reasonId :
-                                        required && mode === 'unsandboxed' ? requiredId : undefined}
-                                    disabled={!this.canChoose(entry, mode)}
-                                    data-index={index}
-                                    onChange={this.handleChoice}
-                                />
-                                <ModeIcon mode={mode} />
-                            </span>
-                            <span className={styles.mobileLabel}>{this.t(mode)}</span>
-                            {!this.canChoose(entry, mode) && (
-                                <span className={styles.modeNote}>{this.t('unsupported')}</span>
-                            )}
-                            {required && mode === 'unsandboxed' && (
-                                <span id={requiredId} className={styles.requiredMode}>{this.t('requiredToRun')}</span>
-                            )}
-                        </label>
-                    ))}
+                    {!selection && <div className={styles.securityModes}>
+                        <PackageRequirement metadata={sharedMetadata} locale={this.props.locale} id={reasonId} />
+                        {MODES.map(mode => (
+                            <label
+                                className={styles.choice}
+                                key={mode}
+                                data-mode={mode}
+                                aria-disabled={!this.canChoose(entry, mode)}
+                                title={!this.canChoose(entry, mode) ? this.t('requiredToRun') : undefined}
+                            >
+                                <span className={styles.choiceControl}>
+                                    <input
+                                        type="radio"
+                                        name={`extension-security-${index}`}
+                                        value={mode}
+                                        checked={this.state.choices[entry.url] === mode}
+                                        aria-label={`${name}: ${this.t(mode)}`}
+                                        aria-describedby={!this.canChoose(entry, mode) ? reasonId :
+                                            required && mode === 'unsandboxed' ? requiredId : undefined}
+                                        disabled={!this.canChoose(entry, mode)}
+                                        data-index={index}
+                                        onChange={this.handleChoice}
+                                    />
+                                    <ModeIcon mode={mode} />
+                                </span>
+                                <span className={styles.mobileLabel}>{this.t(mode)}</span>
+                                {!this.canChoose(entry, mode) && (
+                                    <span className={styles.modeNote}>{this.t('unsupported')}</span>
+                                )}
+                                {required && mode === 'unsandboxed' && (
+                                    <span id={requiredId} className={styles.requiredMode}>{this.t('requiredToRun')}</span>
+                                )}
+                            </label>
+                        ))}
+                    </div>}
                     {selection && <label className={styles.choice} aria-disabled={selection.disabled}>
                         <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
                             aria-label={`${name}: ${this.t('selectExtension')}`}

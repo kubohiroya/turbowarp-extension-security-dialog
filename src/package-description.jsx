@@ -43,15 +43,24 @@ const PackageIcon = ({service}) => service === 'github' ? (
     </svg>
 );
 
+export const PackageRequirement = ({metadata, locale, id}) => {
+    const t = (key, values) => formatMessage(locale, key, values);
+    const declared = typeof metadata.unsandboxed === 'string' ? metadata.unsandboxed.trim().toLowerCase() : '';
+    const requirement = ['required', 'optional', 'not-needed'].includes(declared) ? declared : 'unknown';
+    return <div className={styles.requirement} data-requirement={requirement} id={id}>
+        {requirement === 'required' && <span aria-hidden="true">⚠️</span>}
+        {t('unsandboxedRequirement', {requirement: t(`requirement-${requirement}`)})}
+    </div>;
+};
+
 /** Shared description renderer with explicit presentation options for fields outside the alignment scope. */
 const PackageDescription = ({entry, metadata, sharedMetadata, locale, index, previewIndex, status,
-    onImageError, idPrefix, requirementId, linkCreator, showMissingMetadata, documentation, provenance, children}) => {
+    onImageError, idPrefix, requirementId, showRequirement = true, linkCreator, showMissingMetadata,
+    documentation, provenance, children}) => {
     const t = (key, values) => formatMessage(locale, key, values);
     const name = metadata.name || entry.ids.join(', ');
     const description = getExtensionDescription(metadata, locale);
     const candidates = getPackagePreviewCandidates(entry, sharedMetadata);
-    const declared = typeof sharedMetadata.unsandboxed === 'string' ? sharedMetadata.unsandboxed.trim().toLowerCase() : '';
-    const requirement = ['required', 'optional', 'not-needed'].includes(declared) ? declared : 'unknown';
     const docsURL = documentation && externalURL(metadata.docsURL);
     const authorURL = linkCreator && externalURL(metadata.authorURL, ['https:', 'http:']);
     const repositoryURL = externalURL(sharedMetadata.repository);
@@ -107,10 +116,7 @@ const PackageDescription = ({entry, metadata, sharedMetadata, locale, index, pre
             {provenance}
             {!status && <div className={styles.secondary}>{t('pending')}</div>}
             {status === 'failed' && <div className={styles.error}>{t('failed')}</div>}
-            <div className={styles.requirement} data-requirement={requirement} id={requirementId}>
-                {requirement === 'required' && <span aria-hidden="true">⚠️</span>}
-                {t('unsandboxedRequirement', {requirement: t(`requirement-${requirement}`)})}
-            </div>
+            {showRequirement && <PackageRequirement metadata={sharedMetadata} locale={locale} id={requirementId} />}
         </div>
     </div>);
 };

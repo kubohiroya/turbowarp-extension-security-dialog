@@ -40,7 +40,7 @@ const messages = {
         "pending": "Getting metadata…",
         "failed": "Could not retrieve metadata",
         "required": "This extension cannot run inside the sandbox. Choose Without sandbox, or Cancel to stop loading the project.",
-        "requiredToRun": "Required to run",
+        "requiredToRun": "Required",
         "unsupported": "Unsupported",
         "choiceReset": "The incompatible selection was cleared. Choose how to run this extension again.",
         "bulkNote": "Applies only to extensions that support this mode.",
@@ -60,7 +60,7 @@ const messages = {
         "warning": "Extensions without a sandbox can access your project and browser information."
     },
     "ja": {
-        "securityInstruction": "⚠️マークの表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。",
+        "securityInstruction": "「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。",
         "catalogCancelDestination": "『キャンセル』で選択一覧に戻ります。",
         "selectionIntro": "追加する機能拡張を選んでください。依存する機能拡張も自動で選択されます。",
         "documentationFor": "{name}: ドキュメント",
@@ -100,7 +100,7 @@ const messages = {
         "pending": "メタデータを取得中…",
         "failed": "メタデータを取得できませんでした",
         "required": "この拡張はサンドボックス内では動作しません。「サンドボックスなし」を選ぶか、「キャンセル」でプロジェクトの読み込みを中止してください。",
-        "requiredToRun": "動作に必要",
+        "requiredToRun": "必要",
         "unsupported": "非対応",
         "choiceReset": "非対応の選択を解除しました。実行方法を選び直してください。",
         "bulkNote": "そのモードに対応する拡張だけに適用します。",
