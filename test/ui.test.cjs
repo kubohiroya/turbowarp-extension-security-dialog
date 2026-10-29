@@ -33,7 +33,7 @@ test('asynchronous metadata/images/new rows preserve choices without source cont
         ref:value=>{instance=value;}, entries,locale:'ja',loadInfo,onComplete:value=>completed.push(value),
         initialChoices:new Map([[a.url,'sandboxed']])}),document.getElementById('app'));});}
     render([a,b]);await wait(0);
-    assert.equal(document.querySelector('.twextsec-intro p').textContent,'⚠️マークの表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
+    assert.equal(document.querySelector('.twextsec-intro p').textContent,'「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
     assert.doesNotMatch(document.querySelector('.twextsec-note').textContent,/取得中でも選択/);
     assert.doesNotMatch(document.querySelector('article').textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
@@ -82,7 +82,7 @@ test('bundle ID and license are visible with a concise shared execution badge in
         assert.equal(document.querySelector('input[value="sandboxed"]').disabled,true);
         assert.equal(document.querySelector('input[value="unsandboxed"]').disabled,false);
         assert.match(document.querySelector('label[data-mode="unsandboxed"]').textContent,
-            locale==='ja'?/動作に必要/:/Required to run/);
+            locale==='ja'?/必要/:/Required/);
         assert.equal(document.querySelectorAll('textarea').length,0);
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
@@ -756,7 +756,7 @@ test('both screens share package images, service links, execution badges and cat
             dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
         if(locale==='ja') {
             assert.equal(document.querySelector('.twextsec-intro p').textContent,
-                '⚠️マークの表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
+                '「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
             assert.equal(note.textContent,'『キャンセル』で選択一覧に戻ります。');
         }
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});

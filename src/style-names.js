@@ -11,6 +11,7 @@ export default {
     "error": "twextsec-error",
     "footer": "twextsec-footer",
     "securityFooter": "twextsec-security-footer",
+    "securityModes": "twextsec-security-modes",
     "footerControls": "twextsec-footer-controls",
     "previewColumn": "twextsec-preview-column",
     "packageHeading": "twextsec-package-heading",
