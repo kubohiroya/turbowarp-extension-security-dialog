@@ -1,5 +1,14 @@
 const messages = {
     "en": {
+        "distribution": "Distribution",
+        "executionMode": "Execution mode",
+        "executionBulk": "Execution mode for all packages",
+        "distributionBulk": "Distribution for all packages",
+        "distribution-embedded": "Embedded (include in SB3)",
+        "distribution-remote": "Remote (reference URL)",
+        "distributionNote": "Distribution and execution permissions are separate. You can override each row after applying a bulk choice.",
+        "configuredSummary": "{count} extensions to configure",
+        "applySettings": "Apply extension settings",
         "securityInstruction": "To make extensions marked ⚠️ work as their creators intended, choose Without sandbox.",
         "catalogCancelDestination": "Choose Cancel to return to the selection list.",
         "selectionIntro": "Choose extensions to add. Required extensions are selected automatically.",
@@ -60,6 +69,15 @@ const messages = {
         "warning": "Extensions without a sandbox can access your project and browser information."
     },
     "ja": {
+        "distribution": "配布方法",
+        "executionMode": "実行方法",
+        "executionBulk": "すべてのパッケージの実行方法",
+        "distributionBulk": "すべてのパッケージの配布方法",
+        "distribution-embedded": "Embedded（SB3に同梱）",
+        "distribution-remote": "Remote（URL参照）",
+        "distributionNote": "配布方法と実行許可は別の設定です。一括指定した後、各行で変更できます。",
+        "configuredSummary": "設定する機能拡張 {count} 件",
+        "applySettings": "拡張の設定を適用",
         "securityInstruction": "「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。",
         "catalogCancelDestination": "『キャンセル』で選択一覧に戻ります。",
         "selectionIntro": "追加する機能拡張を選んでください。依存する機能拡張も自動で選択されます。",

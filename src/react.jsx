@@ -9,6 +9,16 @@ import {resolveExtensionSelection} from './selection.js';
 const bindAll = (instance, names) => names.forEach(name => {instance[name] = instance[name].bind(instance);});
 
 const MODES = ['deny', 'sandboxed', 'unsandboxed'];
+const EXECUTION_MODES = ['sandboxed', 'unsandboxed'];
+const DISTRIBUTIONS = ['embedded', 'remote'];
+const entryIds = entry => entry.id ? [entry.id] : entry.ids || [];
+const initialValue = (values, entry) => {
+    for (const key of [...(entry.id ? [entry.id] : []), entry.url, ...(entry.ids || [])]) {
+        const value = values instanceof Map ? values.get(key) : values && Object.prototype.hasOwnProperty.call(values, key) ? values[key] : undefined;
+        if (value !== undefined) return value;
+    }
+    return undefined;
+};
 const isModeAllowed = (mode, metadata) => MODES.includes(mode) &&
     (!requiresUnsandboxed(metadata) || mode === 'unsandboxed');
 const allRequireUnsandboxed = (entries, rows) => entries.length > 0 && entries.every(entry => {
@@ -61,24 +71,29 @@ class ExtensionSecurityDialog extends React.Component {
     constructor (props) {
         super(props);
         const choices = {};
+        const distributions = {};
         for (const entry of props.entries) {
-            const mode = props.initialChoices.get(entry.url);
+            const mode = initialValue(props.initialChoices, entry);
             if (isModeAllowed(mode, resolveSharedPackageMetadata(entry))) choices[entry.url] = mode;
+            const distribution = initialValue(props.initialDistributions, entry);
+            distributions[entry.url] = DISTRIBUTIONS.includes(distribution) ? distribution : 'remote';
         }
-        this.state = {choices, rows: {}, confirmation: null, ready: false};
+        this.state = {choices, distributions, rows: {}, confirmation: null, ready: false};
         this.requests = new Map();
         this.controllers = new Set();
         this.timeouts = new Set();
         this.alive = false;
         bindAll(this, ['handleChoice', 'handleBulk', 'handleImageError', 'handleOK',
-            'handleCancel', 'handleNo', 'handleYes', 'handleRequestClose', 'focusNo']);
+            'handleCancel', 'handleNo', 'handleYes', 'handleRequestClose', 'focusNo',
+            'handleDistribution', 'handleBulkDistribution']);
     }
     componentDidMount () {
         this.alive = true;
         this.delay(() => this.setState({ready: true}));
         this.startRequests();
     }
-    componentDidUpdate () {
+    componentDidUpdate (previousProps) {
+        this.initializeEntries(previousProps);
         this.startRequests();
         const {entries} = this.props;
         if (allRequireUnsandboxed(entries, this.state.rows) &&
@@ -143,10 +158,38 @@ class ExtensionSecurityDialog extends React.Component {
     t (key, values) {
         return formatMessage(this.props.locale, key, values);
     }
+    initializeEntries (previousProps) {
+        if (previousProps.entries === this.props.entries) return;
+        const previousURLs = new Set(previousProps.entries.map(entry => entry.url));
+        const added = this.props.entries.filter(entry => !previousURLs.has(entry.url));
+        if (!added.length) return;
+        this.setState(previous => {
+            const choices = {...previous.choices};
+            const distributions = {...previous.distributions};
+            for (const entry of added) {
+                const restored = initialValue(this.props.initialChoices, entry);
+                const actualLoadedMode = this.props.enableDistribution && this instanceof ExtensionSelectionList &&
+                    this.props.loadedIds.includes(entry.id) && this.executionModes().includes(restored);
+                if (actualLoadedMode || this.canChoose(entry, restored, previous)) choices[entry.url] = restored;
+                else if (this.props.enableDistribution && this instanceof ExtensionSelectionList &&
+                    requiresUnsandboxed(resolveSharedPackageMetadata(entry))) choices[entry.url] = 'unsandboxed';
+                const distribution = initialValue(this.props.initialDistributions, entry);
+                distributions[entry.url] = DISTRIBUTIONS.includes(distribution) ? distribution : 'remote';
+            }
+            return {choices, distributions};
+        });
+    }
     entryForEvent (event) {
         return this.props.entries[Number(event.currentTarget.dataset.index)];
     }
+    executionModes () {
+        return MODES;
+    }
+    canConfigureEntry () {
+        return true;
+    }
     canChoose (entry, mode, state = this.state) {
+        if (this.props.enableDistribution && mode === 'deny' && (this.props.loadedIds || []).includes(entry.id)) return false;
         return isModeAllowed(mode, resolveSharedPackageMetadata(entry, (state.rows[entry.url] || {}).metadata));
     }
     selectionReady () {
@@ -159,18 +202,54 @@ class ExtensionSecurityDialog extends React.Component {
         });
     }
     handleChoice (event) {
+        if (this.props.busy) return;
         const entry = this.entryForEvent(event);
         const mode = event.currentTarget.value;
-        if (!entry) return;
+        if (!entry || !this.canConfigureEntry(entry)) return;
         this.setState(previous => this.canChoose(entry, mode, previous) ?
             {choices: {...previous.choices, [entry.url]: mode}} : null);
     }
     handleBulk (event) {
+        if (this.props.busy) return;
         const mode = event.currentTarget.value;
-        if (!MODES.includes(mode)) return;
+        if (!this.executionModes().includes(mode)) return;
         this.setState(previous => ({choices: Object.assign({}, previous.choices,
             Object.fromEntries(this.props.entries.filter(entry => this.canChoose(entry, mode, previous))
                 .map(entry => [entry.url, mode])))}));
+    }
+    handleDistribution (event) {
+        if (this.props.busy) return;
+        const entry = this.entryForEvent(event);
+        const distribution = event.currentTarget.value;
+        if (entry && this.canConfigureEntry(entry) && DISTRIBUTIONS.includes(distribution)) {
+            this.setState(previous => ({distributions: {...previous.distributions, [entry.url]: distribution}}));
+        }
+    }
+    handleBulkDistribution (event) {
+        if (this.props.busy) return;
+        const distribution = event.currentTarget.value;
+        if (!DISTRIBUTIONS.includes(distribution)) return;
+        // Bulk distribution deliberately includes rows hidden by the search filter.
+        this.setState(previous => ({distributions: Object.assign({}, previous.distributions,
+            Object.fromEntries(this.props.entries.map(entry => [entry.url, distribution])))}));
+    }
+    settings (entries = this.props.entries) {
+        const distributions = new Map();
+        for (const entry of entries) {
+            for (const id of entryIds(entry)) distributions.set(id, this.state.distributions[entry.url] || 'remote');
+        }
+        return {entries, distributions, choices: new Map(entries.filter(entry =>
+            this.executionModes().includes(this.state.choices[entry.url])).map(entry => [entry.url, this.state.choices[entry.url]]))};
+    }
+    renderDistributionBulk () {
+        if (!this.props.enableDistribution) return null;
+        return <div className={styles.bulk} data-testid="extension-distribution-bulk">
+            <span>{this.t('distributionBulk')}</span>
+            {DISTRIBUTIONS.map(distribution => <button type="button" key={distribution}
+                value={distribution} data-distribution={distribution} disabled={this.props.busy}
+                onClick={this.handleBulkDistribution}>{this.t(`distribution-${distribution}`)}</button>)}
+            <div className={styles.bulkNote}>{this.t('distributionNote')}</div>
+        </div>;
     }
     handleImageError (event) {
         const entry = this.entryForEvent(event);
@@ -212,12 +291,15 @@ class ExtensionSecurityDialog extends React.Component {
             this.setState({confirmation: null});
             return;
         }
-        this.props.onComplete(new Map(this.props.entries.map(entry => [entry.url, this.state.choices[entry.url]])));
+        const decisions = new Map(this.props.entries.map(entry => [entry.url, this.state.choices[entry.url]]));
+        if (this.props.enableDistribution) this.props.onComplete(decisions, this.settings());
+        else this.props.onComplete(decisions);
     }
     focusNo (element) {
         if (element) element.focus();
     }
     renderRow (entry, index, selection) {
+        const controlsDisabled = this.props.busy || Boolean(selection && !selection.checked);
         const row = selection ? {...this.state.rows[entry.url], metadata: entry.metadata, status: 'ready'} :
             this.state.rows[entry.url] || {};
         const metadata = row.metadata || {};
@@ -242,6 +324,8 @@ class ExtensionSecurityDialog extends React.Component {
         ) : origin;
         return (
             <article className={styles.row} key={entry.url}
+                data-extension-id={entryIds(entry).join(',')}
+                data-distribution={this.props.enableDistribution ? this.state.distributions[entry.url] || 'remote' : undefined}
                 data-selection-state={selection ? selection.state : undefined}>
                 <div className={styles.rowMain}>
                     <div className={styles.packageColumn}>
@@ -267,32 +351,34 @@ class ExtensionSecurityDialog extends React.Component {
                                 <div className={styles.warningText} role="status">{this.t('choiceReset')}</div>
                             </div>}
                     </div>
-                    {!selection && <div className={styles.securityModes}>
-                        <PackageRequirement metadata={sharedMetadata} locale={this.props.locale} id={reasonId} />
-                        {MODES.map(mode => (
+                    {(!selection || this.props.enableDistribution) && <div className={styles.rowControls}
+                        aria-disabled={controlsDisabled}>
+                    <div className={styles.securityModes} role="group" aria-label={this.t('executionMode')}>
+                        {!selection && <PackageRequirement metadata={sharedMetadata} locale={this.props.locale} id={reasonId} />}
+                        {this.executionModes().map(mode => (
                             <label
                                 className={styles.choice}
                                 key={mode}
                                 data-mode={mode}
-                                aria-disabled={!this.canChoose(entry, mode)}
+                                aria-disabled={controlsDisabled || !this.canChoose(entry, mode)}
                                 title={!this.canChoose(entry, mode) ? this.t('requiredToRun') : undefined}
                             >
                                 <span className={styles.choiceControl}>
                                     <input
                                         type="radio"
-                                        name={`extension-security-${index}`}
+                                        name={`${selection ? 'selection-' : ''}extension-security-${index}`}
                                         value={mode}
                                         checked={this.state.choices[entry.url] === mode}
                                         aria-label={`${name}: ${this.t(mode)}`}
                                         aria-describedby={!this.canChoose(entry, mode) ? reasonId :
                                             required && mode === 'unsandboxed' ? requiredId : undefined}
-                                        disabled={!this.canChoose(entry, mode)}
+                                        disabled={controlsDisabled || !this.canChoose(entry, mode)}
                                         data-index={index}
                                         onChange={this.handleChoice}
                                     />
                                     <ModeIcon mode={mode} />
                                 </span>
-                                <span className={styles.mobileLabel}>{this.t(mode)}</span>
+                                <span className={this.props.enableDistribution ? styles.inlineModeLabel : styles.mobileLabel}>{this.t(mode)}</span>
                                 {!this.canChoose(entry, mode) && (
                                     <span className={styles.modeNote}>{this.t('unsupported')}</span>
                                 )}
@@ -301,6 +387,20 @@ class ExtensionSecurityDialog extends React.Component {
                                 )}
                             </label>
                         ))}
+                    </div>
+                    {this.props.enableDistribution && <fieldset className={styles.distributionModes}
+                        disabled={controlsDisabled}>
+                        <legend>{this.t('distribution')}</legend>
+                        {DISTRIBUTIONS.map(distribution => <label key={distribution} className={styles.choice}>
+                            <input type="radio" name={`${idPrefix}-distribution-${index}`}
+                                value={distribution} data-index={index} data-distribution={distribution}
+                                checked={(this.state.distributions[entry.url] || 'remote') === distribution}
+                                disabled={controlsDisabled}
+                                aria-label={`${name}: ${this.t(`distribution-${distribution}`)}`}
+                                onChange={this.handleDistribution} />
+                            <span>{this.t(`distribution-${distribution}`)}</span>
+                        </label>)}
+                    </fieldset>}
                     </div>}
                     {selection && <label className={styles.choice} aria-disabled={selection.disabled}>
                         <input type="checkbox" checked={selection.checked} disabled={selection.disabled}
@@ -362,7 +462,7 @@ class ExtensionSecurityDialog extends React.Component {
                         </div>
                     </div>
                 ) : (
-                    <div className={styles.body}>
+                    <div className={`${styles.body}${this.props.enableDistribution ? ' twextsec-with-distribution' : ''}`}>
                         <div className={styles.intro}>
                             <p>{this.t('securityInstruction')}</p>
                             <div
@@ -370,6 +470,7 @@ class ExtensionSecurityDialog extends React.Component {
                                 aria-live="polite"
                             >{this.t('progress', {done, total: entries.length})}</div>
                         </div>
+                        {this.renderDistributionBulk()}
                         {!allRequired && (
                             <div className={styles.bulk}>
                                 <span>{this.t('bulk')}</span>
@@ -433,7 +534,8 @@ const DefaultFrame = ({children, contentLabel, className}) => (
     <section role="dialog" aria-label={contentLabel} className={className}>{children}</section>
 );
 ExtensionSecurityDialog.defaultProps = {
-    loadInfo: loadExtensionInfo, initialChoices: new Map(), locale: 'en', context: 'project', DialogFrame: DefaultFrame
+    loadInfo: loadExtensionInfo, initialChoices: new Map(), initialDistributions: new Map(),
+    enableDistribution: false, locale: 'en', context: 'project', DialogFrame: DefaultFrame
 };
 export {ExtensionSecurityDialog};
 export default ExtensionSecurityDialog;
@@ -443,17 +545,38 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
     constructor (props) {
         super(props);
         this.state.explicitIds = new Set();
+        if (props.enableDistribution) {
+            for (const entry of props.entries) {
+                if (!EXECUTION_MODES.includes(this.state.choices[entry.url])) delete this.state.choices[entry.url];
+                const actual = initialValue(props.initialChoices, entry);
+                if (props.loadedIds.includes(entry.id) && EXECUTION_MODES.includes(actual)) this.state.choices[entry.url] = actual;
+                if (!this.state.choices[entry.url] && requiresUnsandboxed(resolveSharedPackageMetadata(entry))) {
+                    this.state.choices[entry.url] = 'unsandboxed';
+                }
+            }
+        }
     }
     componentDidMount () {
         this.alive = true;
     }
-    componentDidUpdate () {
+    componentDidUpdate (previousProps) {
+        this.initializeEntries(previousProps);
         const available = new Set(this.props.entries.map(entry => entry.id));
         if ([...this.state.explicitIds].some(id => !available.has(id))) {
             this.setState(previous => ({explicitIds: new Set([...previous.explicitIds].filter(id => available.has(id)))}));
         }
     }
     startRequests () {}
+    executionModes () {
+        return EXECUTION_MODES;
+    }
+    canChoose (entry, mode, state = this.state) {
+        return EXECUTION_MODES.includes(mode) && super.canChoose(entry, mode, state);
+    }
+    canConfigureEntry (entry) {
+        const selection = this.selection();
+        return selection.selected.has(entry.id) || selection.loaded.has(entry.id);
+    }
     selection () {
         return resolveExtensionSelection(this.props.entries, this.state.explicitIds, this.props.loadedIds);
     }
@@ -467,6 +590,16 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
             else explicitIds.add(id);
             return {explicitIds};
         });
+    }
+    completeSelection () {
+        const selection = this.selection();
+        if (!this.props.enableDistribution) {
+            this.props.onComplete(selection.ordered);
+            return;
+        }
+        const included = this.props.entries.filter(entry => selection.selected.has(entry.id) || selection.loaded.has(entry.id));
+        if (included.some(entry => !this.canChoose(entry, this.state.choices[entry.url]))) return;
+        this.props.onComplete(selection.ordered, this.settings(included));
     }
     render () {
         const selection = this.selection();
@@ -489,7 +622,10 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
                 dependencyReason: !loaded && rootNames.length ? this.t('requiredBy', {names: rootNames.join(separator)}) : null
             });
         };
-        return (<div className={`${styles.body} twextsec-selection`} aria-busy={this.props.busy}>
+        const configured = this.props.entries.filter(entry => selection.selected.has(entry.id) || selection.loaded.has(entry.id));
+        const configuredCount = configured.length;
+        const choicesReady = configured.every(entry => this.canChoose(entry, this.state.choices[entry.url]));
+        return (<div className={`${styles.body} twextsec-selection${this.props.enableDistribution ? ' twextsec-with-distribution' : ''}`} aria-busy={this.props.busy}>
             <div className={styles.intro}><p>{this.t('selectionIntro')}</p>
                 <ul className={styles.selectionLegend} aria-label={this.t('selectionLegend')}>
                     {['selected', 'dependency', 'unselected', 'loaded'].map(state =>
@@ -498,20 +634,30 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
                         </li>)}
                 </ul>
             </div>
+            {this.props.enableDistribution && !this.props.entries.every(entry =>
+                requiresUnsandboxed(resolveSharedPackageMetadata(entry))) && <div className={styles.bulk}>
+                <span>{this.t('executionBulk')}</span>
+                {this.executionModes().map(mode => <button type="button" key={mode} value={mode} data-execution={mode}
+                    disabled={this.props.busy || this.props.entries.every(entry => !this.canChoose(entry, mode))}
+                    onClick={this.handleBulk}><ModeIcon mode={mode} />{this.t(mode)}</button>)}
+                <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
+            </div>}
+            {this.renderDistributionBulk()}
             <div className={styles.list}>
                 <PackageSections entries={this.props.entries} items={visible} locale={this.props.locale}
                     idPrefix="selection-extension" renderItem={renderSelectionRow} />
                 {!visible.length && <p role="status">{this.t('noResults')}</p>}
             </div>
             <footer className={styles.footer}>
-                <span aria-live="polite">{this.t('selectedSummary', {count: selection.ordered.length})}</span>
+                <span aria-live="polite">{this.t(this.props.enableDistribution ? 'configuredSummary' : 'selectedSummary',
+                    {count: this.props.enableDistribution ? configuredCount : selection.ordered.length})}</span>
                 <div className={styles.buttons}>
                     <button type="button" disabled={this.props.busy} onClick={this.props.onCancel}>
                         {this.t('cancel')}</button>
                     <button type="button" className={styles.primary}
-                        disabled={this.props.busy || !selection.ordered.length}
-                        onClick={() => this.props.onComplete(this.selection().ordered)}>
-                        {this.t(this.props.busy ? 'loadingExtensions' : 'loadSelected')}</button>
+                        disabled={this.props.busy || !(this.props.enableDistribution ? configuredCount && choicesReady : selection.ordered.length)}
+                        onClick={() => this.completeSelection()}>
+                        {this.t(this.props.busy ? 'loadingExtensions' : this.props.enableDistribution ? 'applySettings' : 'loadSelected')}</button>
                 </div>
             </footer>
         </div>);

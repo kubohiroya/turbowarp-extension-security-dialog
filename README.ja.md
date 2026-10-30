@@ -35,6 +35,31 @@ const list = <ExtensionSelectionList entries={entries} locale="ja"
 `busy` で選択・フッター操作を無効にします。取得失敗・再試行・カタログの取得中止・VMエラーの表示と、
 読み込み成功に応じた `loadedIds` 更新はホスト側の担当です。
 
+### 配布方法と現在の実行状態を編集する
+
+[Editor #11](https://github.com/kubohiroya/turbowarp-plus-editor/issues/11) のホストは、起動時フラグが有効な場合だけ `enableDistribution={true}` を渡します。このpropは既定 `false` で、従来の一覧とcallbackを維持します。
+
+```jsx
+<ExtensionSelectionList entries={entries} loadedIds={loadedExtensionIds}
+  enableDistribution={true}
+  initialChoices={new Map([[loadedURL, 'sandboxed']])}
+  initialDistributions={{loadedExtensionId: 'embedded'}}
+  onCancel={closeLibrary}
+  onComplete={(newEntries, settings) => host.applySettings(settings)} />
+```
+
+有効時は実行方法のラジオボタンと、独立したEmbedded／Remoteのラジオボタンを各行へ表示します。配布方法が未指定の行はRemoteです。上部の一括操作は検索で隠れた行を含む全パッケージへ適用し、その後各行で上書きできます。配布方法の変更は実行許可を変えず、実行方法の変更も配布方法を変えません。必要なunsandboxed宣言による既存の制約は維持します。
+
+`initialChoices` と `initialDistributions` はMapまたはID/URLをキーとするrecordで、読込済みの実際の状態をホストが渡します。catalogのID指定をURL指定より優先します。`loadedIds` のチェックボックスはchecked・disabledのままですが、その行の実行方法と配布方法は編集できます。新しいoptional/unknownの行には実行許可を推測せず、選択・読込済みの全行で有効な実行方法を選ぶまで適用ボタンを無効にします。
+
+`onComplete` の第1引数は従来どおり、新規に選んだ拡張の依存順配列です。第2引数の `settings` は次の情報を返します。
+
+- `entries`: 新規選択・依存先・読込済みを含む全対象行。
+- `distributions`: catalog IDをキーとする `Map<string, 'embedded' | 'remote'>`。
+- `choices`: URLをキーとする `Map<string, 'deny' | 'sandboxed' | 'unsandboxed'>`。
+
+読込済みだけの設定変更でも適用できます。`ExtensionSecurityDialog` も同じ配布propsと第2引数を受け付けます。UIはJSを実行せず、SHA-256計算・SB3編集・権限判断・VMへの反映はホストのLoaderに委ねます。保存に失敗した場合の表示・元作品の復旧・実際の状態の再取得もホストが担当します。
+
 各行は「手動で選択」（青）・「依存関係で自動選択」（紫）・「未選択」（中立色）を、背景・左枠・
 アイコン・状態名で区別します。「読み込み済み」も独立した表示です。一覧の上部には凡例を表示します。
 自動選択した行には「Bubble、Sprite に必要」のように、必要としている明示選択元すべてを表示します。
@@ -289,6 +314,10 @@ coreとVMアダプターの利用にReact/React DOMは必要ありません。
 上の画像は、日本語説明へ対応した移行前のEditorと公開済みの3拡張を使用した記録です。英語版では各拡張の従来の`Description`、日本語版では`Description[ja]`を表示します。対応する翻訳がない拡張は元の説明を表示します。説明の言語が変わっても、必要な実行モードや許可の選択は変わりません。パッケージを更新しても、既存SB3に埋め込まれたコードは自動で差し替わりません。
 
 ## 実行モードの選択
+
+`ExtensionSelectionList` の追加一覧ではチェックボックスで追加対象を決め、実行方法は「サンドボックスあり／なし」の2択です。一覧に「拒否」は表示せず、未選択行の実行方法と配布方式は個別編集できません。一括設定は未選択行にも次回選択時の設定として反映できます。依存先は自動選択と理由表示を行い、必要としている拡張を外すことで選択を解除します。既存の`deny`初期値は一覧の実行方法として復元せず、有効な方法を選ぶまで適用できません。
+
+以下の3択は作品を開く際の `ExtensionSecurityDialog` に適用します。追加一覧のチェック解除は、恒久的な拒否や実行済みコードの停止を意味しません。
 
 個別選択・一括選択・一覧の見出しは、禁止アイコンの「拒否」、盾の「サンドボックスあり」、
 警告の「サンドボックスなし」の順です。アイコンと色は文字ラベルを補助し、安全性の認定には使いません。
