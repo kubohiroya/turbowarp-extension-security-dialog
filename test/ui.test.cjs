@@ -33,7 +33,9 @@ test('asynchronous metadata/images/new rows preserve choices without source cont
         ref:value=>{instance=value;}, entries,locale:'ja',loadInfo,onComplete:value=>completed.push(value),
         initialChoices:new Map([[a.url,'sandboxed']])}),document.getElementById('app'));});}
     render([a,b]);await wait(0);
-    assert.equal(document.querySelector('.twextsec-intro p').textContent,'「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
+    assert.equal(document.querySelector('.twextsec-intro p').textContent,'機能拡張を読み込みます。機能拡張の製作者が「⚠️サンドボックスなし:必要」を指定しているものがあります。あなた自身でそれに従うかどうかを選択できます。');
+    assert.equal(document.querySelector('.twextsec-bulk-note').textContent,'まとめて選択');
+    assert.equal(document.querySelector('.twextsec-columns > span').textContent,'機能拡張ごとに選択');
     assert.doesNotMatch(document.querySelector('.twextsec-note').textContent,/取得中でも選択/);
     assert.doesNotMatch(document.querySelector('article').textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);
@@ -329,7 +331,7 @@ test('all-required batches are preset only after the last declaration and still 
         assert.equal(document.querySelector('.twextsec-bulk'),null);
         assert.equal(document.querySelectorAll('input[value="deny"]:disabled').length,3);
         assert.equal(document.querySelectorAll('input[value="sandboxed"]:disabled').length,3);
-        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/制作者の意図どおり/:/creators intended/);
+        assert.match(document.querySelector('.twextsec-intro').textContent,locale==='ja'?/あなた自身でそれに従うかどうかを選択できます/:/creators intended/);
         assert.equal(document.querySelector('.twextsec-cancel-destination'),null);
         assert.deepEqual(completed,[]);
         click('OK');
@@ -352,7 +354,7 @@ test('mixed, optional and failed declarations leave required extensions unselect
         await wait(0);
         assert.equal(document.querySelectorAll('input:checked').length,0);
         assert.ok(document.querySelector('.twextsec-bulk'));
-        assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
+        assert.match(document.querySelector('.twextsec-intro').textContent,/あなた自身でそれに従うかどうかを選択できます/);
         assert.deepEqual(completed,[]);
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
     }
@@ -373,7 +375,7 @@ test('batch defaults follow entry changes without refetching settled metadata or
     }),document.getElementById('app'));});
     render([]);await wait(0);
     assert.ok(document.querySelector('.twextsec-bulk'));
-    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/あなた自身でそれに従うかどうかを選択できます/);
     render([a,b,ordinary]);await wait(0);
     assert.equal(document.querySelectorAll('input:checked').length,0);
     assert.ok(document.querySelector('.twextsec-bulk'));
@@ -384,11 +386,11 @@ test('batch defaults follow entry changes without refetching settled metadata or
     render([a,b,added]);await wait(0);
     assert.ok(document.querySelector('.twextsec-bulk'));
     assert.equal(document.querySelectorAll('input:checked').length,2);
-    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/あなた自身でそれに従うかどうかを選択できます/);
     act(()=>resolveAdded({metadata:{unsandboxed:'required'},source:'source'}));await wait(0);
     assert.equal(document.querySelectorAll('input[value="unsandboxed"]:checked').length,3);
     assert.equal(document.querySelector('.twextsec-bulk'),null);
-    assert.match(document.querySelector('.twextsec-intro').textContent,/制作者の意図どおり/);
+    assert.match(document.querySelector('.twextsec-intro').textContent,/あなた自身でそれに従うかどうかを選択できます/);
     assert.equal(requests,4);
     act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
 });
@@ -756,7 +758,7 @@ test('both screens share package images, service links, execution badges and cat
             dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
         if(locale==='ja') {
             assert.equal(document.querySelector('.twextsec-intro p').textContent,
-                '「⚠️サンドボックスなし：必要」が表示されている拡張を制作者の意図どおりに動作させるためには『サンドボックスなし』を選択してください。');
+                '機能拡張を読み込みます。機能拡張の製作者が「⚠️サンドボックスなし:必要」を指定しているものがあります。あなた自身でそれに従うかどうかを選択できます。');
             assert.equal(note.textContent,'『キャンセル』で選択一覧に戻ります。');
         }
         act(()=>{ReactDOM.unmountComponentAtNode(document.getElementById('app'));});
