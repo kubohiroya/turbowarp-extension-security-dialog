@@ -12,6 +12,7 @@ export interface ExtensionDistributionSettings<T extends ExtensionEntry = Extens
 }
 export interface DialogFrameProps {
     children: React.ReactNode; id: string; className: string; contentLabel: string;
+    headerClassName?: string;
     hideCloseButton: boolean; onRequestClose(): void;
 }
 export interface ExtensionSecurityDialogProps {
