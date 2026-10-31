@@ -34,8 +34,13 @@ test('asynchronous metadata/images/new rows preserve choices without source cont
         initialChoices:new Map([[a.url,'sandboxed']])}),document.getElementById('app'));});}
     render([a,b]);await wait(0);
     assert.equal(document.querySelector('.twextsec-intro p').textContent,'機能拡張を読み込みます。機能拡張の製作者が「⚠️サンドボックスなし:必要」を指定しているものがあります。あなた自身でそれに従うかどうかを選択できます。');
-    assert.equal(document.querySelector('.twextsec-bulk-note').textContent,'まとめて選択');
-    assert.equal(document.querySelector('.twextsec-columns > span').textContent,'機能拡張ごとに選択');
+    assert.equal(document.querySelector('.twextsec-bulk-note'),null);
+    assert.equal(document.querySelector('.twextsec-bulk button').hasAttribute('title'),false);
+    assert.equal(document.querySelector('.twextsec-intro [aria-live]'),null);
+    assert.equal(document.querySelector('.twextsec-footer [aria-live]').textContent,'拒否 0 · サンドボックスあり 1 · サンドボックスなし 0 · 未指定 1');
+    assert.equal(document.querySelector('.twextsec-bulk > span').textContent,'すべての機能拡張を一括で指定');
+    assert.equal(document.querySelector('.twextsec-columns > span').textContent,'それぞれの機能拡張について個別で指定');
+    assert.equal(document.querySelector('.twextsec-note').textContent,'機能拡張の説明や属性情報は、それぞれの機能拡張の製作者により記述されたものです。');
     assert.doesNotMatch(document.querySelector('.twextsec-note').textContent,/取得中でも選択/);
     assert.doesNotMatch(document.querySelector('article').textContent,/更新日時/);
     assert.equal(document.querySelectorAll('textarea').length,0);

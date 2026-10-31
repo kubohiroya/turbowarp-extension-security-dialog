@@ -5,6 +5,8 @@
 .twextsec-modal > * { flex: 1 1 auto; min-height: 0; }
 .twextsec-modal > :not(.twextsec-body):not(.twextsec-confirmation) { display: flex; flex-direction: column; overflow: hidden; }
 .twextsec-modal > :not(.twextsec-body):not(.twextsec-confirmation) > :not(.twextsec-body) { flex-shrink: 0; }
+/* Reset the host title's side-button offset when the close button is hidden. */
+.twextsec-modal .twextsec-frame-header > :only-child { margin: 0; min-width: 0; flex-shrink: 1; text-align: center; }
 .twextsec-body, .twextsec-confirmation { color: var(--ui-modal-foreground, #263145); background: var(--ui-modal-background, #fff); }
 .twextsec-body { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .twextsec-body > :not(.twextsec-list) { flex-shrink: 0; }

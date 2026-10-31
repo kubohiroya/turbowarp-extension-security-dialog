@@ -94,8 +94,8 @@ Neither view includes a Details button or inline source code. Radio buttons and 
 remain outside the description; selection-state badges use a slot in the shared renderer.
 
 The security dialog explains the warning badge once above the list: “To make extensions
-marked ⚠️ work as their creators intended, choose Without sandbox.” Metadata progress
-appears below it. With `context="catalog"`, a separate footer row above the buttons says
+marked ⚠️ work as their creators intended, choose Without sandbox.” Decision counts
+appear in the footer. With `context="catalog"`, a separate footer row above the buttons says
 “Choose Cancel to return to the selection list.” Project context retains its own cancellation
 confirmation and does not show that destination.
 

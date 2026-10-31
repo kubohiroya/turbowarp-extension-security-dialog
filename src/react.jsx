@@ -422,13 +422,13 @@ class ExtensionSecurityDialog extends React.Component {
             const mode = this.state.choices[entry.url];
             counts[this.canChoose(entry, mode) ? mode : 'unselected']++;
         });
-        const done = entries.filter(entry => (this.state.rows[entry.url] || {}).status).length;
         const confirmation = this.state.confirmation;
         const allRequired = allRequireUnsandboxed(entries, this.state.rows);
         return (
             <Modal
                 id="extension-security-batch"
                 className={styles.modal}
+                headerClassName={styles.frameHeader}
                 contentLabel={this.t('title')}
                 hideCloseButton
                 onRequestClose={this.handleRequestClose}
@@ -465,10 +465,6 @@ class ExtensionSecurityDialog extends React.Component {
                     <div className={`${styles.body}${this.props.enableDistribution ? ' twextsec-with-distribution' : ''}`}>
                         <div className={styles.intro}>
                             <p>{this.t('securityInstruction')}</p>
-                            <div
-                                className={styles.secondary}
-                                aria-live="polite"
-                            >{this.t('progress', {done, total: entries.length})}</div>
                         </div>
                         {this.renderDistributionBulk()}
                         {!allRequired && (
@@ -479,10 +475,8 @@ class ExtensionSecurityDialog extends React.Component {
                                     key={mode}
                                     value={mode}
                                     disabled={entries.every(entry => !this.canChoose(entry, mode))}
-                                    title={this.t('bulkNote')}
                                     onClick={this.handleBulk}
                                 ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
-                                <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
                             </div>
                         )}
                         <div
@@ -640,7 +634,6 @@ class ExtensionSelectionList extends ExtensionSecurityDialog {
                 {this.executionModes().map(mode => <button type="button" key={mode} value={mode} data-execution={mode}
                     disabled={this.props.busy || this.props.entries.every(entry => !this.canChoose(entry, mode))}
                     onClick={this.handleBulk}><ModeIcon mode={mode} />{this.t(mode)}</button>)}
-                <div className={styles.bulkNote}>{this.t('bulkNote')}</div>
             </div>}
             {this.renderDistributionBulk()}
             <div className={styles.list}>

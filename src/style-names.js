@@ -10,6 +10,7 @@ export default {
     "cancelDestination": "twextsec-cancel-destination",
     "error": "twextsec-error",
     "footer": "twextsec-footer",
+    "frameHeader": "twextsec-frame-header",
     "securityFooter": "twextsec-security-footer",
     "securityModes": "twextsec-security-modes",
     "rowControls": "twextsec-row-controls",
