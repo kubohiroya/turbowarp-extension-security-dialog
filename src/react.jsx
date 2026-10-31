@@ -6,6 +6,7 @@ import PackageSections from './package-sections.jsx';
 import {formatMessage} from './messages.js';
 import styles from './style-names.js';
 import {resolveExtensionSelection} from './selection.js';
+import {attachSecurityDialogWindow} from './dialog-window.js';
 const bindAll = (instance, names) => names.forEach(name => {instance[name] = instance[name].bind(instance);});
 
 const MODES = ['deny', 'sandboxed', 'unsandboxed'];
@@ -85,14 +86,16 @@ class ExtensionSecurityDialog extends React.Component {
         this.alive = false;
         bindAll(this, ['handleChoice', 'handleBulk', 'handleImageError', 'handleOK',
             'handleCancel', 'handleNo', 'handleYes', 'handleRequestClose', 'focusNo',
-            'handleDistribution', 'handleBulkDistribution']);
+            'handleDistribution', 'handleBulkDistribution', 'handleWindowAnchor']);
     }
     componentDidMount () {
         this.alive = true;
+        this.mountWindow();
         this.delay(() => this.setState({ready: true}));
         this.startRequests();
     }
     componentDidUpdate (previousProps) {
+        this.mountWindow();
         this.initializeEntries(previousProps);
         this.startRequests();
         const {entries} = this.props;
@@ -105,8 +108,22 @@ class ExtensionSecurityDialog extends React.Component {
     }
     componentWillUnmount () {
         this.alive = false;
+        this.windowControls?.dispose();
         this.controllers.forEach(controller => controller.abort());
         this.timeouts.forEach(timeout => clearTimeout(timeout));
+    }
+    handleWindowAnchor (node) {
+        if (node) {
+            this.windowAnchor = node;
+            if (this.alive) this.mountWindow();
+        }
+    }
+    mountWindow () {
+        const labels = {maximize: this.t('maximize'), restore: this.t('restoreWindow')};
+        if (!this.windowControls && this.windowAnchor) {
+            this.windowControls = attachSecurityDialogWindow(this.windowAnchor, labels);
+        }
+        this.windowControls?.updateLabels(labels);
     }
     delay (callback, duration = 750) {
         const timeout = setTimeout(() => {
@@ -435,6 +452,7 @@ class ExtensionSecurityDialog extends React.Component {
             >
                 {confirmation ? (
                     <div
+                        ref={this.handleWindowAnchor}
                         className={styles.confirmation}
                         role="alertdialog"
                         aria-labelledby="extension-confirm-title"
@@ -462,38 +480,41 @@ class ExtensionSecurityDialog extends React.Component {
                         </div>
                     </div>
                 ) : (
-                    <div className={`${styles.body}${this.props.enableDistribution ? ' twextsec-with-distribution' : ''}`}>
-                        <div className={styles.intro}>
-                            <p>{this.t('securityInstruction')}</p>
-                        </div>
-                        {this.renderDistributionBulk()}
-                        {!allRequired && (
-                            <div className={styles.bulk}>
-                                <span>{this.t('bulk')}</span>
-                                {MODES.map(mode => (<button
-                                    type="button"
-                                    key={mode}
-                                    value={mode}
-                                    disabled={entries.every(entry => !this.canChoose(entry, mode))}
-                                    onClick={this.handleBulk}
-                                ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
+                    <div ref={this.handleWindowAnchor}
+                        className={`${styles.body}${this.props.enableDistribution ? ' twextsec-with-distribution' : ''}`}>
+                        <div className="twextsec-window-scroll">
+                            <div className={styles.intro}>
+                                <p>{this.t('securityInstruction')}</p>
                             </div>
-                        )}
-                        <div
-                            className={styles.columns}
-                            aria-hidden="true"
-                        >
-                            <span>{this.t('extension')}</span>
-                            {MODES.map(mode => <span key={mode} className={styles.modeHeading}>
-                                <ModeIcon mode={mode} />{this.t(mode)}
-                            </span>)}
-                        </div>
-                        <div className={styles.list}>
-                            <PackageSections entries={entries} items={entries.map((entry, index) => ({entry, index}))}
-                                locale={this.props.locale} idPrefix="security-extension"
-                                renderItem={({entry, index}) => this.renderRow(entry, index)} />
-                            <p className={styles.note}>{this.t('note')}</p>
-                            {counts.unsandboxed > 0 && <p className={styles.warning}>{this.t('warning')}</p>}
+                            {this.renderDistributionBulk()}
+                            {!allRequired && (
+                                <div className={styles.bulk}>
+                                    <span>{this.t('bulk')}</span>
+                                    {MODES.map(mode => (<button
+                                        type="button"
+                                        key={mode}
+                                        value={mode}
+                                        disabled={entries.every(entry => !this.canChoose(entry, mode))}
+                                        onClick={this.handleBulk}
+                                    ><ModeIcon mode={mode} />{this.t(mode)}</button>))}
+                                </div>
+                            )}
+                            <div
+                                className={styles.columns}
+                                aria-hidden="true"
+                            >
+                                <span>{this.t('extension')}</span>
+                                {MODES.map(mode => <span key={mode} className={styles.modeHeading}>
+                                    <ModeIcon mode={mode} />{this.t(mode)}
+                                </span>)}
+                            </div>
+                            <div className={styles.list}>
+                                <PackageSections entries={entries} items={entries.map((entry, index) => ({entry, index}))}
+                                    locale={this.props.locale} idPrefix="security-extension"
+                                    renderItem={({entry, index}) => this.renderRow(entry, index)} />
+                                <p className={styles.note}>{this.t('note')}</p>
+                                {counts.unsandboxed > 0 && <p className={styles.warning}>{this.t('warning')}</p>}
+                            </div>
                         </div>
                         <footer className={`${styles.footer} ${styles.securityFooter}`}>
                             {this.props.context === 'catalog' &&
@@ -524,8 +545,11 @@ class ExtensionSecurityDialog extends React.Component {
     }
 }
 
-const DefaultFrame = ({children, contentLabel, className}) => (
-    <section role="dialog" aria-label={contentLabel} className={className}>{children}</section>
+const DefaultFrame = ({children, contentLabel, className, headerClassName}) => (
+    <section role="dialog" aria-label={contentLabel} className={className}>
+        <header className={headerClassName}><div>{contentLabel}</div></header>
+        {children}
+    </section>
 );
 ExtensionSecurityDialog.defaultProps = {
     loadInfo: loadExtensionInfo, initialChoices: new Map(), initialDistributions: new Map(),
