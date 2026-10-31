@@ -30,14 +30,14 @@
     "prepack": "pnpm run build",
     "prepare": "pnpm run build"
   },
-  "dependencies": {"@turbowarp/jszip": "3.11.1"},
+  "dependencies": {"@turbowarp/jszip": "^3.12.0"},
   "peerDependencies": {"react": "^16.14.0 || ^17 || ^18 || ^19", "react-dom": "^16.14.0 || ^17 || ^18 || ^19"},
   "peerDependenciesMeta": {"react": {"optional": true}, "react-dom": {"optional": true}},
   "devDependencies": {
-    "esbuild": "0.28.2",
-    "jsdom": "26.1.0",
-    "react": "16.14.0",
-    "react-dom": "16.14.0"
+    "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0"
   },
   "packageManager": "pnpm@11.28.8",
   "engines": {"node": ">=24"},
