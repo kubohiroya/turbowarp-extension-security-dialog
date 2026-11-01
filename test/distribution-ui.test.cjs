@@ -56,7 +56,10 @@ test('a saved cached source restores as cached, and the bulk choice offers it', 
         initialChoices: new Map([[items[0].url, 'sandboxed']]), initialDistributions: {base: 'cached'},
         onComplete() {}, onCancel() {}});
     assert.equal(row('base').querySelector('[data-distribution="cached"]').checked, true);
-    assert.match(row('base').querySelector('[data-distribution="cached"]').parentNode.textContent, /keep a copy/u);
+    assert.equal(row('base').querySelector('[data-distribution="cached"]').parentNode.textContent, 'Cached',
+        'rows show only the name, so the three choices fit on one line');
+    assert.match(document.querySelector('[data-testid="extension-distribution-bulk"]').textContent,
+        /Cached: reference the URL and keep a copy/u, 'the explanation appears once above the list');
     click(document.querySelector('button[data-distribution="cached"]'));
     assert.equal(row('other').dataset.distribution, 'cached');
     unmount();

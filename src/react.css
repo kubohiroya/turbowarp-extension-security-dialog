@@ -35,7 +35,7 @@
 .twextsec-row-controls { min-width: 0; }
 .twextsec-with-distribution .twextsec-row-controls { display: flex; flex-direction: column; gap: 12px; }
 .twextsec-inline-mode-label { font-size: 11px; text-align: center; }
-.twextsec-distribution-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 8px 0 0; min-width: 0; border: 0; border-top: 1px solid var(--ui-black-transparent, #dce1eb); }
+.twextsec-distribution-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 8px 0 0; min-width: 0; border: 0; border-top: 1px solid var(--ui-black-transparent, #dce1eb); }
 .twextsec-distribution-modes legend { font-size: 12px; padding-inline-end: 6px; }
 .twextsec-distribution-modes .twextsec-choice { font-size: 11px; text-align: center; padding: 6px; }
 .twextsec-package-column { min-width: 0; }
