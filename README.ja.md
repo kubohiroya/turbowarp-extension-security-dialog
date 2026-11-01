@@ -55,7 +55,7 @@ const list = <ExtensionSelectionList entries={entries} locale="ja"
 `onComplete` の第1引数は従来どおり、新規に選んだ拡張の依存順配列です。第2引数の `settings` は次の情報を返します。
 
 - `entries`: 新規選択・依存先・読込済みを含む全対象行。
-- `distributions`: catalog IDをキーとする `Map<string, 'embedded' | 'remote'>`。
+- `distributions`: catalog IDをキーとする `Map<string, 'embedded' | 'cached' | 'remote'>`。
 - `choices`: URLをキーとする `Map<string, 'deny' | 'sandboxed' | 'unsandboxed'>`。
 
 読込済みだけの設定変更でも適用できます。`ExtensionSecurityDialog` も同じ配布propsと第2引数を受け付けます。UIはJSを実行せず、SHA-256計算・SB3編集・権限判断・VMへの反映はホストのLoaderに委ねます。保存に失敗した場合の表示・元作品の復旧・実際の状態の再取得もホストが担当します。

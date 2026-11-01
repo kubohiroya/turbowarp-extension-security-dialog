@@ -39,13 +39,26 @@ test('loaded checks and actual execution/distribution state restore independentl
     change(row('base').querySelector('[data-distribution="remote"]'));
     assert.equal(row('base').querySelector('[value="sandboxed"]').checked, true);
     change(row('parent').querySelector('[type="checkbox"]'));
+    change(row('parent').querySelector('[data-distribution="cached"]'));
     click([...document.querySelectorAll('button')].find(button => button.textContent === '拡張の設定を適用'));
     assert.deepEqual(completed[0][0].map(entry => entry.id), ['parent'], 'legacy first argument excludes loaded IDs');
     const settings = completed[0][1];
     assert.deepEqual(settings.entries.map(entry => entry.id), ['base', 'parent']);
-    assert.deepEqual([...settings.distributions], [['base', 'remote'], ['parent', 'remote']]);
+    assert.deepEqual([...settings.distributions], [['base', 'remote'], ['parent', 'cached']]);
     assert.equal(settings.choices.get(items[0].url), 'sandboxed');
     assert.equal(settings.choices.get(items[1].url), 'unsandboxed');
+    unmount();
+});
+
+test('a saved cached source restores as cached, and the bulk choice offers it', () => {
+    const items = entries();
+    render(ExtensionSelectionList, {entries: items, loadedIds: ['base'], enableDistribution: true,
+        initialChoices: new Map([[items[0].url, 'sandboxed']]), initialDistributions: {base: 'cached'},
+        onComplete() {}, onCancel() {}});
+    assert.equal(row('base').querySelector('[data-distribution="cached"]').checked, true);
+    assert.match(row('base').querySelector('[data-distribution="cached"]').parentNode.textContent, /keep a copy/u);
+    click(document.querySelector('button[data-distribution="cached"]'));
+    assert.equal(row('other').dataset.distribution, 'cached');
     unmount();
 });
 

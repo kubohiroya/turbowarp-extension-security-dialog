@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {Decision, ExtensionEntry, ExtensionInfo, SelectableExtension} from './index.js';
-export type DistributionMode = 'embedded' | 'remote';
+export type DistributionMode = 'embedded' | 'cached' | 'remote';
 export type ExecutionMode = 'sandboxed' | 'unsandboxed';
 export type InitialExtensionValues<T> = ReadonlyMap<string, T | undefined> | Readonly<Record<string, T | undefined>>;
 export interface ExtensionDistributionSettings<T extends ExtensionEntry = ExtensionEntry> {

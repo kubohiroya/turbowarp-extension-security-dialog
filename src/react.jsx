@@ -11,7 +11,7 @@ const bindAll = (instance, names) => names.forEach(name => {instance[name] = ins
 
 const MODES = ['deny', 'sandboxed', 'unsandboxed'];
 const EXECUTION_MODES = ['sandboxed', 'unsandboxed'];
-const DISTRIBUTIONS = ['embedded', 'remote'];
+const DISTRIBUTIONS = ['embedded', 'cached', 'remote'];
 const entryIds = entry => entry.id ? [entry.id] : entry.ids || [];
 const initialValue = (values, entry) => {
     for (const key of [...(entry.id ? [entry.id] : []), entry.url, ...(entry.ids || [])]) {
