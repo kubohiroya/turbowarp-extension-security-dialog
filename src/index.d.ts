@@ -41,3 +41,9 @@ export interface ExtensionSelection {
 export function resolveExtensionSelection(entries: SelectableExtension[], explicitIds?: Iterable<string>, loadedIds?: Iterable<string>): ExtensionSelection;
 export function parseExtensionCatalog(data: unknown): SelectableExtension[];
 export function loadExtensionCatalog(url: string, signal?: AbortSignal): Promise<SelectableExtension[]>;
+export interface ExtensionWaitDialog {
+    show(info: {url?: string; attempt: number; attempts: number}): void;
+    hide(): void;
+    dispose(): void;
+}
+export function createExtensionWaitDialog(document: Document, locale?: string, options?: {delayMs?: number}): ExtensionWaitDialog;
