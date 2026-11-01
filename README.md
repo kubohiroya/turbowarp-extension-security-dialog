@@ -407,3 +407,5 @@ one change. The saved project format is unchanged.
 ## License
 
 GPL-3.0-only. See [LICENSE](./LICENSE) and [NOTICE.md](./NOTICE.md) for image attribution.
+
+A move to MPL-2.0 from 0.6.0, together with one selection screen shared by adding and opening extensions, is planned in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
