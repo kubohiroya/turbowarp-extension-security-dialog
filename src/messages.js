@@ -66,6 +66,9 @@ const messages = {
         "source": "Source code",
         "sourceFailed": "Could not retrieve source code.",
         "preview": "Preview for {name}",
+        "fetchWaitTitle": "Fetching an extension",
+        "fetchWaitRetry": "Could not connect. Trying again ({attempt}/{attempts})",
+        "fetchWaitNote": "This takes a few seconds. If it keeps failing, loading stops and the project you had open is restored.",
         "warning": "Extensions without a sandbox can access your project and browser information."
     },
     "ja": {
@@ -135,6 +138,9 @@ const messages = {
         "source": "ソースコード",
         "sourceFailed": "ソースコードを取得できませんでした。",
         "preview": "{name} のプレビュー",
+        "fetchWaitTitle": "機能拡張を取得しています",
+        "fetchWaitRetry": "接続できませんでした。再試行しています（{attempt}/{attempts}）",
+        "fetchWaitNote": "数秒で終わります。それでも取得できない場合は読み込みを中止し、開いていた作品に戻します。",
         "warning": "サンドボックスなしの拡張は、プロジェクトやブラウザーの情報にアクセスできます。"
     }
 };
