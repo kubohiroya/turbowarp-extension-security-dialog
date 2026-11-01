@@ -1,5 +1,11 @@
 # Image attribution
 
+## common.svg
+
+Original to this package: a jigsaw piece outline with a serif T, drawn for it and derived from no
+other work. It is embedded into `dist` as a base64 data URI by `scripts/build.mjs`, so it ships in
+the published package. It replaced an earlier icon whose origin was not recorded.
+
 ## custom.svg
 
 { } characters from https://github.com/jesseweed/seti-ui/blob/master/icons/json.svg under the MIT License:
