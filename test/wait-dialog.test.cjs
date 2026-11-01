@@ -63,3 +63,18 @@ test('escape is refused, and disposal takes the dialog down and keeps it down', 
     assert.equal(shown(document), null);
     dom.window.close();
 });
+
+test('the dialog brings its own styles, once per document', async () => {
+    const dom = fixture();
+    const document = dom.window.document;
+    const first = createExtensionWaitDialog(document, 'en', {delayMs: 0});
+    const second = createExtensionWaitDialog(document, 'en', {delayMs: 0});
+    first.show({url: 'https://example.test/a.js', attempt: 2, attempts: 3});
+    second.show({url: 'https://example.test/b.js', attempt: 2, attempts: 3});
+    await settle(30);
+    // A host that builds JavaScript only still gets a centred dialog, not an unstyled box.
+    const injected = document.querySelectorAll('[data-twextsec-wait-style]');
+    assert.equal(injected.length, 1);
+    assert.match(injected[0].textContent, /\.twextsec-wait\{position:fixed/);
+    first.dispose(); second.dispose(); dom.window.close();
+});

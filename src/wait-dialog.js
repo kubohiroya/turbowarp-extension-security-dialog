@@ -1,5 +1,30 @@
 import {formatMessage} from './messages.js';
 
+// The dialog carries its own styles because its hosts are not all CSS pipelines: the Editor
+// bundles this package's stylesheet, but the single-HTML runtime and the packager page build
+// JavaScript only and would render an unstyled box. Injecting is idempotent per document.
+const styles = '.twextsec-wait{position:fixed;left:50vw;top:50vh;right:auto;bottom:auto;margin:0;' +
+    'transform:translate(-50%,-50%);box-sizing:border-box;width:min(440px,calc(100vw - 32px));' +
+    'border:1px solid var(--ui-black-transparent,#0000001a);border-radius:12px;padding:20px 24px;' +
+    'color:var(--ui-modal-foreground,#263145);background:var(--ui-modal-background,#fff);' +
+    'box-shadow:0 16px 48px #0000004d;font:inherit}' +
+    '.twextsec-wait::backdrop{background:#111827a6}' +
+    // showModal focuses the dialog itself because nothing inside it is focusable. The ring marks
+    // a place the keyboard cannot go, so drop it; the backdrop already shows what has the screen.
+    '.twextsec-wait:focus,.twextsec-wait:focus-visible{outline:none}' +
+    '.twextsec-wait h2{margin:0 0 10px;font-size:1.05em}' +
+    '.twextsec-wait p{margin:0 0 8px}' +
+    '.twextsec-wait-source{overflow-wrap:anywhere;font-size:.85em;opacity:.7}' +
+    '.twextsec-wait-note{margin-bottom:0;font-size:.9em;opacity:.8}';
+
+const injectStyles = document => {
+    if (!document.head || document.querySelector('[data-twextsec-wait-style]')) return;
+    const element = document.createElement('style');
+    element.setAttribute('data-twextsec-wait-style', '');
+    element.textContent = styles;
+    document.head.appendChild(element);
+};
+
 const text = (document, tag, value, className) => {
     const element = document.createElement(tag);
     element.textContent = value;
@@ -42,6 +67,7 @@ export function createExtensionWaitDialog(document, locale = 'en', {delayMs = 30
     const open = () => {
         timer = null;
         if (disposed || dialog || !document || !document.body) return;
+        injectStyles(document);
         dialog = document.createElement('dialog');
         dialog.className = 'twextsec-wait';
         dialog.setAttribute('data-testid', 'twextsec-wait');
