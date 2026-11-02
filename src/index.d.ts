@@ -1,49 +1,58 @@
-export type Decision = 'deny' | 'sandboxed' | 'unsandboxed';
-export interface ExtensionEntry {
-    url: string; ids: string[]; banner?: string; metadata?: ExtensionMetadata; category?: ExtensionCategory;
+export * from './review-types.js';
+import type {
+    ExtensionMetadata, ReviewDecision, ReviewEntry, LoadingMode, ExecutionDecision
+} from './review-types.js';
+
+export interface CatalogCategory {
+    id: string; title: string; titleJa?: string; order: number;
 }
-export interface ExtensionMetadata {
-    name?: string; id?: string; description?: string; author?: string; version?: string; updatedAt?: string;
-    license?: string; repository?: string; banner?: string; unsandboxed?: string;
-    docsURL?: string; package?: string; authorURL?: string;
-    descriptions?: Record<string, string>;
+export interface CatalogEntry {
+    key: string; id: string; ids: string[]; url: string; sha256?: string;
+    dependencies: readonly string[]; metadata: ExtensionMetadata; category?: CatalogCategory;
 }
-export interface ExtensionInfo { source: string; metadata: ExtensionMetadata; }
+export function reviewURL(value: unknown, what?: string, allowHTTP?: boolean): string;
+export function parseExtensionCatalog(data: unknown): CatalogEntry[];
+export function loadExtensionCatalog(url: string, signal?: AbortSignal): Promise<CatalogEntry[]>;
+
 export function parseExtensionMetadata(source: string): ExtensionMetadata;
 export function getExtensionDescription(metadata: ExtensionMetadata, locale?: string): string;
-export function decodeExtensionDataURL(url: string): string;
-export function loadExtensionInfo(url: string, signal: AbortSignal): Promise<ExtensionInfo>;
-export function getGitHubRepository(value?: string): string | null;
-export function getPreviewCandidates(entry: ExtensionEntry, metadata: ExtensionMetadata | undefined, fallback: string): string[];
-export function fingerprint(text: string): Promise<string>;
-export function projectFingerprint(input: object | string | ArrayBuffer | ArrayBufferView): Promise<string | null>;
-export function readPreferences(key: string): Promise<Record<string, Decision>>;
-export function writePreferences(key: string, choices: Record<string, Decision>): Promise<boolean>;
-export function restoreChoices(entries: ExtensionEntry[], saved: Record<string, Decision>): Promise<Map<string, Decision | undefined>>;
-export function encodeChoices(decisions: Map<string, Decision>): Promise<Record<string, Decision>>;
-export const preferences: {
-    projectFingerprint: typeof projectFingerprint; readPreferences: typeof readPreferences;
-    writePreferences: typeof writePreferences; restoreChoices: typeof restoreChoices; encodeChoices: typeof encodeChoices;
-};
+export function unsandboxedRequirement(metadata: ExtensionMetadata): 'required' | 'optional' | 'not-needed' | 'unknown';
+export function loadExtensionInfo(url: string, signal?: AbortSignal): Promise<{source: string; metadata: ExtensionMetadata}>;
+
+export type SelectionState = 'loaded' | 'selected' | 'dependency' | 'unselected';
+export interface ExtensionSelection {
+    selected: Set<string>; explicit: Set<string>; required: Set<string>;
+    requiredBy: Map<string, Set<string>>; loaded: Set<string>;
+    ordered: Array<{id: string}>; stateOf(id: string): SelectionState;
+}
+export function resolveExtensionSelection(
+    entries: Array<{id: string; dependencies?: readonly string[]}>,
+    chosen?: Iterable<string>, loaded?: Iterable<string>
+): ExtensionSelection;
+
+export interface DecisionStorage {
+    readonly fallbackLoading: LoadingMode;
+    read(project: string): Promise<Map<string, ReviewDecision>>;
+    write(project: string, decisions: Map<string, ReviewDecision>): Promise<boolean>;
+    forget(project: string): Promise<boolean>;
+}
+export function createDecisionStorage(options?: {fallbackLoading?: LoadingMode}): DecisionStorage;
+export interface PreviewCache {
+    read(url: string): Promise<Blob | null>;
+    write(url: string, blob: Blob): Promise<boolean>;
+}
+export function createPreviewCache(): PreviewCache;
+
+export type ReviewMode = 'add' | 'open';
+export function isTrusted(entry: ReviewEntry): boolean;
+export function loadingChoices(entry: ReviewEntry): LoadingMode[];
+export function executionChoices(entry: ReviewEntry, mode: ReviewMode): ExecutionDecision[];
+export function defaultDecision(entry: ReviewEntry, mode: ReviewMode, fallbackLoading?: LoadingMode): ReviewDecision;
+export function initialDecisions(entries: ReviewEntry[], mode: ReviewMode,
+    options?: {recorded?: ReadonlyMap<string, ReviewDecision>; fallbackLoading?: LoadingMode}
+): Map<string, ReviewDecision>;
+export function requiresReview(entries: ReviewEntry[]): boolean;
+export function contradictsDeclaration(entry: ReviewEntry, decision: ReviewDecision): boolean;
+
 export const messages: Record<string, Record<string, string>>;
 export function formatMessage(locale: string, key: string, values?: Record<string, string | number>): string;
-
-export interface ExtensionCategory {
-    id: string; title: string; titleJa?: string; order?: number;
-}
-export interface SelectableExtension extends ExtensionEntry {
-    id: string; dependencies: string[]; metadata: ExtensionMetadata; category?: ExtensionCategory;
-}
-export interface ExtensionSelection {
-    selected: Set<string>; required: Set<string>; requiredBy: Map<string, Set<string>>;
-    loaded: Set<string>; ordered: SelectableExtension[];
-}
-export function resolveExtensionSelection(entries: SelectableExtension[], explicitIds?: Iterable<string>, loadedIds?: Iterable<string>): ExtensionSelection;
-export function parseExtensionCatalog(data: unknown): SelectableExtension[];
-export function loadExtensionCatalog(url: string, signal?: AbortSignal): Promise<SelectableExtension[]>;
-export interface ExtensionWaitDialog {
-    show(info: {url?: string; attempt: number; attempts: number}): void;
-    hide(): void;
-    dispose(): void;
-}
-export function createExtensionWaitDialog(document: Document, locale?: string, options?: {delayMs?: number}): ExtensionWaitDialog;
