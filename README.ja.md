@@ -159,3 +159,5 @@ React と React DOM は peerDependencies なので、ホストが用意します
 ## ライセンス
 
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
+
+0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。

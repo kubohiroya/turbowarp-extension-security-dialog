@@ -167,3 +167,5 @@ dependencies.
 ## License
 
 [MPL-2.0](LICENSE). See [NOTICE.md](./NOTICE.md) for what is and is not covered.
+
+The design record of the MPL-2.0 rewrite in 0.6.0 is in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
