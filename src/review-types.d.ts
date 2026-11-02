@@ -13,16 +13,16 @@ export type ExecutionDecision = 'deny' | 'sandboxed' | 'unsandboxed';
 /**
  * Where a row's bytes come from when the project runs.
  *
- * `cached` keeps a verified copy in the browser and reuses it; `remote` fetches every time and
- * leaves nothing behind; `embedded` reads the copy the project carries. Only the project's author
- * chooses `embedded`, because it is the project that grows.
+ * The family settled on three ways to hold anything, extensions included. `remote` fetches every
+ * time: nothing is kept in the browser and nothing is kept in the project. `cached` keeps
+ * verified bytes in the browser and reuses them, so opening again costs no network while the
+ * project still holds only a reference. `embedded` is the project carrying the bytes itself, and
+ * it has two forms: `embedded-file`, a file inside the archive, and `embedded-data`, a `data:`
+ * value inside the project document.
  *
- * These are the Loader's own source types, because a decision made here ends up in a project
- * manifest the Loader reads. The SB3 writer in turbowarp-kamishibai-app#1109 names one more,
- * splitting `embedded` into `embedded-file` (bytes as a file in the ZIP, which is what a manifest
- * records) and `embedded-data` (bytes inside `project.json` as a `data:` URL). That extra name is
- * a compatibility shadow written beside the manifest so standard TurboWarp can still read the
- * project; it is not an alternative anyone picks here, so this screen does not offer it.
+ * Choosing between the two embedded forms is about how the project is written, not about how it
+ * runs, so it belongs to whatever saves the project rather than to this screen. Adding an
+ * extension here records `embedded`; the writer decides which form that becomes.
  */
 export type LoadingMode = 'cached' | 'remote' | 'embedded';
 
