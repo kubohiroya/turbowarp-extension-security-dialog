@@ -36,22 +36,16 @@ export function decodeExtensionDataURL(url) {
  */
 export function parseExtensionMetadata(source) {
     if (typeof source !== 'string') return {};
-    const block = BLOCK.exec(source.slice(0, 64 * 1024));
-    if (block === null) return {};
+    const text = source.slice(0, 64 * 1024);
     const metadata = {};
     const descriptions = {};
-    for (const line of block[1].split('\n')) {
-        const field = FIELD.exec(line);
-        if (field === null) continue;
-        const [, name, raw] = field;
+    const record = (name, raw, locale) => {
         const value = trimmed(raw);
-        if (value.length === 0 || value.length > LIMIT) continue;
+        if (value.length === 0 || value.length > LIMIT) return;
         if (name === 'description') {
-            // `@description ja ...` is the same field said in another language.
-            const localized = /^([a-z]{2}(?:-[A-Za-z0-9]+)*)[ \t]+(.+)$/.exec(value);
-            if (localized === null) metadata.description = value;
-            else descriptions[localized[1].toLowerCase()] = trimmed(localized[2]);
-            continue;
+            if (locale) descriptions[locale.toLowerCase()] = value;
+            else metadata.description = value;
+            return;
         }
         if (['repository', 'docsURL', 'authorURL'].includes(name)) {
             try {
@@ -60,15 +54,69 @@ export function parseExtensionMetadata(source) {
             } catch (error) {
                 // A malformed address is dropped rather than shown as if it were one.
             }
-            continue;
+            return;
         }
         if (['name', 'id', 'author', 'version', 'license', 'banner', 'package', 'unsandboxed']
             .includes(name)) {
             metadata[name] = value;
         }
+    };
+    // The run of `//` lines TurboWarp's own extensions and its gallery open with comes first, so
+    // that the documented block, where there is one, is what a field finally says.
+    for (const [name, raw, locale] of headerFields(text)) record(name, raw, locale);
+    const block = BLOCK.exec(text);
+    if (block !== null) {
+        for (const line of block[1].split('\n')) {
+            const field = FIELD.exec(line);
+            if (field === null) continue;
+            const [, name, raw] = field;
+            // `@description ja ...` is the same field said in another language.
+            const localized = name === 'description' ? /^([a-z]{2}(?:-[A-Za-z0-9]+)*)[ \t]+(.+)$/.exec(trimmed(raw)) : null;
+            if (localized === null) record(name, raw);
+            else record(name, localized[2], localized[1]);
+        }
     }
     if (Object.keys(descriptions).length > 0) metadata.descriptions = descriptions;
     return metadata;
+}
+
+/** What a TurboWarp header calls each field, by the name this package gives it. */
+const HEADER_FIELDS = Object.freeze({
+    name: 'name', id: 'id', description: 'description', by: 'author', author: 'author',
+    version: 'version', license: 'license', unsandboxed: 'unsandboxed',
+    repository: 'repository', source: 'repository', 'docs url': 'docsURL', docsurl: 'docsURL',
+    'author url': 'authorURL', authorurl: 'authorURL', banner: 'banner', package: 'package'
+});
+
+/**
+ * The fields of the `// Name: ...` header TurboWarp's extensions open with.
+ *
+ * Only the leading run of comment lines is a header; a comment further down is the code's own.
+ * A bundle lists its members after `Bundled extensions:`, and what it says about them is theirs,
+ * not this extension's, so reading stops there. Each field keeps the first value it is given.
+ * @param {string} text The start of the extension's source.
+ * @returns {Array<Array<string>>} `[name, value, locale?]` for each field, in order.
+ */
+function headerFields(text) {
+    const fields = [];
+    const seen = new Set();
+    for (const line of text.split('\n')) {
+        const comment = /^[ \t]*\/\/(.*)$/.exec(line);
+        if (comment === null) {
+            if (line.trim() === '') continue;
+            break;
+        }
+        const body = comment[1];
+        if (/^\s*Bundled extensions:\s*$/i.test(body)) break;
+        const field = /^ ?([A-Za-z][A-Za-z -]*?)(?:\[([a-z]{2,8}(?:-[A-Za-z0-9]{1,8})*)\])?:[ \t]*(.*)$/.exec(body);
+        if (field === null) continue;
+        const name = HEADER_FIELDS[field[1].trim().toLowerCase()];
+        const key = `${name}:${field[2] || ''}`;
+        if (!name || seen.has(key)) continue;
+        seen.add(key);
+        fields.push(field[2] ? [name, field[3], field[2]] : [name, field[3]]);
+    }
+    return fields;
 }
 
 /**

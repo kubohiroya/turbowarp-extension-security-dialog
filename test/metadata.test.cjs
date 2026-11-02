@@ -71,3 +71,56 @@ test('a data URL already decoded is dropped when the request is abandoned', asyn
     await assert.rejects(
         loadExtensionInfo('data:application/javascript,void%200', controller.signal), /aborted/u);
 });
+
+// TurboWarp's own extensions, and the gallery's, describe themselves in a run of `//` lines.
+const header = `// Name: Security bundle fixture
+// ID: securityfixture
+// Description: Review the enclosing bundle metadata.
+// Description[ja]: 囲んでいるバンドルの情報を確認します。
+// By: Fixture Author <https://scratch.mit.edu/users/fixture/>
+// License: MPL-2.0
+// Unsandboxed: required
+// Bundled extensions:
+// - Name: Nested fixture
+//   Description: Nested description
+//   By: Nested author
+(function (Scratch) {
+  // Name: not a header any more
+  Scratch.extensions.register({});
+})(Scratch);`;
+
+test('a TurboWarp header of comment lines is read like the documented block', () => {
+    const metadata = parseExtensionMetadata(header);
+    assert.equal(metadata.name, 'Security bundle fixture');
+    assert.equal(metadata.id, 'securityfixture');
+    assert.equal(metadata.description, 'Review the enclosing bundle metadata.');
+    assert.equal(metadata.descriptions.ja, '囲んでいるバンドルの情報を確認します。');
+    assert.equal(metadata.author, 'Fixture Author <https://scratch.mit.edu/users/fixture/>');
+    assert.equal(metadata.license, 'MPL-2.0');
+    assert.equal(unsandboxedRequirement(metadata), 'required');
+    assert.equal(getExtensionDescription(metadata, 'ja-JP'), '囲んでいるバンドルの情報を確認します。');
+});
+
+test('what a bundle says about its members, and comments past the header, are not the extension\'s own', () => {
+    const metadata = parseExtensionMetadata(header);
+    assert.notEqual(metadata.description, 'Nested description');
+    assert.notEqual(metadata.author, 'Nested author');
+    assert.equal(parseExtensionMetadata('Scratch.extensions.register({});\n// Name: Late').name, undefined);
+});
+
+test('a header line is a claim like any other: addresses are checked, long values dropped, the block wins', () => {
+    const metadata = parseExtensionMetadata([
+        '// Name: Header name', '// Repository: not a url', '// Docs URL: https://docs.test/',
+        `// License: ${'x'.repeat(5000)}`, '/**', ' * @name Block name', ' */', 'Scratch.extensions.register({});'
+    ].join('\n'));
+    // The documented block is the more deliberate statement where both say something.
+    assert.equal(metadata.name, 'Block name');
+    assert.equal(metadata.repository, undefined);
+    assert.equal(metadata.docsURL, 'https://docs.test/');
+    assert.equal(metadata.license, undefined);
+});
+
+test('a data URL carrying a TurboWarp header is described without running it', async () => {
+    const info = await loadExtensionInfo(`data:text/javascript,${encodeURIComponent(header)}`);
+    assert.equal(info.metadata.name, 'Security bundle fixture');
+});

@@ -154,6 +154,11 @@ of its leading comment, and the screen labels them as unverified. Nothing here e
 extension. A preview picture is decoration and is checked against nothing; whatever verifies the
 code does so elsewhere, and a row says so when it failed.
 
+Two forms of leading comment are read: the `// Name: ...` lines TurboWarp's own extensions and its
+gallery open with, and a `/** @name ... */` block. Where both name a field, the block wins. Only the
+leading run of comment lines counts as a header, and reading stops at `Bundled extensions:`, because
+what a bundle says about its members is theirs, not its own.
+
 ## Development
 
 ```sh
