@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
   "author": {
@@ -8,21 +8,50 @@
     "email": "hiroya@cuc.ac.jp",
     "url": "https://github.com/kubohiroya"
   },
-  "license": "GPL-3.0-only",
-  "repository": {"type": "git", "url": "git+https://github.com/kubohiroya/turbowarp-extension-security-dialog.git"},
-  "bugs": {"url": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues"},
-  "sideEffects": ["**/*.css"],
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kubohiroya/turbowarp-extension-security-dialog.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": {"types": "./dist/index.d.ts", "import": "./dist/index.mjs", "require": "./dist/index.cjs"},
-    "./react": {"types": "./dist/react.d.ts", "import": "./dist/react.mjs", "require": "./dist/react.cjs"},
-    "./turbowarp": {"types": "./dist/turbowarp.d.ts", "import": "./dist/turbowarp.mjs", "require": "./dist/turbowarp.cjs"},
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.mjs",
+      "require": "./dist/react.cjs"
+    },
+    "./turbowarp": {
+      "types": "./dist/turbowarp.d.ts",
+      "import": "./dist/turbowarp.mjs",
+      "require": "./dist/turbowarp.cjs"
+    },
     "./styles.css": "./styles.css",
     "./webpack4.css": "./webpack4.css"
   },
-  "files": ["dist", "react.js", "turbowarp.js", "styles.css", "webpack4.css", "README.md", "README.ja.md", "NOTICE.md", "LICENSE"],
+  "files": [
+    "dist",
+    "react.js",
+    "turbowarp.js",
+    "styles.css",
+    "webpack4.css",
+    "README.md",
+    "README.ja.md",
+    "NOTICE.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "pnpm run build && node --test test/*.test.cjs",
@@ -30,9 +59,18 @@
     "prepack": "pnpm run build",
     "prepare": "pnpm run build"
   },
-  "dependencies": {"@turbowarp/jszip": "^3.12.0"},
-  "peerDependencies": {"react": "^16.14.0 || ^17 || ^18 || ^19", "react-dom": "^16.14.0 || ^17 || ^18 || ^19"},
-  "peerDependenciesMeta": {"react": {"optional": true}, "react-dom": {"optional": true}},
+  "peerDependencies": {
+    "react": "^16.14.0 || ^17 || ^18 || ^19",
+    "react-dom": "^16.14.0 || ^17 || ^18 || ^19"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@playwright/test": "1.64.1",
     "esbuild": "^0.28.2",
@@ -41,6 +79,10 @@
     "react-dom": "^16.14.0"
   },
   "packageManager": "pnpm@11.28.8",
-  "engines": {"node": ">=24"},
-  "publishConfig": {"access": "public"}
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
