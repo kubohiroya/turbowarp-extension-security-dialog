@@ -18,6 +18,9 @@ const bind = (instance, names) => names.forEach(name => {
 
 const sourceLabel = (entry, t) => {
     if (entry.source.kind === 'embedded') return t('sourceEmbedded');
+    // A project that carries the extension itself has a data: URL for an address. Printing it
+    // would put the whole bundle in the row, so say where the bytes are instead.
+    if (String(entry.source.url).startsWith('data:')) return t('sourceInline');
     if (entry.source.kind === 'legacy') return `${t('sourceLegacy')}: ${entry.source.url}`;
     return entry.source.url;
 };

@@ -17,6 +17,7 @@ export function loadExtensionCatalog(url: string, signal?: AbortSignal): Promise
 export function parseExtensionMetadata(source: string): ExtensionMetadata;
 export function getExtensionDescription(metadata: ExtensionMetadata, locale?: string): string;
 export function unsandboxedRequirement(metadata: ExtensionMetadata): 'required' | 'optional' | 'not-needed' | 'unknown';
+export function decodeExtensionDataURL(url: string): string;
 export function loadExtensionInfo(url: string, signal?: AbortSignal): Promise<{source: string; metadata: ExtensionMetadata}>;
 
 export type SelectionState = 'loaded' | 'selected' | 'dependency' | 'unselected';

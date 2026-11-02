@@ -1,7 +1,8 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {
-    parseExtensionMetadata, getExtensionDescription, unsandboxedRequirement
+    parseExtensionMetadata, getExtensionDescription, unsandboxedRequirement,
+    decodeExtensionDataURL, loadExtensionInfo
 } = require('../dist/index.cjs');
 
 const source = `/**
@@ -45,4 +46,28 @@ test('the sandbox claim is read as a claim, with anything unrecognised left unkn
     assert.equal(unsandboxedRequirement({unsandboxed: 'no'}), 'not-needed');
     assert.equal(unsandboxedRequirement({unsandboxed: 'perhaps'}), 'unknown');
     assert.equal(unsandboxedRequirement({}), 'unknown');
+});
+
+// A project may carry the extension itself as a data: URL so stock TurboWarp can open it. The
+// bytes are already in hand, so the row's description must still be readable without a fetch.
+test('an extension carried as a data URL is read without the network, base64 or not', async () => {
+    const text = '/**\n * @name Inline\n * @description Carried inline\n */';
+    const base64 = `data:application/javascript;base64,${Buffer.from(text, 'utf8').toString('base64')}`;
+    const percent = `data:application/javascript,${encodeURIComponent(text)}`;
+    assert.equal(decodeExtensionDataURL(base64), text);
+    assert.equal(decodeExtensionDataURL(percent), text);
+    for (const url of [base64, percent]) {
+        const info = await loadExtensionInfo(url, new AbortController().signal);
+        assert.equal(info.source, text);
+        assert.equal(info.metadata.name, 'Inline');
+        assert.equal(getExtensionDescription(info.metadata, 'en'), 'Carried inline');
+    }
+    assert.throws(() => decodeExtensionDataURL('data:application/javascript'), /Not a data URL/u);
+});
+
+test('a data URL already decoded is dropped when the request is abandoned', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+        loadExtensionInfo('data:application/javascript,void%200', controller.signal), /aborted/u);
 });

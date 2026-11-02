@@ -7,6 +7,25 @@ const LIMIT = 4096;
 const trimmed = value => value.replace(/\s+$/, '');
 
 /**
+ * Read the text of a `data:` URL, base64 or percent-encoded.
+ *
+ * This decodes; it never evaluates. What comes back is a string to be parsed like any other
+ * source, and a URL that is not one fails here rather than further in.
+ * @param {string} url The data URL.
+ * @returns {string} The text it carries.
+ */
+export function decodeExtensionDataURL(url) {
+    const comma = url.indexOf(',');
+    if (comma < 0) throw new Error('Not a data URL');
+    const content = url.slice(comma + 1);
+    if (!(/;base64$/i).test(url.slice(0, comma))) return decodeURIComponent(content);
+    const binary = atob(content);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
+    return new TextDecoder().decode(bytes);
+}
+
+/**
  * Read an extension's own description of itself out of its leading comment block.
  *
  * The bytes are never evaluated: this is a parse of the text, so a source that lies only lies
@@ -91,6 +110,16 @@ export function unsandboxedRequirement(metadata) {
  * @returns {Promise<object>} The source text and the fields it declared.
  */
 export async function loadExtensionInfo(url, signal) {
+    // A project may carry an extension as a data: URL so stock TurboWarp can open it too. The
+    // bytes are already in hand, so there is nothing to fetch and no address to check; refusing
+    // the scheme would leave the person approving a row whose own description sits right there.
+    if (String(url).startsWith('data:')) {
+        // Decoding a bundle is not free, so let the list mount before doing it.
+        await new Promise(resolve => setTimeout(resolve, 0));
+        if (signal && signal.aborted) throw new Error('Extension metadata request aborted');
+        const source = decodeExtensionDataURL(url);
+        return {source, metadata: parseExtensionMetadata(source)};
+    }
     const address = reviewURL(url, 'extension URL');
     const response = await fetch(address, {signal, credentials: 'omit', referrerPolicy: 'no-referrer'});
     if (!response.ok) throw new Error(`Extension request failed (HTTP ${response.status})`);

@@ -218,3 +218,16 @@ test('a row with no picture of its own still gets one, without touching the netw
     assert.deepEqual(fetched, []);
     view.unmount();
 });
+
+test('a row whose address carries the whole extension says so instead of printing it', () => {
+    const bundle = `data:application/javascript;base64,${'QQ'.repeat(4000)}`;
+    const view = render({
+        mode: 'open',
+        entries: [{key: bundle, ids: ['inline'], source: {kind: 'legacy', url: bundle}}]
+    });
+    const label = view.rows()[0].querySelector('.twextsec-source').textContent;
+    // Printing the address would put the whole bundle in the row.
+    assert.equal(label, 'Written into the project as a data address');
+    assert.ok(!label.includes('base64'));
+    view.unmount();
+});
