@@ -19,7 +19,7 @@ This package collects the whole project, puts one question, and only then loads 
 
 | Import | What it is |
 | --- | --- |
-| `.` | Reading a catalog, reading an extension's own description, closing a selection over its dependencies, remembering what the opener chose, wording |
+| `.` | Reading a catalog, reading an extension's own description, closing a selection over its dependencies, remembering what the opener chose, the wait dialog, wording |
 | `./react` | `ExtensionReview`, the screen |
 | `./turbowarp` | `installBatchExtensionLoader`, which wraps a VM so the question comes first |
 | `./styles.css`, `./webpack4.css` | The screen's styles; the second has class names wrapped in `:global()` for a CSS-modules build |
@@ -65,6 +65,32 @@ nothing but trusted rows is not worth stopping, so `requiresReview` says to skip
 **A remembered answer is honoured only where it is still one of the choices.** A project that
 moved from a reference to embedded bytes, or a row that has since become trusted, does not carry
 a stale answer into a screen that no longer offers it.
+
+## While a fetch is waiting
+
+```js
+import {createExtensionWaitDialog} from '@kubohiroya/turbowarp-extension-security-dialog';
+
+const wait = createExtensionWaitDialog(document, locale);
+// The Loader reports each retry; show() opens the dialog once the wait looks real.
+const ports = createFetchPort(fetch, {onRetry: info => wait.show(info)});
+// hide() on every path out, resolved or failed; dispose() when the host goes away.
+```
+
+Fetching one extension can stall for seconds while the transport asks again, and the whole
+operation is blocked while it does: every row has to be verified and answered for before any of
+them is registered. So this takes the middle of the screen, where the question that follows
+appears too, rather than a corner.
+
+It carries **no close and no cancel button**, on purpose. Closing would not stop the fetch, and
+stopping one halfway has no rollback behind it yet, so either button would offer control that
+does not exist and could leave the project in a state nothing restores. Escape is refused for the
+same reason.
+
+Showing is delayed by `delayMs` (300 by default), because the shortest wait is one backoff: a
+dialog that appeared and vanished inside half a second would read as a flicker and steal focus
+for nothing. It carries its own styles, injected once per document, because not every host is a
+CSS pipeline — the single-HTML runtime and the packager page build JavaScript only.
 
 ## Wiring a VM
 

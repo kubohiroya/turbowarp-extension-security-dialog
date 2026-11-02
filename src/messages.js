@@ -40,7 +40,11 @@ const messages = {
         ok: 'OK',
         cancel: 'Cancel',
         add: 'Add',
-        preview: 'Preview of {name}'
+        preview: 'Preview of {name}',
+        fetchWaitTitle: 'Fetching an extension',
+        fetchWaitRetry: 'Could not connect. Trying again ({attempt}/{attempts})',
+        fetchWaitNote: 'This takes a few seconds. If it keeps failing, loading stops and the ' +
+            'project you had open is restored.'
     },
     ja: {
         addTitle: '機能拡張を選ぶ',
@@ -83,7 +87,11 @@ const messages = {
         ok: 'OK',
         cancel: 'キャンセル',
         add: '追加',
-        preview: '{name} のプレビュー'
+        preview: '{name} のプレビュー',
+        fetchWaitTitle: '機能拡張を取得しています',
+        fetchWaitRetry: '接続できませんでした。再試行しています（{attempt}/{attempts}）',
+        fetchWaitNote: '数秒で終わります。それでも取得できない場合は読み込みを中止し、' +
+            '開いていた作品に戻します。'
     }
 };
 

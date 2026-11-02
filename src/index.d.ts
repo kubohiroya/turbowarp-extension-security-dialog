@@ -54,5 +54,14 @@ export function initialDecisions(entries: ReviewEntry[], mode: ReviewMode,
 export function requiresReview(entries: ReviewEntry[]): boolean;
 export function contradictsDeclaration(entry: ReviewEntry, decision: ReviewDecision): boolean;
 
+export interface ExtensionWaitDialog {
+    show(info: {url?: string; attempt?: number; attempts?: number}): void;
+    hide(): void;
+    dispose(): void;
+}
+export function createExtensionWaitDialog(
+    document: Document, locale?: string, options?: {delayMs?: number}
+): ExtensionWaitDialog;
+
 export const messages: Record<string, Record<string, string>>;
 export function formatMessage(locale: string, key: string, values?: Record<string, string | number>): string;
