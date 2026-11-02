@@ -48,8 +48,29 @@ is put, so they are the same component.
 | What is listed | Catalog entries; dependencies are selected for you | Every extension the project uses |
 | Picking | Tick to choose | None: the project already names them |
 | How it runs | In the sandbox, or without it | Do not run, in the sandbox, or without it |
-| Where it loads from | Keep a copy, fetch each time, or in the project | Keep a copy or fetch each time; embedded bytes have nowhere else to come from |
-| All at once | Both choices | Both choices |
+| Where it loads from | Any of the four forms | Only whether a `remote-cacheable` row keeps its copy; every other row states how it loads |
+| All at once | Both choices | How they all run, and the copy where at least one row has one to decline |
+
+### The four loading forms
+
+An extension's bytes are held in one of four ways, spelled the same by the Loader's manifest, by
+the SB3 save format and by this screen, so a host wires the two ends together without a
+translation table.
+
+| Form | This browser | The project file | Standard TurboWarp |
+| --- | --- | --- | --- |
+| `remote-non-cacheable` | Keeps nothing | A reference | Cannot open it |
+| `remote-cacheable` | May keep a verified copy | A reference | Cannot open it |
+| `embedded-file` | Nothing to keep | The bytes, as a file in the archive | Cannot open it |
+| `embedded-data` | Nothing to keep | The bytes, as a `data:` value | **Can open it** |
+
+**All four are the author's decision**, made when the extension was added, which is why `add`
+offers all of them and `open` offers almost none. The one thing left to the person opening a
+project is whether a `remote-cacheable` row actually leaves its copy in this browser, and that can
+only be declined: `remote-non-cacheable` is the author forbidding the copy, and there is no way to
+write permission back over it. So `loadingChoices` reads the choices off the row's own source and
+needs no table beside it — a row whose source names a form is already loading that way, and the
+screen states it instead of asking.
 
 ### What it will not do
 
@@ -63,8 +84,8 @@ host's own gallery: it runs without the sandbox and offers no execution choice. 
 nothing but trusted rows is not worth stopping, so `requiresReview` says to skip the screen.
 
 **A remembered answer is honoured only where it is still one of the choices.** A project that
-moved from a reference to embedded bytes, or a row that has since become trusted, does not carry
-a stale answer into a screen that no longer offers it.
+moved from `remote-cacheable` to embedded bytes, or a row that has since become trusted, does not
+carry a stale answer into a screen that no longer offers it.
 
 ## While a fetch is waiting
 
@@ -117,10 +138,10 @@ Saying no resolves `onComplete` with `null`, and the load rejects with an error 
 
 | What | Where | Who decides |
 | --- | --- | --- |
-| Reference or embedded bytes | The project | Whoever added the extension |
+| Which of the four loading forms | The project | Whoever added the extension |
 | How it runs, when added | The project | Whoever added it |
 | How it runs, when opened | This browser, per project | Whoever opens it |
-| Keep a copy or fetch each time | This browser, per project | Whoever opens it |
+| Whether a `remote-cacheable` copy is kept | This browser, per project | Whoever opens it, and only to decline |
 | Preview pictures | This browser | Nobody; always kept |
 
 Every read answers with something usable even when storage is unavailable — a private window, a
@@ -137,7 +158,7 @@ code does so elsewhere, and a row says so when it failed.
 
 ```sh
 pnpm install
-pnpm run check   # build, 36 tests, and a packing dry run
+pnpm run check   # build, 46 tests, and a packing dry run
 ```
 
 React and React DOM are peer dependencies, so the host supplies them. There are no runtime

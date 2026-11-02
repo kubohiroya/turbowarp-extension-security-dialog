@@ -11,9 +11,12 @@ const messages = {
         'execution-deny': 'Do not run',
         'execution-sandboxed': 'In the sandbox',
         'execution-unsandboxed': 'Without the sandbox',
-        'loading-cached': 'Keep a copy (default)',
-        'loading-remote': 'Fetch each time',
-        'loading-embedded': 'In the project',
+        'loading-remote-cacheable': 'Keep a copy (default)',
+        'loading-remote-non-cacheable': 'Fetch each time',
+        // The two embedded forms differ only in the carrier, which is what decides who else can
+        // open the project, so the wording names the carrier and nothing else.
+        'loading-embedded-file': 'In the project',
+        'loading-embedded-data': 'In the project, as a data address',
         loadingNote: 'A kept copy is verified and reused, so the project opens without the network. ' +
             'Fetching each time leaves nothing in this browser.',
         unsandboxedWarning: 'Without the sandbox, an extension can reach the project, the editor ' +
@@ -59,9 +62,10 @@ const messages = {
         'execution-deny': '動かさない',
         'execution-sandboxed': 'サンドボックスの中で',
         'execution-unsandboxed': 'サンドボックスなしで',
-        'loading-cached': '控えを残す（既定）',
-        'loading-remote': '毎回取得する',
-        'loading-embedded': '作品の中から',
+        'loading-remote-cacheable': '控えを残す（既定）',
+        'loading-remote-non-cacheable': '毎回取得する',
+        'loading-embedded-file': '作品の中から',
+        'loading-embedded-data': '作品の中の data: アドレスから',
         loadingNote: '控えは検証したうえで使い回すので、通信なしでも作品が開きます。' +
             '毎回取得する場合は、このブラウザーに何も残りません。',
         unsandboxedWarning: 'サンドボックスなしの拡張は、作品・エディター・このサイトのデータに' +

@@ -36,16 +36,17 @@ const run = async (store, mode, work) => {
 /**
  * What the person opening a project chose last time, kept in their own browser.
  *
- * These are the opener's decisions, not the author's: whether a referenced extension is fetched
- * every time or kept, and how far each one is allowed to run. They never travel with the project,
- * because they are about this browser and this person's trust, not about the work.
+ * These are the opener's decisions, not the author's: whether a `remote-cacheable` extension
+ * actually leaves its copy in this browser, and how far each one is allowed to run. They never
+ * travel with the project, because they are about this browser and this person's trust, not about
+ * the work.
  *
  * Every read answers with something usable even when storage is unavailable — a private window, a
  * browser with site data blocked — so a screen built on this never fails to open.
- * @param {string} [fallbackLoading] What a row with no recorded choice uses.
+ * @param {string} [fallbackLoading] Which form a row with no recorded choice prefers.
  * @returns {object} Reading and writing ends for one project's decisions.
  */
-export function createDecisionStorage({fallbackLoading = 'cached'} = {}) {
+export function createDecisionStorage({fallbackLoading = 'remote-cacheable'} = {}) {
     return Object.freeze({
         fallbackLoading,
         /**

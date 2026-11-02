@@ -18,7 +18,7 @@ const {ExtensionReview} = require('../dist/react.cjs');
 
 const row = (key, source, extra = {}) => ({key, ids: [key], source, ...extra});
 const catalogRow = (key, extra) => row(key, {kind: 'catalog', url: `https://example.test/${key}.js`}, extra);
-const referenceRow = (key, extra) => row(key, {kind: 'reference', url: `https://example.test/${key}.js`, sha256: 'a'.repeat(64)}, extra);
+const cacheableRow = (key, extra) => row(key, {kind: 'remote-cacheable', url: `https://example.test/${key}.js`, sha256: 'a'.repeat(64)}, extra);
 
 function render(props) {
     const host = document.getElementById('app');
@@ -75,7 +75,7 @@ test('adding answers only for the rows that were chosen', () => {
 });
 
 test('opening answers for every row, and cancelling answers for none', () => {
-    const view = render({mode: 'open', entries: [referenceRow('a'), referenceRow('b')]});
+    const view = render({mode: 'open', entries: [cacheableRow('a'), cacheableRow('b')]});
     // Opening has no ticks: the project already names its extensions.
     assert.equal(view.host.querySelector('input[type="checkbox"]'), null);
     view.click('twextsec-cancel');
@@ -86,21 +86,51 @@ test('opening answers for every row, and cancelling answers for none', () => {
 test('a trusted row is stated, not asked about, and keeps its loading choice', () => {
     const view = render({
         mode: 'open',
-        entries: [referenceRow('vouched', {state: {trusted: true}})]
+        entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
     assert.match(row.textContent, /Listed in the catalog/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
-    assert.notEqual(view.radio('vouched', 'loading', 'remote'), null);
+    assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
     view.click('twextsec-complete');
-    assert.deepEqual(view.answer.get('vouched'), {execution: 'unsandboxed', loading: 'cached'});
+    assert.deepEqual(view.answer.get('vouched'), {execution: 'unsandboxed', loading: 'remote-cacheable'});
+    view.unmount();
+});
+
+test('a row the opener cannot change states how it loads instead of asking', () => {
+    const view = render({
+        mode: 'open',
+        entries: [
+            row('fixed', {kind: 'remote-non-cacheable', url: 'https://example.test/f.js', sha256: 'a'.repeat(64)}),
+            row('carried', {kind: 'embedded-data', sha256: 'b'.repeat(64)})
+        ]
+    });
+    assert.equal(view.radio('fixed', 'loading', 'remote-cacheable'), null);
+    assert.match(view.rowFor('fixed').querySelector('.twextsec-loading-fixed').textContent,
+        /Fetch each time/);
+    assert.match(view.rowFor('carried').querySelector('.twextsec-loading-fixed').textContent,
+        /as a data address/);
+    // No row here has a copy to decline, so the bulk control offers no choice either.
+    assert.equal(view.host.querySelector('input[name="loading-all"]'), null);
+    view.click('twextsec-complete');
+    assert.equal(view.answer.get('fixed').loading, 'remote-non-cacheable');
+    assert.equal(view.answer.get('carried').loading, 'embedded-data');
+    view.unmount();
+});
+
+test('adding offers all four forms, because adding is authoring', () => {
+    const view = render({mode: 'add', entries: [catalogRow('a')]});
+    for (const form of ['remote-cacheable', 'remote-non-cacheable', 'embedded-file', 'embedded-data']) {
+        assert.notEqual(view.radio('a', 'loading', form), null, form);
+        assert.notEqual(view.host.querySelector(`input[name="loading-all"][value="${form}"]`), null, form);
+    }
     view.unmount();
 });
 
 test('a bulk choice reaches only the rows that have it to make', () => {
     const view = render({
         mode: 'open',
-        entries: [referenceRow('a'), referenceRow('vouched', {state: {trusted: true}})]
+        entries: [cacheableRow('a'), cacheableRow('vouched', {state: {trusted: true}})]
     });
     act(() => {
         const all = view.host.querySelector('input[name="execution-all"][value="deny"]');
@@ -117,7 +147,7 @@ test('a bulk choice reaches only the rows that have it to make', () => {
 test('choosing the sandbox against the extension own claim warns without blocking', () => {
     const view = render({
         mode: 'open',
-        entries: [referenceRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}})]
+        entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}})]
     });
     assert.match(view.rowFor('a').textContent, /Says it needs to run without the sandbox/);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
@@ -129,8 +159,8 @@ test('choosing the sandbox against the extension own claim warns without blockin
 test('a row that failed to load says so, and the rest stay answerable', () => {
     const view = render({
         mode: 'open',
-        entries: [referenceRow('a', {state: {error: {code: 'DIGEST_MISMATCH', message: 'no match'}}}),
-            referenceRow('b')]
+        entries: [cacheableRow('a', {state: {error: {code: 'DIGEST_MISMATCH', message: 'no match'}}}),
+            cacheableRow('b')]
     });
     assert.equal(view.rowFor('a').getAttribute('data-failed'), 'true');
     assert.match(view.rowFor('a').textContent, /DIGEST_MISMATCH/);
@@ -142,7 +172,7 @@ test('a row that failed to load says so, and the rest stay answerable', () => {
 test('the creator name is shown as the extension own claim', () => {
     const view = render({
         mode: 'open',
-        entries: [referenceRow('a', {metadata: {author: 'Someone'}})]
+        entries: [cacheableRow('a', {metadata: {author: 'Someone'}})]
     });
     assert.match(view.rowFor('a').textContent, /Someone/);
     assert.match(view.rowFor('a').textContent, /not verified/);
@@ -151,7 +181,7 @@ test('the creator name is shown as the extension own claim', () => {
 
 test('opening uses the frame the host supplies, and adding renders in place', () => {
     const Frame = props => React.createElement('div', {'data-testid': 'frame'}, props.children);
-    const opened = render({mode: 'open', entries: [referenceRow('a')], DialogFrame: Frame});
+    const opened = render({mode: 'open', entries: [cacheableRow('a')], DialogFrame: Frame});
     assert.notEqual(opened.host.querySelector('[data-testid="frame"]'), null);
     opened.unmount();
     const added = render({mode: 'add', entries: [catalogRow('a')], DialogFrame: Frame});
@@ -175,7 +205,7 @@ test('a preview is shown from the cache when there is one, and fetched once othe
     };
     globalThis.URL.createObjectURL = () => 'blob:preview';
     globalThis.URL.revokeObjectURL = () => {};
-    const entry = referenceRow('a', {metadata: {name: 'A', banner: 'https://example.test/a.png'}});
+    const entry = cacheableRow('a', {metadata: {name: 'A', banner: 'https://example.test/a.png'}});
     const first = render({mode: 'open', entries: [entry], previewCache: cache});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
     assert.equal(first.host.querySelector('.twextsec-preview').getAttribute('src'), 'blob:preview');
@@ -193,7 +223,7 @@ test('a preview that cannot be fetched leaves the row exactly as it was', async 
     globalThis.fetch = async () => {
         throw new Error('offline');
     };
-    const entry = referenceRow('a', {metadata: {name: 'A', banner: 'https://example.test/a.png'}});
+    const entry = cacheableRow('a', {metadata: {name: 'A', banner: 'https://example.test/a.png'}});
     const view = render({mode: 'open', entries: [entry], previewCache: null});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
     assert.equal(view.host.querySelector('.twextsec-preview'), null);
@@ -210,7 +240,7 @@ test('a row with no picture of its own still gets one, without touching the netw
         fetched.push(url);
         throw new Error('should not be called');
     };
-    const view = render({mode: 'open', entries: [referenceRow('a', {metadata: {name: 'A'}})]});
+    const view = render({mode: 'open', entries: [cacheableRow('a', {metadata: {name: 'A'}})]});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
     const image = view.rowFor('a').querySelector('.twextsec-preview');
     // The fallback travels inside the bundle, so there is nothing to fetch or keep.

@@ -86,7 +86,7 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
         const recorded = project && project.key && storage ?
             await storage.read(project.key) : new Map();
         const starting = initialDecisions(entries, 'open', {
-            recorded, fallbackLoading: storage ? storage.fallbackLoading : 'cached'
+            recorded, fallbackLoading: storage ? storage.fallbackLoading : 'remote-cacheable'
         });
         // With nothing but trusted rows there is no question to put, so opening is not stopped
         // to report one. The defaults already say what trusted means.
