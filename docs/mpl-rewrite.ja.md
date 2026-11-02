@@ -2,6 +2,11 @@
 
 2026-11-01時点のorigin/main（0.5.0、`0599f99`）と、それを使うscratch-guiフォーク（develop `48e659f1`）・turbowarp-extension-loader（0.1.0）を読んで作成しました。実装前の設計です。
 
+> **この文書は実装前の設計の記録です。** 書き直しは0.6.0（#52）で入り、読み込み方式は0.7.0（#54）でturbowarp-extension-loader 0.5.0の4つの形に揃えました。今の仕様は、[turbowarp-plus-packagesの設計書](https://github.com/kubohiroya/turbowarp-plus-packages/blob/main/docs/editor-architecture.ja.md)とこのパッケージのREADMEにあります。この文書とは、次の点が違います。
+>
+> - 読み込み方式は「Cached・Remote・Embedded」ではなく、`remote-non-cacheable`・`remote-cacheable`（既定）・`embedded-file`・`embedded-data`の4つです。4つとも作品に記録し、決めるのは追加する人（作者）です。
+> - 開く人が選べるのは、`remote-cacheable`の拡張について、控えを自分のブラウザーに残すのを断ること（ローダーの`declineCaching`）だけです。下の「CachedとRemoteの選択は、開く人のブラウザーに作品ごとに覚える」という決定（2026-11-02）は、これに置き換わりました。作品は`Manifest.uri`で見分けます。
+
 家族全体の方針は [turbowarp-plus-packagesの設計書](https://github.com/kubohiroya/turbowarp-plus-packages/blob/main/docs/editor-architecture.ja.md) にあります。この文書は、そのうちこのパッケージが受け持つ部分を具体化します。
 
 ## 目的

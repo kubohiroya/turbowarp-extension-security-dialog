@@ -1,0 +1,24 @@
+.twextsec-review { box-sizing: border-box; color: var(--ui-modal-foreground, #263145); font: inherit; }
+.twextsec-review *, .twextsec-review *::before, .twextsec-review *::after { box-sizing: inherit; }
+.twextsec-intro { margin: 0 0 12px; }
+.twextsec-bulk { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: flex-start; padding: 12px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px; }
+.twextsec-note { flex: 1 1 100%; margin: 0; font-size: .9em; opacity: .8; }
+.twextsec-warning { margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: var(--ui-warning-background, #fff3cd); }
+.twextsec-rows { margin: 12px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.twextsec-row { padding: 12px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px; }
+.twextsec-row[data-failed="true"] { border-color: var(--ui-danger, #b91c1c); }
+.twextsec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.twextsec-pick { display: flex; align-items: baseline; gap: 6px; }
+.twextsec-id, .twextsec-source, .twextsec-digest { overflow-wrap: anywhere; font-size: .85em; opacity: .75; }
+.twextsec-about, .twextsec-claim, .twextsec-state, .twextsec-requirement { margin: 6px 0 0; font-size: .9em; }
+.twextsec-claim, .twextsec-requirement { opacity: .8; }
+.twextsec-trusted { margin: 6px 0 0; font-weight: 500; }
+.twextsec-failed, .twextsec-contradiction { margin: 6px 0 0; color: var(--ui-danger, #b91c1c); }
+.twextsec-choice { margin: 8px 0 0; padding: 6px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; }
+.twextsec-choice legend { padding: 0 4px; font-size: .85em; opacity: .8; }
+.twextsec-choice label { display: inline-flex; align-items: center; gap: 4px; margin-right: 14px; }
+.twextsec-actions { display: flex; justify-content: flex-end; gap: 12px; margin: 0; padding: 0; }
+.twextsec-actions button { font: inherit; padding: 8px 16px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
+.twextsec-actions button[data-testid="twextsec-complete"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
+.twextsec-actions button:focus-visible { outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
+.twextsec-preview { display: block; width: 100%; max-width: 360px; height: auto; margin: 8px 0 0; border-radius: 6px; background: var(--ui-secondary, #f7f8fb); }
