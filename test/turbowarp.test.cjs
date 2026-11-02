@@ -78,8 +78,8 @@ test('rows the host collects are asked about but loaded by the host, not here', 
     const {vm, calls} = fakeVM();
     let handed = null;
     const plus = {key: 'plusid', ids: ['plusid'],
-        source: {kind: 'reference', url: 'https://example.test/plus.js', sha256: 'a'.repeat(64)}};
-    const uninstall = installBatchExtensionLoader(vm, answerAll({execution: 'sandboxed', loading: 'cached'}),
+        source: {kind: 'remote-cacheable', url: 'https://example.test/plus.js', sha256: 'a'.repeat(64)}};
+    const uninstall = installBatchExtensionLoader(vm, answerAll({execution: 'sandboxed', loading: 'remote-cacheable'}),
         {}, null, {collectEntries: async () => [plus], applyDecisions: value => {handed = value;}});
     vm.pending = ['a'];
     vm.pendingURLs = new Map([['a', 'https://example.test/a.js']]);
@@ -95,7 +95,7 @@ test('a project of trusted rows opens without putting a question', async () => {
     const {vm, calls} = fakeVM();
     let asked = 0;
     const trusted = {key: 'vouched', ids: ['vouched'], state: {trusted: true},
-        source: {kind: 'reference', url: 'https://example.test/v.js', sha256: 'a'.repeat(64)}};
+        source: {kind: 'remote-cacheable', url: 'https://example.test/v.js', sha256: 'a'.repeat(64)}};
     const uninstall = installBatchExtensionLoader(vm, async () => {
         asked++;
         return null;
@@ -112,7 +112,7 @@ test('what the opener decided is remembered per project, and a storage failure i
     const {vm} = fakeVM();
     const written = new Map();
     const storage = {
-        fallbackLoading: 'cached',
+        fallbackLoading: 'remote-cacheable',
         read: async () => new Map(),
         write: async (key, decisions) => {
             written.set(key, decisions);

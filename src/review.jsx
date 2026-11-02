@@ -9,18 +9,24 @@ import {ExtensionPreview} from './preview.jsx';
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
 import {
-    contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices
+    contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
+    loadingModes
 } from './decisions.js';
 
 const bind = (instance, names) => names.forEach(name => {
     instance[name] = instance[name].bind(instance);
 });
 
+/** The bytes travel with the project, so there is no address to fetch from or to print. */
+const isEmbedded = source => source.kind === 'embedded-file' || source.kind === 'embedded-data';
+
 const sourceLabel = (entry, t) => {
-    if (entry.source.kind === 'embedded') return t('sourceEmbedded');
+    if (entry.source.kind === 'embedded-file') return t('sourceEmbedded');
     // A project that carries the extension itself has a data: URL for an address. Printing it
     // would put the whole bundle in the row, so say where the bytes are instead.
-    if (String(entry.source.url).startsWith('data:')) return t('sourceInline');
+    if (entry.source.kind === 'embedded-data' || String(entry.source.url).startsWith('data:')) {
+        return t('sourceInline');
+    }
     if (entry.source.kind === 'legacy') return `${t('sourceLegacy')}: ${entry.source.url}`;
     return entry.source.url;
 };
@@ -78,7 +84,7 @@ export class ExtensionReview extends React.PureComponent {
         const {loadInfo, entries} = this.props;
         if (!loadInfo) return;
         for (const entry of entries) {
-            if (entry.metadata || entry.source.kind === 'embedded') continue;
+            if (entry.metadata || isEmbedded(entry.source)) continue;
             try {
                 const info = await loadInfo(entry.source.url, this.controller.signal);
                 if (this.controller.signal.aborted) return;
@@ -237,8 +243,10 @@ export class ExtensionReview extends React.PureComponent {
                         t={t}
                     />
                 )}
-                {loadings.length === 0 && decision.loading === 'embedded' && (
-                    <p className="twextsec-loading-fixed">{t('loading-embedded')}</p>
+                {/* With nothing to choose the row still says how it loads, because that is part
+                    of what the person is agreeing to run, not an omission. */}
+                {loadings.length === 0 && decision.loading !== undefined && (
+                    <p className="twextsec-loading-fixed">{t(`loading-${decision.loading}`)}</p>
                 )}
                 {contradictsDeclaration(entry, decision) && (
                     <p
@@ -255,6 +263,11 @@ export class ExtensionReview extends React.PureComponent {
         const selection = this.selection();
         const anyUnsandboxed = [...this.included()]
             .some(key => this.state.decisions.get(key).execution === 'unsandboxed');
+        // The bulk control offers whatever at least one row could be set to. Opening a project of
+        // nothing but embedded and non-cacheable rows leaves nothing to set, and a control that
+        // reaches no row would read as a choice the person does not actually have.
+        const bulkLoadings = loadingModes
+            .filter(mode => entries.some(entry => loadingChoices(entry).includes(mode)));
         const body = (
             <div className="twextsec-review">
                 <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : 'openIntro')}</p>
@@ -268,15 +281,19 @@ export class ExtensionReview extends React.PureComponent {
                         onChange={this.handleBulkExecution}
                         t={t}
                     />
-                    <Choices
-                        name="loading-all"
-                        label={t('loadingBulk')}
-                        value={null}
-                        options={['cached', 'remote']}
-                        onChange={this.handleBulkLoading}
-                        t={t}
-                    />
-                    <p className="twextsec-note">{t('loadingNote')}</p>
+                    {bulkLoadings.length > 0 && (
+                        <React.Fragment>
+                            <Choices
+                                name="loading-all"
+                                label={t('loadingBulk')}
+                                value={null}
+                                options={bulkLoadings}
+                                onChange={this.handleBulkLoading}
+                                t={t}
+                            />
+                            <p className="twextsec-note">{t('loadingNote')}</p>
+                        </React.Fragment>
+                    )}
                 </div>
                 {anyUnsandboxed && (
                     <p
@@ -313,8 +330,10 @@ export class ExtensionReview extends React.PureComponent {
     }
 }
 
-// A preview is kept in the browser the same way a cached extension is, so the second look at a
-// catalog costs nothing. A host may pass its own cache, or null to keep nothing.
-ExtensionReview.defaultProps = {locale: 'en', fallbackLoading: 'cached', previewCache: createPreviewCache()};
+// A preview is kept in the browser the same way a `remote-cacheable` extension is, so the second
+// look at a catalog costs nothing. A host may pass its own cache, or null to keep nothing.
+ExtensionReview.defaultProps = {
+    locale: 'en', fallbackLoading: 'remote-cacheable', previewCache: createPreviewCache()
+};
 
 export default ExtensionReview;

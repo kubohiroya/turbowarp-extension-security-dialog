@@ -3,10 +3,28 @@ import {unsandboxedRequirement} from './metadata.js';
 /** A row listed in the catalog is trusted like the host's own gallery and is never asked about. */
 export const isTrusted = entry => Boolean(entry && entry.state && entry.state.trusted);
 
-/** Only a reference can be fetched or kept; embedded bytes and legacy URLs have no choice. */
+/** The four forms, in the order someone adding an extension is offered them. */
+export const loadingModes = Object.freeze([
+    'remote-cacheable', 'remote-non-cacheable', 'embedded-file', 'embedded-data'
+]);
+
+/**
+ * Where a row may load from, which its own source already says.
+ *
+ * All four forms are the author's decision, so there is only one place a choice is left to make.
+ * A `catalog` row is in no project yet: whoever is looking at it is about to be its author and
+ * picks any of the four. A row a project already names has its form fixed, and the one thing the
+ * person opening it still decides is whether a `remote-cacheable` row may keep its copy in this
+ * browser — which is the same as choosing `remote-non-cacheable` for that row. Nothing else has a
+ * second form it could take: `remote-non-cacheable` is the author forbidding the copy and there
+ * is no way to write permission back over it, embedded bytes travel with the project and have
+ * nowhere else to come from, and a `legacy` URL predates the whole idea.
+ * @param {object} entry The row.
+ * @returns {Array<string>} The loading choices to offer, empty when there is nothing to choose.
+ */
 export const loadingChoices = entry => (
-    entry.source.kind === 'catalog' ? ['cached', 'remote', 'embedded'] :
-        entry.source.kind === 'reference' ? ['cached', 'remote'] : []
+    entry.source.kind === 'catalog' ? [...loadingModes] :
+        entry.source.kind === 'remote-cacheable' ? ['remote-cacheable', 'remote-non-cacheable'] : []
 );
 
 /**
@@ -33,14 +51,16 @@ export const executionChoices = (entry, mode) => (
  * sandbox, for the same reason.
  * @param {object} entry The row.
  * @param {string} mode Either add or open.
- * @param {string} fallbackLoading Where a reference loads from when nothing is recorded.
+ * @param {string} fallbackLoading Which form is preferred where there is still a choice.
  * @returns {object} The decision to start from.
  */
-export function defaultDecision(entry, mode, fallbackLoading = 'cached') {
+export function defaultDecision(entry, mode, fallbackLoading = 'remote-cacheable') {
     const execution = isTrusted(entry) ? 'unsandboxed' : 'sandboxed';
     const choices = loadingChoices(entry);
+    // A row with nothing to choose is already loading the way its source is named, so the source
+    // kind is the answer. Only `legacy` and `catalog` are not forms, and `catalog` has choices.
     if (choices.length === 0) {
-        return entry.source.kind === 'embedded' ? {execution, loading: 'embedded'} : {execution};
+        return entry.source.kind === 'legacy' ? {execution} : {execution, loading: entry.source.kind};
     }
     return {execution, loading: choices.includes(fallbackLoading) ? fallbackLoading : choices[0]};
 }
@@ -56,7 +76,9 @@ export function defaultDecision(entry, mode, fallbackLoading = 'cached') {
  * @param {object} options Previously recorded decisions and the fallback loading mode.
  * @returns {Map<string, object>} The starting decisions, by row key.
  */
-export function initialDecisions(entries, mode, {recorded = new Map(), fallbackLoading = 'cached'} = {}) {
+export function initialDecisions(entries, mode, {
+    recorded = new Map(), fallbackLoading = 'remote-cacheable'
+} = {}) {
     return new Map(entries.map(entry => {
         const base = defaultDecision(entry, mode, fallbackLoading);
         const previous = recorded.get(entry.key);
