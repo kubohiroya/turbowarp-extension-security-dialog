@@ -12,6 +12,10 @@ original to this package: a jigsaw piece outline with a serif T, drawn for it an
 other work. `scripts/build.mjs` embeds it into `dist` as a base64 data URI, so it travels in the
 published package.
 
+`assets/trusted.svg` is the mark beside an extension the host trusts: the TurboWarp Plus mark (the
+hat block with a warp swirl and a plus sign, drawn by the same author for the TurboWarp-Plus Editor)
+with a green check over it. It is embedded into `dist` the same way.
+
 ## Build provenance
 
 Published archives include `dist/build-info.json` with this package's name, version and full Git

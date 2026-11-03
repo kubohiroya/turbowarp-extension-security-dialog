@@ -9,10 +9,14 @@
     display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; }
 /* The icon sits in its own column beside everything else the row says. */
 .twextsec-row > * { grid-column: 2; }
-.twextsec-row > .twextsec-preview { grid-column: 1; grid-row: 1 / span 20; }
+.twextsec-row > .twextsec-preview, .twextsec-row > .twextsec-preview-pick { grid-column: 1; grid-row: 1 / span 20; }
+.twextsec-preview-pick { display: block; cursor: pointer; }
 .twextsec-row[data-failed="true"] { border-color: var(--ui-danger, #b91c1c); }
 .twextsec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-.twextsec-pick { display: flex; align-items: baseline; gap: 6px; }
+.twextsec-pick { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+/* A larger box than the browser's default, so it is easy to hit. */
+.twextsec-pick input[type="checkbox"] { width: 20px; height: 20px; margin: 0; flex: none; cursor: pointer; }
+.twextsec-pick input[type="checkbox"]:disabled { cursor: default; }
 .twextsec-id, .twextsec-source, .twextsec-digest { overflow-wrap: anywhere; font-size: .8em; opacity: .7; }
 .twextsec-source { margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .twextsec-digest { margin: 2px 0 0; }
@@ -20,7 +24,8 @@
 .twextsec-claim { font-size: .8em; }
 .twextsec-status { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 0; font-size: .9em; }
 .twextsec-claim, .twextsec-requirement { opacity: .8; }
-.twextsec-trusted { font-weight: 500; }
+.twextsec-trusted { width: 22px; height: 22px; align-self: center; flex: none; }
+.twextsec-status:empty { display: none; }
 .twextsec-failed, .twextsec-contradiction { margin: 6px 0 0; color: var(--ui-danger, #b91c1c); }
 .twextsec-failed p { margin: 0; }
 .twextsec-failed .twextsec-retry-note { margin-top: 4px; font-size: .9em; }

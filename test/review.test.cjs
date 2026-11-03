@@ -89,7 +89,10 @@ test('a trusted row is stated, not asked about, and keeps its loading choice', (
         entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
-    assert.match(row.textContent, /📕 In the catalog/);
+    // Trust is the TurboWarp Plus mark with a check, named in words for anyone who cannot see it.
+    const mark = row.querySelector('.twextsec-head .twextsec-trusted');
+    assert.equal(mark.getAttribute('alt'), 'Trusted by TurboWarp Plus: runs without the sandbox');
+    assert.match(mark.getAttribute('src'), /^data:image\/svg\+xml;base64,/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
     assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
     view.click('twextsec-complete');
@@ -149,7 +152,9 @@ test('a required row in a mixed batch still warns about sandboxed execution with
         mode: 'open',
         entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}}), cacheableRow('ordinary')]
     });
-    assert.match(view.rowFor('a').textContent, /says it needs to run without the sandbox/);
+    assert.equal(view.rowFor('a').querySelector('.twextsec-requirement').textContent, '⚠️ Needs to run without the sandbox');
+    // One that can run inside the sandbox carries no mark at all.
+    assert.equal(view.rowFor('ordinary').querySelector('.twextsec-requirement'), null);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
     view.click('twextsec-complete');
     assert.equal(view.answer.get('a').execution, 'sandboxed');
@@ -463,5 +468,20 @@ test('a row says its ID once: beside its name, or as the heading when it has non
     assert.equal(view.rowFor('a').querySelector('.twextsec-id').textContent, 'a');
     assert.equal(view.rowFor('b').querySelector('strong').textContent, 'b');
     assert.equal(view.rowFor('b').querySelector('.twextsec-id'), null);
+    view.unmount();
+});
+
+test('when adding, the icon chooses its row like the name does', async () => {
+    const view = render({mode: 'add', entries: [catalogRow('a', {metadata: {name: 'A'}})], onComplete: () => {}});
+    await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+    const row = view.rowFor('a');
+    const box = row.querySelector('input[type="checkbox"]');
+    assert.equal(box.checked, false);
+    act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
+    assert.equal(row.querySelector('input[type="checkbox"]').checked, true);
+    // The checkbox says chosen or not; no words repeat it.
+    assert.equal(row.querySelector('.twextsec-state'), null);
+    act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
+    assert.equal(row.querySelector('input[type="checkbox"]').checked, false);
     view.unmount();
 });

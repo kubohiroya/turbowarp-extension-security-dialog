@@ -8,6 +8,7 @@ import {ExtensionPreview} from './preview.jsx';
 /* global __SECURITY_COMMON_BANNER__ */
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
+const trustedBadge = __SECURITY_TRUSTED_BADGE__;
 import {
     allRequireUnsandboxed, contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
     loadingModes
@@ -218,6 +219,15 @@ export class ExtensionReview extends React.PureComponent {
         const required = state === 'dependency';
         const roots = required ? [...(selection.requiredBy.get(entry.key) || [])] : [];
         const failure = entry.state && entry.state.error;
+        const preview = (
+            <ExtensionPreview
+                url={metadata.banner || fallbackBanner}
+                fallback={!metadata.banner}
+                name={metadata.name || entry.key}
+                cache={this.props.previewCache}
+                locale={this.props.locale}
+            />
+        );
         return (
             <li
                 key={entry.key}
@@ -240,6 +250,16 @@ export class ExtensionReview extends React.PureComponent {
                     {mode === 'open' && <strong>{metadata.name || entry.key}</strong>}
                     {/* Without a name the heading is already the ID; saying it again adds nothing. */}
                     {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
+                    {/* Trust is a mark beside the name, the way a verified account is marked, with its
+                        meaning in words for anyone who cannot see it. */}
+                    {isTrusted(entry) && (
+                        <img
+                            className="twextsec-trusted"
+                            src={trustedBadge}
+                            alt={t('trusted')}
+                            title={t('trusted')}
+                        />
+                    )}
                     {metadata.version && <span>{t('version')} {metadata.version}</span>}
                 </div>
                 {/* One line: a long address is cut short here and kept whole in the tooltip. */}
@@ -250,27 +270,28 @@ export class ExtensionReview extends React.PureComponent {
                 {entry.source.sha256 && (
                     <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
                 )}
-                {(
-                    <ExtensionPreview
-                        url={metadata.banner || fallbackBanner}
-                        fallback={!metadata.banner}
-                        name={metadata.name || entry.key}
-                        cache={this.props.previewCache}
-                        locale={this.props.locale}
-                    />
-                )}
+                {/* When adding, the icon is a larger target for the same choice as the checkbox, which
+                    stays the one control a keyboard or screen reader uses. */}
+                {mode === 'add' ? (
+                    <span
+                        className="twextsec-preview-pick"
+                        aria-hidden="true"
+                        onClick={required || state === 'loaded' ? undefined : () => this.toggle(entry.key)}
+                    >{preview}</span>
+                ) : preview}
                 <p className="twextsec-about">{getExtensionDescription(metadata, this.props.locale)}</p>
                 <p className="twextsec-claim">
                     {t('creator')}: {metadata.author || t('creatorUnknown')}
                 </p>
-                {/* Where the row stands and whether the catalog vouches for it share one line. */}
+                {/* The checkbox already says chosen or not, so only the reasons it cannot be changed —
+                    another extension needs it, or it is already running — are put in words. The one
+                    mark beside them is the warning for an extension that says it must leave the
+                    sandbox, trusted or not; one that can run inside it carries none. */}
                 <div className="twextsec-status">
-                    {state && <span className="twextsec-state">{required ?
-                        t('state-dependency', {names: roots.join(', ')}) : t(`state-${state}`)}</span>}
-                    {isTrusted(entry) ? <span className="twextsec-trusted">{t('trusted')}</span> : (
-                        <span className="twextsec-requirement">
-                            {t(`requirement-${unsandboxedRequirement(metadata)}`)}
-                        </span>
+                    {(required || state === 'loaded') && <span className="twextsec-state">{required ?
+                        t('state-dependency', {names: roots.join(', ')}) : t('state-loaded')}</span>}
+                    {unsandboxedRequirement(metadata) === 'required' && (
+                        <span className="twextsec-requirement">{t('requirement-required')}</span>
                     )}
                 </div>
                 {failure && (
