@@ -72,7 +72,7 @@ export class ExtensionPreview extends React.PureComponent {
         if (this.state.src === null) return null;
         return (
             <img
-                className="twextsec-preview"
+                className={this.props.fallback ? 'twextsec-preview twextsec-preview-fallback' : 'twextsec-preview'}
                 src={this.state.src}
                 alt={formatMessage(this.props.locale, 'preview', {name: this.props.name})}
             />

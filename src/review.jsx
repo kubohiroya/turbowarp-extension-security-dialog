@@ -248,6 +248,7 @@ export class ExtensionReview extends React.PureComponent {
                 {(
                     <ExtensionPreview
                         url={metadata.banner || fallbackBanner}
+                        fallback={!metadata.banner}
                         name={metadata.name || entry.key}
                         cache={this.props.previewCache}
                         locale={this.props.locale}

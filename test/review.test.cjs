@@ -343,6 +343,7 @@ test('a preview is shown from the cache when there is one, and fetched once othe
     const first = render({mode: 'open', entries: [entry], previewCache: cache});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
     assert.equal(first.host.querySelector('.twextsec-preview').getAttribute('src'), 'blob:preview');
+    assert.equal(first.host.querySelector('.twextsec-preview').className, 'twextsec-preview');
     assert.deepEqual(fetched, ['https://example.test/a.png']);
     first.unmount();
 
@@ -379,6 +380,8 @@ test('a row with no picture of its own still gets one, without touching the netw
     const image = view.rowFor('a').querySelector('.twextsec-preview');
     // The fallback travels inside the bundle, so there is nothing to fetch or keep.
     assert.match(image.getAttribute('src'), /^data:image\/svg\+xml;base64,/);
+    // It is only an icon, so it is drawn at icon size rather than as a banner.
+    assert.equal(image.className, 'twextsec-preview twextsec-preview-fallback');
     assert.deepEqual(fetched, []);
     view.unmount();
 });

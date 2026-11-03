@@ -25,3 +25,5 @@
 .twextsec-actions button[data-testid="twextsec-complete"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
 .twextsec-actions button:focus-visible { outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
 .twextsec-preview { display: block; width: 100%; max-width: 360px; height: auto; margin: 8px 0 0; border-radius: 6px; background: var(--ui-secondary, #f7f8fb); }
+/* The shared icon stands in for a missing banner; at banner width it would dwarf the row. */
+.twextsec-preview-fallback { width: 48px; }
