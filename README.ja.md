@@ -14,6 +14,19 @@ VM は機能拡張を1つずつ読み込み、そのたびに尋ねます。作�
 
 このパッケージは作品全体をまとめて集め、1つの問いにして、そのあとで読み込みます。
 
+## 公開Editorのスクリーンショット
+
+2026年11月3日の[公開Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja)で、
+配布済みのCamera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。
+3件すべてが「サンドボックスなし」を必須と申告しているため、その選択肢だけを選択済みで表示します。
+「動かさない」「サンドボックスの中で」と実行方法の一括指定は表示せず、OKで実行するかキャンセルで中止します。
+OK前にはどの拡張も実行していません。
+
+![全拡張が必須と申告しているため、サンドボックスなしだけが選択済みの日本語確認画面。他の2実行選択肢と一括指定はなく、OKかキャンセルで続ける](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/all-required-open-ja-20261103.png)
+
+同じダイアログの[英語版](./README.md)も撮影しました。画像はダイアログ部分を無加工で撮影したもので、
+配布物と画像のhash・Editorの固定revision・日英の確認結果を[撮影台帳](./assets/screenshots/all-required-open-20261103.json)に記録しています。
+
 ## 入口
 
 | import | 中身 |
