@@ -65,7 +65,7 @@ export type ReviewSource =
  * only when the screen was also given `onRetry`; missing or `false` states the failure and stops.
  */
 export interface ReviewFailure {
-    code: string;
+    code?: string;
     message: string;
     retryable?: boolean;
 }

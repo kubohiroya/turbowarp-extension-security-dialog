@@ -107,6 +107,14 @@ carry a stale answer into a screen that no longer offers it.
 | `false` or missing | either | The code and message only |
 
 With no `failure` the screen renders exactly as it did before these props existed.
+Only `message` is required: `failure={{message: 'Could not fetch'}}` displays the failure without
+retry controls. `code` is optional display text, and `retryable` defaults to no retry.
+
+Published packages include `dist/build-info.json`, also exported as
+`@kubohiroya/turbowarp-extension-security-dialog/build-info`. It records `name`, `version`, the full
+source `revision` and `sourceState` (`commit` or `working-tree`). Hosts can pin the exact version
+and verify its revision before deployment. To roll back, restore the previous package version and
+lockfile; to hide the new failure UI, stop passing `failure` and `onRetry`.
 
 **The screen keeps no table of error codes.** Whether asking again could change the outcome is the
 host's judgement — the Loader's `isWorthAskingAgain` in the TurboWarp-Plus Editor — passed in as a

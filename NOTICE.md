@@ -12,6 +12,13 @@ original to this package: a jigsaw piece outline with a serif T, drawn for it an
 other work. `scripts/build.mjs` embeds it into `dist` as a base64 data URI, so it travels in the
 published package.
 
+## Build provenance
+
+Published archives include `dist/build-info.json` with this package's name, version and full Git
+revision. `sourceState: "commit"` identifies a build from committed inputs; `"working-tree"` marks
+a local build with changes to those inputs. This file records provenance, without changing the
+licenses described here.
+
 ## Screenshots kept in this repository
 
 `assets/screenshots/` holds captures of the public Editor taken before the rewrite. They are

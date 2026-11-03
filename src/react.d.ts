@@ -1,5 +1,5 @@
 import type {ComponentType} from 'react';
-import type {ExtensionMetadata, ReviewDecision, ReviewEntry, LoadingMode} from './review-types.js';
+import type {ExtensionMetadata, ReviewDecision, ReviewEntry, ReviewFailure, LoadingMode} from './review-types.js';
 import type {PreviewCache, ReviewMode} from './index.js';
 
 export interface DialogFrameProps {
@@ -22,8 +22,9 @@ export interface ExtensionReviewProps {
     /**
      * A failure of the whole load, shown above the rows. Absent or null renders exactly as before.
      * `retryable` is the host's judgement, never derived here from `code`.
+     * Only `message` is required; missing `retryable` offers no retry.
      */
-    failure?: {code: string; message: string; retryable: boolean} | null;
+    failure?: ReviewFailure | null;
     /**
      * Asks the host to try the load again. "Try again" appears only for a failure — `failure`, or a
      * row's `state.error` — whose `retryable` is `true`, and only when this is given.
