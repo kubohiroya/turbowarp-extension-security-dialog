@@ -238,7 +238,8 @@ export class ExtensionReview extends React.PureComponent {
                         </label>
                     )}
                     {mode === 'open' && <strong>{metadata.name || entry.key}</strong>}
-                    <span className="twextsec-id">{entry.ids.join(', ')}</span>
+                    {/* Without a name the heading is already the ID; saying it again adds nothing. */}
+                    {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
                     {metadata.version && <span>{t('version')} {metadata.version}</span>}
                 </div>
                 <p className="twextsec-source">{sourceLabel(entry, t)}</p>

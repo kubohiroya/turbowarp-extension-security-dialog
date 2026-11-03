@@ -113,7 +113,10 @@ export function parseExtensionCatalog(data) {
             ids: [id],
             url,
             dependencies: Object.freeze(dependencies.map(value => string(value, 'dependency', 128))),
-            metadata: Object.freeze(source.metadata === undefined ? {} : metadataOf(source.metadata))
+            // The dashboard catalog states name, description, creator and banner beside the URL.
+            // A nested `metadata` object, the older shape, still wins where it says something.
+            metadata: Object.freeze(metadataOf({...source, ...(source.metadata === undefined ?
+                {} : object(source.metadata, 'metadata'))}))
         };
         if (source.sha256 !== undefined) {
             entry.sha256 = string(source.sha256, 'sha256', 64);

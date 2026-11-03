@@ -89,7 +89,7 @@ test('a trusted row is stated, not asked about, and keeps its loading choice', (
         entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
-    assert.match(row.textContent, /Listed in the catalog/);
+    assert.match(row.textContent, /📕 In the catalog/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
     assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
     view.click('twextsec-complete');
@@ -149,7 +149,7 @@ test('a required row in a mixed batch still warns about sandboxed execution with
         mode: 'open',
         entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}}), cacheableRow('ordinary')]
     });
-    assert.match(view.rowFor('a').textContent, /Says it needs to run without the sandbox/);
+    assert.match(view.rowFor('a').textContent, /says it needs to run without the sandbox/);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
     view.click('twextsec-complete');
     assert.equal(view.answer.get('a').execution, 'sandboxed');
@@ -453,5 +453,15 @@ test('late descriptions preset only once the whole batch is required, without ex
     assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
     assert.equal(view.radio('b', 'execution', 'unsandboxed').checked, true);
     assert.equal(view.answer, undefined);
+    view.unmount();
+});
+
+test('a row says its ID once: beside its name, or as the heading when it has none', async () => {
+    const view = render({mode: 'open', entries: [
+        cacheableRow('a', {metadata: {name: 'A'}}), cacheableRow('b', {metadata: {}})
+    ]});
+    assert.equal(view.rowFor('a').querySelector('.twextsec-id').textContent, 'a');
+    assert.equal(view.rowFor('b').querySelector('strong').textContent, 'b');
+    assert.equal(view.rowFor('b').querySelector('.twextsec-id'), null);
     view.unmount();
 });
