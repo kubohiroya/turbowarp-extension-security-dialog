@@ -152,7 +152,9 @@ test('a required row in a mixed batch still warns about sandboxed execution with
         mode: 'open',
         entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}}), cacheableRow('ordinary')]
     });
-    assert.match(view.rowFor('a').textContent, /says it needs to run without the sandbox/);
+    assert.equal(view.rowFor('a').querySelector('.twextsec-requirement').textContent, '⚠️ Needs to run without the sandbox');
+    // One that can run inside the sandbox carries no mark at all.
+    assert.equal(view.rowFor('ordinary').querySelector('.twextsec-requirement'), null);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
     view.click('twextsec-complete');
     assert.equal(view.answer.get('a').execution, 'sandboxed');

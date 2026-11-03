@@ -22,10 +22,7 @@ const messages = {
             'Fetching each time leaves nothing in this browser.',
         unsandboxedWarning: 'Without the sandbox, an extension can reach the project, the editor ' +
             'and this site’s data. Choose it only for code you trust.',
-        'requirement-required': '❓ Not in the catalog: says it needs to run without the sandbox',
-        'requirement-optional': '❓ Not in the catalog: says running without the sandbox is optional',
-        'requirement-not-needed': '❓ Not in the catalog: says the sandbox is fine',
-        'requirement-unknown': '❓ Not in the catalog: says nothing about the sandbox',
+        'requirement-required': '⚠️ Needs to run without the sandbox',
         trusted: 'Trusted by TurboWarp Plus: runs without the sandbox',
         trustedNote: 'Catalog extensions are treated like TurboWarp’s own gallery and are not asked about.',
         'state-loaded': '▶️ Already running',
@@ -71,10 +68,7 @@ const messages = {
             '毎回取得する場合は、このブラウザーに何も残りません。',
         unsandboxedWarning: 'サンドボックスなしの拡張は、作品・エディター・このサイトのデータに' +
             'アクセスできます。信頼できるコードにだけ選んでください。',
-        'requirement-required': '❓ カタログ記載なし：サンドボックスなしが必要と申告',
-        'requirement-optional': '❓ カタログ記載なし：サンドボックスなし動作は任意と申告',
-        'requirement-not-needed': '❓ カタログ記載なし：サンドボックスで動作可と申告',
-        'requirement-unknown': '❓ カタログ記載なし：サンドボックスについて申告なし',
+        'requirement-required': '⚠️ サンドボックスなしが必要',
         trusted: 'TurboWarp Plus が信頼する拡張：サンドボックスなしで動きます',
         trustedNote: 'カタログの拡張は TurboWarp の標準ギャラリーと同じ扱いで、確認を求めません。',
         'state-loaded': '▶️ 読み込み済み',

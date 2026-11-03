@@ -284,15 +284,14 @@ export class ExtensionReview extends React.PureComponent {
                     {t('creator')}: {metadata.author || t('creatorUnknown')}
                 </p>
                 {/* The checkbox already says chosen or not, so only the reasons it cannot be changed —
-                    another extension needs it, or it is already running — are put in words, beside
-                    what an untrusted extension says about the sandbox. */}
+                    another extension needs it, or it is already running — are put in words. The one
+                    mark beside them is the warning for an extension that says it must leave the
+                    sandbox, trusted or not; one that can run inside it carries none. */}
                 <div className="twextsec-status">
                     {(required || state === 'loaded') && <span className="twextsec-state">{required ?
                         t('state-dependency', {names: roots.join(', ')}) : t('state-loaded')}</span>}
-                    {!isTrusted(entry) && (
-                        <span className="twextsec-requirement">
-                            {t(`requirement-${unsandboxedRequirement(metadata)}`)}
-                        </span>
+                    {unsandboxedRequirement(metadata) === 'required' && (
+                        <span className="twextsec-requirement">{t('requirement-required')}</span>
                     )}
                 </div>
                 {failure && (
