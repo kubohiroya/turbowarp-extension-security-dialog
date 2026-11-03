@@ -5,6 +5,19 @@ const {parseExtensionCatalog, reviewURL} = require('../dist/index.cjs');
 const entry = (id, extra = {}) => ({id, url: `https://example.test/${id}.js`, ...extra});
 const catalog = (extensions, extra = {}) => ({schemaVersion: 1, extensions, ...extra});
 
+test('catalog contacts accept mailto while extension code still requires HTTPS', () => {
+    const [item] = parseExtensionCatalog(catalog([entry('a', {
+        authorURL: 'mailto:creator@example.test', description: 'First line\nSecond line'
+    })]));
+    assert.equal(item.metadata.authorURL, 'mailto:creator@example.test');
+    assert.equal(item.metadata.description, 'First line\nSecond line');
+    for (const authorURL of ['javascript:alert(1)', 'data:text/html,hello', 'mailto:',
+        'mailto:not-an-email', 'https://user:password@example.test/']) {
+        assert.throws(() => parseExtensionCatalog(catalog([entry('a', {authorURL})])));
+    }
+    assert.throws(() => parseExtensionCatalog(catalog([{id: 'a', url: 'mailto:creator@example.test'}])));
+});
+
 test('a catalog resolves categories and keeps its own order', () => {
     const entries = parseExtensionCatalog(catalog(
         [entry('b', {category: 'tools'}), entry('a')],

@@ -34,7 +34,10 @@ export type LoadingMode =
 
 export interface ExtensionMetadata {
     name?: string; id?: string; description?: string; descriptions?: Record<string, string>;
-    author?: string; authorURL?: string; version?: string; license?: string;
+    author?: string;
+    /** Display-only HTTP(S) page or mailto contact; never used to fetch extension code. */
+    authorURL?: string;
+    version?: string; license?: string;
     repository?: string; docsURL?: string; banner?: string; package?: string;
     unsandboxed?: string; updatedAt?: string;
 }

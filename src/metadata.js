@@ -1,4 +1,5 @@
 import {reviewURL} from './catalog.js';
+import {contactURL} from './display-urls.js';
 
 const BLOCK = /\/\*\*([\s\S]*?)\*\//;
 const FIELD = /^[ \t]*\*?[ \t]*@([A-Za-z][A-Za-z0-9]*)[ \t]+(.*)$/;
@@ -49,8 +50,8 @@ export function parseExtensionMetadata(source) {
         }
         if (['repository', 'docsURL', 'authorURL'].includes(name)) {
             try {
-                // A creator's own page is shown, never fetched, so it may be plain HTTP.
-                metadata[name] = reviewURL(value, name, name === 'authorURL');
+                // A creator's contact is shown, never fetched or used to load code.
+                metadata[name] = name === 'authorURL' ? contactURL(value) : reviewURL(value, name);
             } catch (error) {
                 // A malformed address is dropped rather than shown as if it were one.
             }

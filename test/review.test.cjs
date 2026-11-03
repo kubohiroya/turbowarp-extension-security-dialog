@@ -20,6 +20,61 @@ const row = (key, source, extra = {}) => ({key, ids: [key], source, ...extra});
 const catalogRow = (key, extra) => row(key, {kind: 'catalog', url: `https://example.test/${key}.js`}, extra);
 const cacheableRow = (key, extra) => row(key, {kind: 'remote-cacheable', url: `https://example.test/${key}.js`, sha256: 'a'.repeat(64)}, extra);
 
+for (const locale of ['en', 'ja']) for (const contact of [
+    'mailto:creator@example.test', 'http://creator.example.test/', 'https://creator.example.test/'
+]) {
+    test(`${locale}: badge, version and creator contact link to their own destinations (${contact})`, () => {
+        const view = render({mode: 'add', locale, entries: [catalogRow('a', {
+            metadata: {name: 'A', author: 'Creator', authorURL: contact,
+                docsURL: 'https://example.github.io/a/', repository: 'https://github.com/example/a',
+                version: '1.2.3-rc.1'}, state: {trusted: true}
+        })]});
+        const row = view.rowFor('a');
+        const website = row.querySelector('.twextsec-trusted-link');
+        assert.equal(website.href, 'https://example.github.io/a/');
+        assert.notEqual(website.querySelector('.twextsec-trusted'), null);
+        const release = row.querySelector('.twextsec-head a:not(.twextsec-trusted-link)');
+        assert.equal(release.href, 'https://github.com/example/a/releases/tag/v1.2.3-rc.1');
+        const creator = row.querySelector('.twextsec-contact a');
+        assert.equal(creator.getAttribute('href'), contact);
+        assert.match(row.querySelector('.twextsec-claim').textContent, /Creator/);
+        for (const link of [website, release, creator]) {
+            Simulate.click(link);
+            assert.equal(row.querySelector('input[type="checkbox"]').checked, false);
+        }
+        view.unmount();
+    });
+}
+
+test('description text keeps newlines, links URLs and email, and treats HTML as text', () => {
+    const description = 'See https://example.test/a_(b).\nEmail mailto:one@example.test or two@example.test.\n' +
+        '<script>alert(1)</script> https://example.test/help#section。';
+    const view = render({mode: 'open', entries: [cacheableRow('a', {metadata: {description}})]});
+    const about = view.rowFor('a').querySelector('.twextsec-about');
+    assert.equal(about.textContent, description);
+    assert.deepEqual([...about.querySelectorAll('a')].map(a => a.getAttribute('href')), [
+        'https://example.test/a_(b)', 'mailto:one@example.test', 'mailto:two@example.test',
+        'https://example.test/help#section'
+    ]);
+    assert.equal(about.querySelector('script'), null);
+    view.unmount();
+});
+
+test('missing or unusable link metadata leaves the row readable and selectable', () => {
+    const view = render({mode: 'add', entries: [catalogRow('a', {state: {trusted: true}, metadata: {
+        version: '1.2.3', repository: 'https://github.com.evil.test/example/a',
+        docsURL: 'javascript:alert(1)', authorURL: 'javascript:alert(1)',
+        description: 'javascript:alert(1) data:text/html,<b>text</b>'
+    }}), catalogRow('b')]});
+    assert.equal(view.rowFor('a').querySelector('a'), null);
+    assert.equal(view.rowFor('b').querySelector('.twextsec-contact'), null);
+    assert.notEqual(view.rowFor('a').querySelector('.twextsec-trusted'), null);
+    assert.match(view.rowFor('a').textContent, /1\.2\.3/);
+    act(() => Simulate.change(view.rowFor('a').querySelector('input[type="checkbox"]')));
+    assert.equal(view.rowFor('a').querySelector('input[type="checkbox"]').checked, true);
+    view.unmount();
+});
+
 function render(props) {
     const host = document.getElementById('app');
     let answer;

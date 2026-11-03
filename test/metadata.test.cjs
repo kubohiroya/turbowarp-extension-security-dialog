@@ -5,6 +5,14 @@ const {
     decodeExtensionDataURL, loadExtensionInfo
 } = require('../dist/index.cjs');
 
+test('a declared email contact is shown without making it a code source', () => {
+    assert.equal(parseExtensionMetadata('// Author URL: mailto:creator@example.test\nvoid 0;').authorURL,
+        'mailto:creator@example.test');
+    assert.equal(parseExtensionMetadata('/**\n * @authorURL mailto:creator@example.test\n */').authorURL,
+        'mailto:creator@example.test');
+    assert.equal(parseExtensionMetadata('// Author URL: javascript:alert(1)\nvoid 0;').authorURL, undefined);
+});
+
 const source = `/**
  * @name Example
  * @id exampleid

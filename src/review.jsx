@@ -4,6 +4,8 @@ import {getExtensionDescription, unsandboxedRequirement} from './metadata.js';
 import {resolveExtensionSelection} from './selection.js';
 import {createPreviewCache} from './storage.js';
 import {ExtensionPreview} from './preview.jsx';
+import {displayURL, releaseURL} from './display-urls.js';
+import {LinkedText} from './linked-text.jsx';
 
 /* global __SECURITY_COMMON_BANNER__ */
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
@@ -257,12 +259,22 @@ export class ExtensionReview extends React.PureComponent {
         const t = this.t.bind(this);
         const decision = this.state.decisions.get(entry.key);
         const metadata = this.metadataOf(entry);
+        const website = displayURL(metadata.docsURL);
+        const release = releaseURL(metadata);
         const executions = this.executionOptions(entry);
         const loadings = loadingChoices(entry);
         const state = mode === 'add' ? selection.stateOf(entry.key) : null;
         const required = state === 'dependency';
         const roots = required ? [...(selection.requiredBy.get(entry.key) || [])] : [];
         const failure = entry.state && entry.state.error;
+        const badge = (
+            <img
+                className="twextsec-trusted"
+                src={trustedBadge}
+                alt={t('trusted')}
+                title={t('trusted')}
+            />
+        );
         const preview = (
             <ExtensionPreview
                 url={metadata.banner || fallbackBanner}
@@ -297,15 +309,23 @@ export class ExtensionReview extends React.PureComponent {
                     {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
                     {/* Trust is a mark beside the name, the way a verified account is marked, with its
                         meaning in words for anyone who cannot see it. */}
-                    {isTrusted(entry) && (
-                        <img
-                            className="twextsec-trusted"
-                            src={trustedBadge}
-                            alt={t('trusted')}
-                            title={t('trusted')}
-                        />
-                    )}
-                    {metadata.version && <span>{t('version')} {metadata.version}</span>}
+                    {isTrusted(entry) && (website ? (
+                        <a
+                            className="twextsec-trusted-link"
+                            href={website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`${t('extensionPage')}: ${metadata.name || entry.key}`}
+                        >{badge}</a>
+                    ) : badge)}
+                    {metadata.version && (release ? (
+                        <a
+                            href={release}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={t('releaseNotes')}
+                        >{t('version')} {metadata.version}</a>
+                    ) : <span>{t('version')} {metadata.version}</span>)}
                 </div>
                 {/* One line: a long address is cut short here and kept whole in the tooltip. */}
                 <p
@@ -324,9 +344,12 @@ export class ExtensionReview extends React.PureComponent {
                         onClick={required || state === 'loaded' ? undefined : () => this.toggle(entry.key)}
                     >{preview}</span>
                 ) : preview}
-                <p className="twextsec-about">{getExtensionDescription(metadata, this.props.locale)}</p>
+                <p className="twextsec-about"><LinkedText text={getExtensionDescription(metadata, this.props.locale)} /></p>
                 <p className="twextsec-claim">
-                    {t('creator')}: {metadata.author || t('creatorUnknown')}
+                    {t('creator')}: <LinkedText text={metadata.author || t('creatorUnknown')} />
+                    {metadata.authorURL && (
+                        <span className="twextsec-contact"> <LinkedText text={metadata.authorURL} /></span>
+                    )}
                 </p>
                 {/* The checkbox already says chosen or not, so only the reasons it cannot be changed —
                     another extension needs it, or it is already running — are put in words. The one
