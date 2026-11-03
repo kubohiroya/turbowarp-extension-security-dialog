@@ -60,11 +60,11 @@ const messages = {
         'execution-deny': '動かさない',
         'execution-sandboxed': 'サンドボックスの中で',
         'execution-unsandboxed': 'サンドボックスなしで',
-        'loading-remote-cacheable': '控えを残す（既定）',
+        'loading-remote-cacheable': 'キャッシュを残す（既定）',
         'loading-remote-non-cacheable': '毎回取得する',
         'loading-embedded-file': '作品の中から',
         'loading-embedded-data': '作品の中の data: アドレスから',
-        loadingNote: '控えは検証したうえで使い回すので、通信なしでも作品が開きます。' +
+        loadingNote: 'キャッシュは検証したうえで使い回すので、通信なしでも作品が開きます。' +
             '毎回取得する場合は、このブラウザーに何も残りません。',
         unsandboxedWarning: 'サンドボックスなしの拡張は、作品・エディター・このサイトのデータに' +
             'アクセスできます。信頼できるコードにだけ選んでください。',
