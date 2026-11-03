@@ -417,8 +417,8 @@ export class ExtensionReview extends React.PureComponent {
         // reaches no row would read as a choice the person does not actually have.
         const bulkLoadings = loadingModes
             .filter(mode => entries.some(entry => loadingChoices(entry).includes(mode)));
-        const body = (
-            <div className="twextsec-review">
+        const content = (
+            <React.Fragment>
                 <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : allRequired ? 'allRequiredIntro' : 'openIntro')}</p>
                 {failure && (
                     <Failure
@@ -451,10 +451,15 @@ export class ExtensionReview extends React.PureComponent {
                         </React.Fragment>
                     )}
                 </div>}
-                {anyUnsandboxed && <UnsandboxedWarning t={t} />}
                 <ul className="twextsec-rows">
                     {entries.map(entry => this.renderRow(entry, selection))}
                 </ul>
+            </React.Fragment>
+        );
+        const body = (
+            <div className="twextsec-review" data-mode={mode}>
+                {mode === 'add' ? <div className="twextsec-scroll">{content}</div> : content}
+                {anyUnsandboxed && <UnsandboxedWarning t={t} />}
                 <menu className="twextsec-actions">
                     <button
                         type="button"
