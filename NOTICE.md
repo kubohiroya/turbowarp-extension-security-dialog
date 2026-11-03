@@ -16,7 +16,10 @@ published package.
 
 Published archives include `dist/build-info.json` with this package's name, version and full Git
 revision. `sourceState: "commit"` identifies a build from committed inputs; `"working-tree"` marks
-a local build with changes to those inputs. This file records provenance, without changing the
+a local build with changes to those inputs. `"git-archive"` identifies npm preparing a fixed GitHub
+archive without `.git`; the installer supplies its locked full SHA in `TWEXTSEC_SOURCE_REVISION`
+and verifies that pin against the installed build info. A missing or malformed SHA fails the build.
+This file records provenance, without changing the
 licenses described here.
 
 ## Screenshots kept in this repository

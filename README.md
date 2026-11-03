@@ -212,3 +212,5 @@ dependencies.
 [MPL-2.0](LICENSE). See [NOTICE.md](./NOTICE.md) for what is and is not covered.
 
 The design record of the MPL-2.0 rewrite in 0.6.0 is in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
+
+When npm prepares a pinned GitHub archive without `.git`, the installer must pass its locked full SHA as `TWEXTSEC_SOURCE_REVISION`. The build records `sourceState: "git-archive"` and fails without a full SHA; the host verifies it against its manifest and lockfile.
