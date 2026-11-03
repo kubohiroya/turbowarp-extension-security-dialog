@@ -18,7 +18,11 @@ before(async () => {
             const locale = new URLSearchParams(location.search).get('locale');
             const entries = Array.from({length: 24}, (_, i) => ({key: 'extension' + i,
                 ids: ['extension' + i], source: {kind: 'catalog', url: 'https://example.test/' + i},
-                metadata: {name: 'Extension ' + i}, state: {trusted: true}}));
+                metadata: {name: 'Extension ' + i, version: '1.2.3-rc.1',
+                    docsURL: 'https://example.github.io/extension/', repository: 'https://github.com/example/extension',
+                    author: 'Creator', authorURL: 'mailto:creator@example.test',
+                    description: 'First line\\nhttps://example.test/help#details\\ncontact@example.test'},
+                state: {trusted: true}}));
             ReactDOM.render(React.createElement(ExtensionReview, {mode: 'add', entries, locale,
                 previewCache: null, onComplete: answer => {window.answer = [...answer];}}),
                 document.getElementById('app'));
@@ -71,13 +75,32 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                 const context = await browser.newContext(mobile ? devices['Pixel 7'] :
                     {viewport: {width: 1280, height: 900}});
                 const page = await context.newPage();
+                await context.route('https://example.github.io/**', route => route.fulfill({body: 'Extension website'}));
+                await context.route('https://github.com/example/**', route => route.fulfill({body: 'Release notes'}));
                 const errors = [];
                 page.on('pageerror', error => errors.push(error.message));
                 await page.goto(`${base}/?locale=${locale}&theme=${theme}`);
                 const checkbox = page.locator('[data-key="extension3"] input[type="checkbox"]');
+                const row = page.locator('[data-key="extension3"]');
+                for (const [selector, expected] of [
+                    ['.twextsec-trusted-link', 'https://example.github.io/extension/'],
+                    ['.twextsec-head a:not(.twextsec-trusted-link)', 'https://github.com/example/extension/releases/tag/v1.2.3-rc.1']
+                ]) {
+                    const link = row.locator(selector);
+                    await link.focus();
+                    const [popup] = await Promise.all([context.waitForEvent('page'), link.press('Enter')]);
+                    await popup.waitForLoadState();
+                    assert.equal(popup.url(), expected);
+                    await popup.close();
+                    assert.equal(await checkbox.isChecked(), false);
+                }
+                assert.equal(await row.locator('.twextsec-contact a').getAttribute('href'), 'mailto:creator@example.test');
+                const about = row.locator('.twextsec-about');
+                assert.equal(await about.textContent(), 'First line\nhttps://example.test/help#details\ncontact@example.test');
+                assert.equal(await about.evaluate(element => getComputedStyle(element).whiteSpace), 'pre-wrap');
+                assert.equal(await about.locator('a').count(), 2);
                 await checkbox.scrollIntoViewIfNeeded();
                 const before = await checkbox.boundingBox();
-                const row = page.locator('[data-key="extension3"]');
                 const icon = await row.locator('.twextsec-preview').boundingBox();
                 const name = await row.locator('strong').boundingBox();
                 assert.ok(before.x + before.width < icon.x && icon.x + icon.width < name.x);
@@ -98,6 +121,7 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                         fits: element.scrollWidth === element.clientWidth && element.scrollHeight === element.clientHeight};
                 });
                 assert.ok(colors.fits);
+                assert.equal(await page.locator('#app').evaluate(element => element.scrollWidth <= element.clientWidth), true);
                 assert.ok((luminance(colors.text) + .05) / (luminance(colors.background) + .05) >= 7);
                 const close = notice.getByRole('button', {name: locale === 'ja' ? '閉じる' : 'Close', exact: true});
                 await close.focus();

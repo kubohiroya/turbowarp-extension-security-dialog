@@ -1,3 +1,5 @@
+import {contactURL} from './display-urls.js';
+
 const ID = /^[A-Za-z0-9]+$/;
 
 const fail = message => {
@@ -50,8 +52,8 @@ const metadataOf = value => {
     for (const key of ['repository', 'docsURL']) {
         if (source[key] !== undefined) result[key] = reviewURL(source[key], key);
     }
-    // A creator's own page is shown, never fetched, so it may be plain HTTP.
-    if (source.authorURL !== undefined) result.authorURL = reviewURL(source.authorURL, 'authorURL', true);
+    // A contact is shown, never fetched or used to load code.
+    if (source.authorURL !== undefined) result.authorURL = contactURL(source.authorURL);
     if (source.descriptions !== undefined) {
         const descriptions = object(source.descriptions, 'descriptions');
         result.descriptions = {};
