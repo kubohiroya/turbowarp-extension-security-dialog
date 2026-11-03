@@ -14,6 +14,9 @@
 .twextsec-claim, .twextsec-requirement { opacity: .8; }
 .twextsec-trusted { margin: 6px 0 0; font-weight: 500; }
 .twextsec-failed, .twextsec-contradiction { margin: 6px 0 0; color: var(--ui-danger, #b91c1c); }
+.twextsec-failed p { margin: 0; }
+.twextsec-failed .twextsec-retry-note { margin-top: 4px; font-size: .9em; }
+.twextsec-retry { margin-top: 6px; font: inherit; padding: 4px 12px; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .twextsec-choice { margin: 8px 0 0; padding: 6px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; }
 .twextsec-choice legend { padding: 0 4px; font-size: .85em; opacity: .8; }
 .twextsec-choice label { display: inline-flex; align-items: center; gap: 4px; margin-right: 14px; }

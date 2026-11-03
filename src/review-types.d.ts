@@ -56,10 +56,24 @@ export type ReviewSource =
     | {kind: 'embedded-data'; sha256: string}
     | {kind: 'legacy'; url: string};
 
+/**
+ * A load that failed, as the host reports it.
+ *
+ * `retryable` is the host's judgement — in the TurboWarp-Plus Editor, the Loader's
+ * `isWorthAskingAgain` — and not something this package derives from `code`: one code can come
+ * from a dropped connection and from a forged extension alike. Only `true` offers "try again", and
+ * only when the screen was also given `onRetry`; missing or `false` states the failure and stops.
+ */
+export interface ReviewFailure {
+    code: string;
+    message: string;
+    retryable?: boolean;
+}
+
 export interface ReviewEntryState {
     loaded?: boolean;
     trusted?: boolean;
-    error?: {code: string; message: string};
+    error?: ReviewFailure;
 }
 
 export interface ReviewEntry {

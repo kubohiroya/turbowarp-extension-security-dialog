@@ -87,6 +87,33 @@ nothing but trusted rows is not worth stopping, so `requiresReview` says to skip
 moved from `remote-cacheable` to embedded bytes, or a row that has since become trusted, does not
 carry a stale answer into a screen that no longer offers it.
 
+### When loading fails
+
+```jsx
+<ExtensionReview
+    /* ...as above */
+    failure={{code: error.code, message: error.message, retryable: isWorthAskingAgain(error)}}
+    onRetry={() => loadAgain()}
+/>
+```
+
+`failure` is a failure of the whole load, shown above the rows; a row's own failure goes in its
+`state.error`, which takes the same optional `retryable`. Both follow one rule:
+
+| `retryable` | `onRetry` given | What the screen shows |
+| --- | --- | --- |
+| `true` | yes | The code and message, "This may be a network problem" and a **Try again** button that calls `onRetry` |
+| `true` | no | The code and message only |
+| `false` or missing | either | The code and message only |
+
+With no `failure` the screen renders exactly as it did before these props existed.
+
+**The screen keeps no table of error codes.** Whether asking again could change the outcome is the
+host's judgement — the Loader's `isWorthAskingAgain` in the TurboWarp-Plus Editor — passed in as a
+boolean. A code cannot decide it: `LOAD_FAILED` comes both from a dropped connection, where trying
+again may work, and from an extension that registered a different ID, where it never will. Offering
+"try again" for the second would be advice the screen cannot back.
+
 ## While a fetch is waiting
 
 ```js
@@ -163,7 +190,7 @@ what a bundle says about its members is theirs, not its own.
 
 ```sh
 pnpm install
-pnpm run check   # build, 46 tests, and a packing dry run
+pnpm run check   # build, 56 tests, and a packing dry run
 ```
 
 React and React DOM are peer dependencies, so the host supplies them. There are no runtime

@@ -19,6 +19,16 @@ export interface ExtensionReviewProps {
     loadInfo?: (url: string, signal: AbortSignal) => Promise<{source: string; metadata: ExtensionMetadata}>;
     /** Where previews are kept between visits; null keeps nothing. */
     previewCache?: PreviewCache | null;
+    /**
+     * A failure of the whole load, shown above the rows. Absent or null renders exactly as before.
+     * `retryable` is the host's judgement, never derived here from `code`.
+     */
+    failure?: {code: string; message: string; retryable: boolean} | null;
+    /**
+     * Asks the host to try the load again. "Try again" appears only for a failure — `failure`, or a
+     * row's `state.error` — whose `retryable` is `true`, and only when this is given.
+     */
+    onRetry?: () => void;
     onComplete(decisions: Map<string, ReviewDecision> | null): void;
 }
 
