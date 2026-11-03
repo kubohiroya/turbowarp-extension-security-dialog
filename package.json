@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
   "author": {
@@ -38,6 +38,7 @@
       "import": "./dist/turbowarp.mjs",
       "require": "./dist/turbowarp.cjs"
     },
+    "./build-info": "./dist/build-info.json",
     "./styles.css": "./styles.css",
     "./webpack4.css": "./webpack4.css"
   },

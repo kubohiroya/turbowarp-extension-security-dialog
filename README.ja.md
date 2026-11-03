@@ -103,6 +103,14 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 | `false` または無し | どちらでも | コードとメッセージだけ |
 
 `failure` を渡さなければ、これらの props が無かったときとまったく同じに描きます。
+必須なのは `message` だけです。`failure={{message: '取得できませんでした'}}` なら失敗の文だけを
+表示します。`code` は表示用の任意の値で、`retryable` を省略した場合はやり直しを提示しません。
+
+公開パッケージには `dist/build-info.json` を含め、
+`@kubohiroya/turbowarp-extension-security-dialog/build-info` からも参照できます。`name`、`version`、
+ソースの完全な `revision`、`sourceState`（`commit` または `working-tree`）を記録します。ホスト側は
+完全版を固定し、配信前に revision を照合できます。切り戻しはパッケージ版と lockfile を元に戻す
+ことで行えます。新しい失敗表示だけを止める場合は、`failure` と `onRetry` を渡さないでください。
 
 **画面はエラーコードの表を持ちません。** もう一度試して結果が変わりうるかはホストの判断で、
 TurboWarp-Plus Editor ではローダーの `isWorthAskingAgain` が決め、真偽値として渡されます。コード

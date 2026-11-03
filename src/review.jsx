@@ -47,7 +47,7 @@ const Failure = ({failure, onRetry, t}) => {
             className="twextsec-failed"
             role="alert"
         >
-            <p>{t('failed')}: {failure.code} {failure.message}</p>
+            <p>{t('failed')}: {failure.code && `${failure.code} `}{failure.message}</p>
             {retry && <p className="twextsec-retry-note">{t('retryNote')}</p>}
             {retry && (
                 <button

@@ -259,6 +259,50 @@ test('a row error follows the same rule as the whole-load failure', () => {
     view.unmount();
 });
 
+for (const locale of ['en', 'ja']) {
+    for (const mode of ['add', 'open']) {
+        test(`${locale}/${mode}: absent and null failures preserve the original markup`, () => {
+            const props = {mode, locale, entries: [cacheableRow('a')]};
+            const original = render(props);
+            const markup = original.host.innerHTML;
+            original.unmount();
+            for (const failure of [undefined, null]) {
+                const view = render({...props, failure, onRetry: () => assert.fail('Unexpected retry')});
+                assert.equal(view.host.innerHTML, markup);
+                view.unmount();
+            }
+        });
+
+        for (const retryable of [true, false, undefined]) {
+            test(`${locale}/${mode}: message-only failure with retryable=${retryable}`, () => {
+                let retries = 0;
+                const failure = {message: locale === 'ja' ? '取得できませんでした' : 'Could not fetch'};
+                if (retryable !== undefined) failure.retryable = retryable;
+                const view = render({mode, locale, entries: [cacheableRow('a')], failure,
+                    onRetry: () => {retries++;}});
+                const alert = view.host.querySelector('[role="alert"]');
+                assert.ok(alert.textContent.includes(failure.message));
+                assert.equal(view.rowFor('a').querySelector('.twextsec-failed'), null);
+                const button = alert.querySelector('[data-testid="twextsec-retry"]');
+                const note = alert.querySelector('.twextsec-retry-note');
+                if (retryable === true) {
+                    assert.equal(button.textContent, locale === 'ja' ? 'もう一度試す' : 'Try again');
+                    assert.equal(note.textContent, locale === 'ja' ?
+                        '通信の問題の可能性があります。' : 'This may be a network problem.');
+                    view.click('twextsec-retry');
+                    assert.equal(retries, 1);
+                    assert.equal(view.answer, undefined);
+                } else {
+                    assert.equal(button, null);
+                    assert.equal(note, null);
+                    assert.equal(retries, 0);
+                }
+                view.unmount();
+            });
+        }
+    }
+}
+
 test('the creator name is shown as the extension own claim', () => {
     const view = render({
         mode: 'open',
