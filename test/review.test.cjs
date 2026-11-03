@@ -474,6 +474,8 @@ test('when adding, the icon chooses its row like the name does', async () => {
     assert.equal(box.checked, false);
     act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
     assert.equal(row.querySelector('input[type="checkbox"]').checked, true);
+    // The checkbox says chosen or not; no words repeat it.
+    assert.equal(row.querySelector('.twextsec-state'), null);
     act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
     assert.equal(row.querySelector('input[type="checkbox"]').checked, false);
     view.unmount();

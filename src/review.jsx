@@ -272,10 +272,12 @@ export class ExtensionReview extends React.PureComponent {
                 <p className="twextsec-claim">
                     {t('creator')}: {metadata.author || t('creatorUnknown')}
                 </p>
-                {/* Where the row stands and whether the catalog vouches for it share one line. */}
+                {/* Where the row stands and whether the catalog vouches for it share one line. The
+                    checkbox already says chosen or not, so only the reasons it cannot be changed —
+                    another extension needs it, or it is already running — are put in words. */}
                 <div className="twextsec-status">
-                    {state && <span className="twextsec-state">{required ?
-                        t('state-dependency', {names: roots.join(', ')}) : t(`state-${state}`)}</span>}
+                    {(required || state === 'loaded') && <span className="twextsec-state">{required ?
+                        t('state-dependency', {names: roots.join(', ')}) : t('state-loaded')}</span>}
                     {isTrusted(entry) ? <span className="twextsec-trusted">{t('trusted')}</span> : (
                         <span className="twextsec-requirement">
                             {t(`requirement-${unsandboxedRequirement(metadata)}`)}
