@@ -35,8 +35,8 @@ test('what is already running is reported as such, and unknown ids are ignored',
 });
 
 test('wording follows the reader and names the rows that required a dependency', () => {
-    assert.equal(formatMessage('ja-JP', 'state-dependency', {names: 'app'}), 'app が必要としています');
-    assert.equal(formatMessage('en', 'state-dependency', {names: 'app'}), 'Needed by app');
+    assert.equal(formatMessage('ja-JP', 'state-dependency', {names: 'app'}), '🔗 app が必要としています');
+    assert.equal(formatMessage('en', 'state-dependency', {names: 'app'}), '🔗 Needed by app');
     // A gap shows as the key, which a reader can report, rather than as blank space.
     assert.equal(formatMessage('ja', 'nothingHere'), 'nothingHere');
 });

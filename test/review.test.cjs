@@ -89,7 +89,7 @@ test('a trusted row is stated, not asked about, and keeps its loading choice', (
         entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
-    assert.match(row.textContent, /Listed in the catalog/);
+    assert.match(row.textContent, /📕 In the catalog/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
     assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
     view.click('twextsec-complete');
@@ -149,7 +149,7 @@ test('a required row in a mixed batch still warns about sandboxed execution with
         mode: 'open',
         entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}}), cacheableRow('ordinary')]
     });
-    assert.match(view.rowFor('a').textContent, /Says it needs to run without the sandbox/);
+    assert.match(view.rowFor('a').textContent, /says it needs to run without the sandbox/);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
     view.click('twextsec-complete');
     assert.equal(view.answer.get('a').execution, 'sandboxed');
@@ -309,7 +309,7 @@ test('the creator name is shown as the extension own claim', () => {
         entries: [cacheableRow('a', {metadata: {author: 'Someone'}})]
     });
     assert.match(view.rowFor('a').textContent, /Someone/);
-    assert.match(view.rowFor('a').textContent, /not verified/);
+    assert.match(view.rowFor('a').textContent, /unverified claim/);
     view.unmount();
 });
 
@@ -343,6 +343,7 @@ test('a preview is shown from the cache when there is one, and fetched once othe
     const first = render({mode: 'open', entries: [entry], previewCache: cache});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
     assert.equal(first.host.querySelector('.twextsec-preview').getAttribute('src'), 'blob:preview');
+    assert.equal(first.host.querySelector('.twextsec-preview').className, 'twextsec-preview');
     assert.deepEqual(fetched, ['https://example.test/a.png']);
     first.unmount();
 
@@ -379,6 +380,8 @@ test('a row with no picture of its own still gets one, without touching the netw
     const image = view.rowFor('a').querySelector('.twextsec-preview');
     // The fallback travels inside the bundle, so there is nothing to fetch or keep.
     assert.match(image.getAttribute('src'), /^data:image\/svg\+xml;base64,/);
+    // It is only an icon, so it is drawn at icon size rather than as a banner.
+    assert.equal(image.className, 'twextsec-preview twextsec-preview-fallback');
     assert.deepEqual(fetched, []);
     view.unmount();
 });
@@ -450,5 +453,15 @@ test('late descriptions preset only once the whole batch is required, without ex
     assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
     assert.equal(view.radio('b', 'execution', 'unsandboxed').checked, true);
     assert.equal(view.answer, undefined);
+    view.unmount();
+});
+
+test('a row says its ID once: beside its name, or as the heading when it has none', async () => {
+    const view = render({mode: 'open', entries: [
+        cacheableRow('a', {metadata: {name: 'A'}}), cacheableRow('b', {metadata: {}})
+    ]});
+    assert.equal(view.rowFor('a').querySelector('.twextsec-id').textContent, 'a');
+    assert.equal(view.rowFor('b').querySelector('strong').textContent, 'b');
+    assert.equal(view.rowFor('b').querySelector('.twextsec-id'), null);
     view.unmount();
 });

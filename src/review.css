@@ -4,24 +4,40 @@
 .twextsec-bulk { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: flex-start; padding: 12px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px; }
 .twextsec-note { flex: 1 1 100%; margin: 0; font-size: .9em; opacity: .8; }
 .twextsec-warning { margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: var(--ui-warning-background, #fff3cd); }
-.twextsec-rows { margin: 12px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
-.twextsec-row { padding: 12px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px; }
+.twextsec-rows { margin: 10px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.twextsec-row { padding: 8px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px;
+    display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; }
+/* The icon sits in its own column beside everything else the row says. */
+.twextsec-row > * { grid-column: 2; }
+.twextsec-row > .twextsec-preview { grid-column: 1; grid-row: 1 / span 20; }
 .twextsec-row[data-failed="true"] { border-color: var(--ui-danger, #b91c1c); }
 .twextsec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .twextsec-pick { display: flex; align-items: baseline; gap: 6px; }
-.twextsec-id, .twextsec-source, .twextsec-digest { overflow-wrap: anywhere; font-size: .85em; opacity: .75; }
-.twextsec-about, .twextsec-claim, .twextsec-state, .twextsec-requirement { margin: 6px 0 0; font-size: .9em; }
+.twextsec-id, .twextsec-source, .twextsec-digest { overflow-wrap: anywhere; font-size: .8em; opacity: .7; }
+.twextsec-source { margin: 2px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.twextsec-digest { margin: 2px 0 0; }
+.twextsec-about, .twextsec-claim { margin: 2px 0 0; font-size: .9em; }
+.twextsec-claim { font-size: .8em; }
+.twextsec-status { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 0; font-size: .9em; }
 .twextsec-claim, .twextsec-requirement { opacity: .8; }
-.twextsec-trusted { margin: 6px 0 0; font-weight: 500; }
+.twextsec-trusted { font-weight: 500; }
 .twextsec-failed, .twextsec-contradiction { margin: 6px 0 0; color: var(--ui-danger, #b91c1c); }
 .twextsec-failed p { margin: 0; }
 .twextsec-failed .twextsec-retry-note { margin-top: 4px; font-size: .9em; }
 .twextsec-retry { margin-top: 6px; font: inherit; padding: 4px 12px; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
-.twextsec-choice { margin: 8px 0 0; padding: 6px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; }
+/* Inside the bulk box the choices keep their frame; in a row they read as one labelled line each. */
+.twextsec-choice { margin: 0; padding: 6px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; }
 .twextsec-choice legend { padding: 0 4px; font-size: .85em; opacity: .8; }
 .twextsec-choice label { display: inline-flex; align-items: center; gap: 4px; margin-right: 14px; }
+.twextsec-choices { display: flex; flex-wrap: wrap; gap: 2px 18px; margin: 2px 0 0; }
+.twextsec-choices:empty { display: none; }
+.twextsec-choices .twextsec-choice { padding: 0; border: 0; font-size: .9em; }
+.twextsec-choices .twextsec-choice legend { float: left; padding: 0; margin-right: 8px; }
+.twextsec-choices .twextsec-choice label { margin-right: 10px; }
 .twextsec-actions { display: flex; justify-content: flex-end; gap: 12px; margin: 0; padding: 0; }
 .twextsec-actions button { font: inherit; padding: 8px 16px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
 .twextsec-actions button[data-testid="twextsec-complete"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
 .twextsec-actions button:focus-visible { outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
-.twextsec-preview { display: block; width: 100%; max-width: 360px; height: auto; margin: 8px 0 0; border-radius: 6px; background: var(--ui-secondary, #f7f8fb); }
+/* Catalog banners are block icons, so a row shows its picture at icon size, not as a wide banner. */
+.twextsec-preview { display: block; width: 40px; height: 40px; object-fit: contain; margin: 2px 0 0; border-radius: 6px; }
+.twextsec-preview-fallback { opacity: .5; }

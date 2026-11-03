@@ -33,6 +33,19 @@ test('a catalog that would mislead the screen is refused, not repaired', () => {
     for (const [data, message] of cases) assert.throws(() => parseExtensionCatalog(data), message);
 });
 
+test('the dashboard catalog states its metadata beside the URL', () => {
+    const [item] = parseExtensionCatalog(catalog([entry('a', {
+        name: 'A', description: 'About A', descriptions: {ja: 'Aの説明'}, author: 'Creator',
+        banner: 'https://example.test/a.svg', package: '@owner/a', version: '1.0.0'
+    })]));
+    assert.equal(item.metadata.name, 'A');
+    assert.equal(item.metadata.descriptions.ja, 'Aの説明');
+    assert.equal(item.metadata.author, 'Creator');
+    assert.equal(item.metadata.banner, 'https://example.test/a.svg');
+    // The row's own address and digest are not metadata.
+    assert.equal(item.metadata.url, undefined);
+});
+
 test('declared metadata is carried through, and only a creator page may be plain HTTP', () => {
     const [item] = parseExtensionCatalog(catalog([entry('a', {metadata: {
         name: 'A', authorURL: 'http://creator.test/', repository: 'https://example.test/a',
