@@ -15,6 +15,20 @@ an extension asks twice: once to pick it, once to allow it.
 
 This package collects the whole project, puts one question, and only then loads anything.
 
+## Public Editor screenshots
+
+This is the [public Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en) on
+3 November 2026, opening the published Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5 bundles.
+All three declare unsandboxed execution required, so that is the only execution choice shown and is already selected.
+The other two execution choices and execution bulk control are absent. OK runs the extensions; Cancel stops loading.
+No extension has run before OK.
+
+![English review with only Without the sandbox selected for all three required extensions. The other two execution choices and execution bulk control are absent; choose OK or Cancel.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/all-required-open-en-20261103.png)
+
+The same dialog was captured in [Japanese](./README.ja.md). These are unmodified dialog-only browser captures.
+Distribution and image hashes, pinned Editor revisions and the checks for both languages are recorded in
+[the capture manifest](./assets/screenshots/all-required-open-20261103.json).
+
 ## Entry points
 
 | Import | What it is |
