@@ -169,6 +169,96 @@ test('a row that failed to load says so, and the rest stay answerable', () => {
     view.unmount();
 });
 
+test('without a failure the screen offers no retry and says nothing about the network', () => {
+    const view = render({mode: 'open', entries: [cacheableRow('a')], onRetry: () => {}});
+    assert.equal(view.host.querySelector('.twextsec-failed'), null);
+    assert.equal(view.host.querySelector('[data-testid="twextsec-retry"]'), null);
+    assert.doesNotMatch(view.host.textContent, /network problem/);
+    view.unmount();
+});
+
+test('a failure worth retrying offers to try again, and the button asks the host', () => {
+    let retried = 0;
+    const view = render({
+        mode: 'open',
+        entries: [cacheableRow('a')],
+        failure: {code: 'LOAD_FAILED', message: 'offline', retryable: true},
+        onRetry: () => {retried++;}
+    });
+    const shown = view.host.querySelector('.twextsec-failed');
+    assert.match(shown.textContent, /LOAD_FAILED offline/);
+    assert.match(shown.textContent, /may be a network problem/);
+    const button = view.host.querySelector('[data-testid="twextsec-retry"]');
+    assert.equal(button.textContent, 'Try again');
+    view.click('twextsec-retry');
+    assert.equal(retried, 1);
+    // Retrying is not an answer: the screen stays open and has completed nothing.
+    assert.equal(view.answer, undefined);
+    view.unmount();
+});
+
+test('the retry wording follows the locale', () => {
+    const view = render({
+        mode: 'open',
+        locale: 'ja',
+        entries: [cacheableRow('a')],
+        failure: {code: 'TIMEOUT', message: 'slow', retryable: true},
+        onRetry: () => {}
+    });
+    assert.match(view.host.textContent, /通信の問題の可能性があります/);
+    assert.equal(view.host.querySelector('[data-testid="twextsec-retry"]').textContent, 'もう一度試す');
+    view.unmount();
+});
+
+test('a retryable failure with nowhere to send the retry offers none', () => {
+    const view = render({
+        mode: 'open',
+        entries: [cacheableRow('a')],
+        failure: {code: 'TIMEOUT', message: 'slow', retryable: true}
+    });
+    assert.match(view.host.querySelector('.twextsec-failed').textContent, /TIMEOUT slow/);
+    assert.equal(view.host.querySelector('[data-testid="twextsec-retry"]'), null);
+    assert.doesNotMatch(view.host.textContent, /network problem/);
+    view.unmount();
+});
+
+test('a failure not worth retrying is stated without any retry wording', () => {
+    // The same code a dropped connection gives: the host's boolean decides, not the code.
+    const view = render({
+        mode: 'open',
+        entries: [cacheableRow('a')],
+        failure: {code: 'LOAD_FAILED', message: 'registered a different ID', retryable: false},
+        onRetry: () => {}
+    });
+    assert.match(view.host.querySelector('.twextsec-failed').textContent,
+        /LOAD_FAILED registered a different ID/);
+    assert.equal(view.host.querySelector('[data-testid="twextsec-retry"]'), null);
+    assert.doesNotMatch(view.host.textContent, /network problem|Try again/);
+    view.unmount();
+});
+
+test('a row error follows the same rule as the whole-load failure', () => {
+    let retried = 0;
+    const view = render({
+        mode: 'open',
+        entries: [
+            cacheableRow('a', {state: {error: {code: 'FETCH_FAILED', message: '503', retryable: true}}}),
+            cacheableRow('b', {state: {error: {code: 'FETCH_FAILED', message: '404', retryable: false}}}),
+            cacheableRow('c', {state: {error: {code: 'TRUST_DENIED', message: 'no'}}})
+        ],
+        onRetry: () => {retried++;}
+    });
+    const retryIn = key => view.rowFor(key).querySelector('[data-testid="twextsec-retry"]');
+    assert.notEqual(retryIn('a'), null);
+    assert.match(view.rowFor('a').textContent, /may be a network problem/);
+    assert.equal(retryIn('b'), null);
+    assert.equal(retryIn('c'), null);
+    assert.doesNotMatch(view.rowFor('b').textContent + view.rowFor('c').textContent, /network problem/);
+    act(() => {Simulate.click(retryIn('a'));});
+    assert.equal(retried, 1);
+    view.unmount();
+});
+
 test('the creator name is shown as the extension own claim', () => {
     const view = render({
         mode: 'open',

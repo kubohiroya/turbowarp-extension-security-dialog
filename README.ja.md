@@ -83,6 +83,33 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 **記録された答えは、いまも選択肢である場合だけ尊重します。** 作品が `remote-cacheable` から
 埋め込みに変わった、行が信頼済みになった、といった場合に、もう提示しない答えを持ち込みません。
 
+### 読み込みに失敗したとき
+
+```jsx
+<ExtensionReview
+    /* ...上と同じ */
+    failure={{code: error.code, message: error.message, retryable: isWorthAskingAgain(error)}}
+    onRetry={() => loadAgain()}
+/>
+```
+
+`failure` は読み込み全体の失敗で、行の一覧の上に出ます。行ごとの失敗は行の `state.error` に入れ、
+こちらも同じ `retryable` を任意で持てます。どちらも同じ規則に従います。
+
+| `retryable` | `onRetry` | 画面に出るもの |
+| --- | --- | --- |
+| `true` | 渡されている | コードとメッセージ、「通信の問題の可能性があります」、`onRetry` を呼ぶ **もう一度試す** ボタン |
+| `true` | 渡されていない | コードとメッセージだけ |
+| `false` または無し | どちらでも | コードとメッセージだけ |
+
+`failure` を渡さなければ、これらの props が無かったときとまったく同じに描きます。
+
+**画面はエラーコードの表を持ちません。** もう一度試して結果が変わりうるかはホストの判断で、
+TurboWarp-Plus Editor ではローダーの `isWorthAskingAgain` が決め、真偽値として渡されます。コード
+では決まりません。`LOAD_FAILED` は、もう一度試せば通るかもしれない通信の切断からも、何度試しても
+通らない「登録した ID が違う」拡張からも出ます。後者に「もう一度試す」を出すのは、画面が裏付け
+られない助言です。
+
 ## 取得を待つあいだ
 
 ```js
@@ -153,7 +180,7 @@ const uninstall = installBatchExtensionLoader(vm, review, defaultURLs, createDec
 
 ```sh
 pnpm install
-pnpm run check   # ビルド、テスト46件、pack の dry run
+pnpm run check   # ビルド、テスト56件、pack の dry run
 ```
 
 React と React DOM は peerDependencies なので、ホストが用意します。実行時の依存はありません。

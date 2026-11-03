@@ -31,6 +31,36 @@ const sourceLabel = (entry, t) => {
     return entry.source.url;
 };
 
+/**
+ * What went wrong, and — only when asking again could change the outcome — a way to ask again.
+ *
+ * Whether a failure is worth retrying is the host's call, made with the Loader's own judgement and
+ * passed in as a boolean. This screen keeps no table of error codes: the same code can come from a
+ * dropped connection and from a forged extension, and only the cause behind it tells them apart.
+ * Offering "try again" for a failure that will fail the same way every time would be advice the
+ * screen cannot back, so without `retryable` the failure is stated and nothing more.
+ */
+const Failure = ({failure, onRetry, t}) => {
+    const retry = failure.retryable === true && typeof onRetry === 'function';
+    return (
+        <div
+            className="twextsec-failed"
+            role="alert"
+        >
+            <p>{t('failed')}: {failure.code} {failure.message}</p>
+            {retry && <p className="twextsec-retry-note">{t('retryNote')}</p>}
+            {retry && (
+                <button
+                    type="button"
+                    className="twextsec-retry"
+                    data-testid="twextsec-retry"
+                    onClick={() => onRetry()}
+                >{t('retry')}</button>
+            )}
+        </div>
+    );
+};
+
 /** One choice among a few, as radios: every option stays readable without opening anything. */
 const Choices = ({name, value, options, disabled, label, onChange, t}) => (
     <fieldset className="twextsec-choice">
@@ -213,10 +243,11 @@ export class ExtensionReview extends React.PureComponent {
                 {state && <p className="twextsec-state">{required ?
                     t('state-dependency', {names: roots.join(', ')}) : t(`state-${state}`)}</p>}
                 {failure && (
-                    <p
-                        className="twextsec-failed"
-                        role="alert"
-                    >{t('failed')}: {failure.code} {failure.message}</p>
+                    <Failure
+                        failure={failure}
+                        onRetry={this.props.onRetry}
+                        t={t}
+                    />
                 )}
                 {isTrusted(entry) ? <p className="twextsec-trusted">{t('trusted')}</p> : (
                     <Choices
@@ -258,7 +289,7 @@ export class ExtensionReview extends React.PureComponent {
         );
     }
     render () {
-        const {mode, entries, DialogFrame} = this.props;
+        const {mode, entries, DialogFrame, failure, onRetry} = this.props;
         const t = this.t.bind(this);
         const selection = this.selection();
         const anyUnsandboxed = [...this.included()]
@@ -271,6 +302,13 @@ export class ExtensionReview extends React.PureComponent {
         const body = (
             <div className="twextsec-review">
                 <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : 'openIntro')}</p>
+                {failure && (
+                    <Failure
+                        failure={failure}
+                        onRetry={onRetry}
+                        t={t}
+                    />
+                )}
                 <div className="twextsec-bulk">
                     <Choices
                         name="execution-all"
