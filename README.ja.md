@@ -201,3 +201,5 @@ React と React DOM は peerDependencies なので、ホストが用意します
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
 
 0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。
+
+npmが固定したGitHubアーカイブを`.git`なしでビルドする場合、インストーラーはlockfileと同じ完全SHAを`TWEXTSEC_SOURCE_REVISION`で渡します。`sourceState: "git-archive"`として記録し、完全SHAがなければビルドを拒否します。ホストはインストール後の記録をmanifest・lockfileと照合します。

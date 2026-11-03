@@ -2,17 +2,12 @@ import {build} from 'esbuild';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {execFileSync} from 'node:child_process';
+import {readBuildSource} from './build-source.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 await fs.mkdir(path.join(root, 'dist'), {recursive: true});
 const {name, version} = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
-const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
-if (!/^[a-f0-9]{40}$/.test(revision)) throw new Error('A full source revision is required.');
-const sourceState = execFileSync('git', ['status', '--porcelain', '--untracked-files=all', '--',
-    'src', 'assets/common.svg', 'scripts', 'package.json', 'pnpm-lock.yaml', 'README.md', 'README.ja.md',
-    'NOTICE.md', 'LICENSE'],
-{cwd: root, encoding: 'utf8'}).trim() ? 'working-tree' : 'commit';
+const {revision, sourceState} = readBuildSource(root);
 await fs.writeFile(path.join(root, 'dist/build-info.json'),
     JSON.stringify({name, version, revision, sourceState}, null, 2) + '\n');
 const banner = `data:image/svg+xml;base64,${(await fs.readFile(path.join(root, 'assets/common.svg'))).toString('base64')}`;

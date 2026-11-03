@@ -12,5 +12,5 @@ test('the public build info identifies the package and source revision', () => {
     assert.match(info.revision, /^[a-f0-9]{40}$/);
     assert.equal(info.revision, execFileSync('git', ['rev-parse', 'HEAD'],
         {cwd: root, encoding: 'utf8'}).trim());
-    assert.ok(['commit', 'working-tree'].includes(info.sourceState));
+    assert.ok(['commit', 'working-tree', 'git-archive'].includes(info.sourceState));
 });
