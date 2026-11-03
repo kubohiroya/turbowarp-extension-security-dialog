@@ -22,6 +22,7 @@ const messages = {
             'Fetching each time leaves nothing in this browser.',
         unsandboxedWarning: 'Without the sandbox, an extension can reach the project, the editor ' +
             'and this site’s data. Choose it only for code you trust.',
+        closeWarning: 'Close',
         'requirement-required': '⚠️ Needs to run without the sandbox',
         trusted: 'Trusted by TurboWarp Plus: runs without the sandbox',
         trustedNote: 'Catalog extensions are treated like TurboWarp’s own gallery and are not asked about.',
@@ -68,6 +69,7 @@ const messages = {
             '毎回取得する場合は、このブラウザーに何も残りません。',
         unsandboxedWarning: 'サンドボックスなしの拡張は、作品・エディター・このサイトのデータに' +
             'アクセスできます。信頼できるコードにだけ選んでください。',
+        closeWarning: '閉じる',
         'requirement-required': '⚠️ サンドボックスなしが必要',
         trusted: 'TurboWarp Plus が信頼する拡張：サンドボックスなしで動きます',
         trustedNote: 'カタログの拡張は TurboWarp の標準ギャラリーと同じ扱いで、確認を求めません。',
