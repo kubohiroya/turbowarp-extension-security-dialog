@@ -74,10 +74,13 @@ screen states it instead of asking.
 
 ### What it will not do
 
-**Nothing starts outside the sandbox unless the catalog vouches for it.** An extension that says
-it needs to be outside does not thereby place itself outside: the claim is the extension's own,
-shown as a claim, and the screen still starts it in the sandbox. Choosing the sandbox anyway is
-allowed and warned about, never blocked.
+**When opening a project whose extensions all declare unsandboxed execution required, that mode is preselected.**
+This applies only to a non-empty list with every declaration available and no failed row. The other two
+execution choices and the execution bulk control are hidden. OK approves execution; Cancel stops it.
+Nothing runs before OK. Loading-source and cache-decline choices remain independent.
+
+Adding from the catalog, or opening a mixed, optional, undeclared or failed batch, keeps the sandbox
+as the default and leaves the execution choices available. A choice contradicting a declaration is warned about.
 
 **A trusted row is stated, not asked about.** An extension the catalog lists is treated like the
 host's own gallery: it runs without the sandbox and offers no execution choice. A project with

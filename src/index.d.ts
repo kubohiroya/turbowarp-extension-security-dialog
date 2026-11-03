@@ -46,6 +46,7 @@ export function createPreviewCache(): PreviewCache;
 
 export type ReviewMode = 'add' | 'open';
 export function isTrusted(entry: ReviewEntry): boolean;
+export function allRequireUnsandboxed(entries: ReviewEntry[]): boolean;
 export const loadingModes: readonly LoadingMode[];
 export function loadingChoices(entry: ReviewEntry): LoadingMode[];
 export function executionChoices(entry: ReviewEntry, mode: ReviewMode): ExecutionDecision[];

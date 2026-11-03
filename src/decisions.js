@@ -3,6 +3,12 @@ import {unsandboxedRequirement} from './metadata.js';
 /** A row listed in the catalog is trusted like the host's own gallery and is never asked about. */
 export const isTrusted = entry => Boolean(entry && entry.state && entry.state.trusted);
 
+/** A complete, non-empty opening batch may preset the only required execution mode. */
+export const allRequireUnsandboxed = entries => entries.length > 0 && entries.every(entry =>
+    !(entry.state && entry.state.error) &&
+    unsandboxedRequirement(entry.metadata || {}) === 'required'
+);
+
 /** The four forms, in the order someone adding an extension is offered them. */
 export const loadingModes = Object.freeze([
     'remote-cacheable', 'remote-non-cacheable', 'embedded-file', 'embedded-data'
@@ -70,7 +76,9 @@ export function defaultDecision(entry, mode, fallbackLoading = 'remote-cacheable
  *
  * A recorded choice is only honoured where it is still one of the choices. A project that moved
  * from a reference to embedded bytes, or a row that has since become trusted, must not carry a
- * stale answer into a screen that no longer offers it.
+ * stale answer into a screen that no longer offers it. A complete opening batch that requires
+ * unsandboxed execution presets that mode even over an incompatible recorded execution choice;
+ * running the batch still requires the screen's OK.
  * @param {Array<object>} entries The rows.
  * @param {string} mode Either add or open.
  * @param {object} options Previously recorded decisions and the fallback loading mode.
@@ -79,11 +87,13 @@ export function defaultDecision(entry, mode, fallbackLoading = 'remote-cacheable
 export function initialDecisions(entries, mode, {
     recorded = new Map(), fallbackLoading = 'remote-cacheable'
 } = {}) {
+    const allRequired = mode === 'open' && allRequireUnsandboxed(entries);
     return new Map(entries.map(entry => {
         const base = defaultDecision(entry, mode, fallbackLoading);
+        if (allRequired) base.execution = 'unsandboxed';
         const previous = recorded.get(entry.key);
         if (!previous) return [entry.key, base];
-        const execution = executionChoices(entry, mode).includes(previous.execution) ?
+        const execution = !allRequired && executionChoices(entry, mode).includes(previous.execution) ?
             previous.execution : base.execution;
         const loading = loadingChoices(entry).includes(previous.loading) ? previous.loading : base.loading;
         return [entry.key, loading === undefined ? {execution} : {execution, loading}];

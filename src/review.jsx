@@ -9,7 +9,7 @@ import {ExtensionPreview} from './preview.jsx';
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
 import {
-    contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
+    allRequireUnsandboxed, contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
     loadingModes
 } from './decisions.js';
 
@@ -106,6 +106,14 @@ export class ExtensionReview extends React.PureComponent {
     componentDidMount () {
         this.describe();
     }
+    componentDidUpdate () {
+        if (this.allRequired() && this.props.entries.some(entry =>
+            this.state.decisions.get(entry.key).execution !== 'unsandboxed')) {
+            // Late metadata can complete the batch, but never starts it without OK.
+            this.setState(state => ({decisions: new Map([...state.decisions]
+                .map(([key, decision]) => [key, {...decision, execution: 'unsandboxed'}]))}));
+        }
+    }
     componentWillUnmount () {
         this.controller.abort();
     }
@@ -132,7 +140,16 @@ export class ExtensionReview extends React.PureComponent {
     metadataOf (entry) {
         return entry.metadata || this.state.described.get(entry.key) || {};
     }
+    allRequired () {
+        return this.props.mode === 'open' && allRequireUnsandboxed(this.props.entries.map(entry =>
+            ({...entry, metadata: this.metadataOf(entry)})));
+    }
+    executionOptions (entry) {
+        return this.allRequired() && !isTrusted(entry) ? ['unsandboxed'] : executionChoices(entry, this.props.mode);
+    }
     decide (key, change) {
+        const entry = this.props.entries.find(entry => entry.key === key);
+        if (change.execution !== undefined && !this.executionOptions(entry).includes(change.execution)) return;
         this.setState(state => ({
             decisions: new Map(state.decisions).set(key, {...state.decisions.get(key), ...change})
         }));
@@ -142,7 +159,7 @@ export class ExtensionReview extends React.PureComponent {
         this.setState(state => {
             const decisions = new Map(state.decisions);
             for (const entry of this.props.entries) {
-                if (executionChoices(entry, this.props.mode).includes(execution)) {
+                if (this.executionOptions(entry).includes(execution)) {
                     decisions.set(entry.key, {...decisions.get(entry.key), execution});
                 }
             }
@@ -195,7 +212,7 @@ export class ExtensionReview extends React.PureComponent {
         const t = this.t.bind(this);
         const decision = this.state.decisions.get(entry.key);
         const metadata = this.metadataOf(entry);
-        const executions = executionChoices(entry, mode);
+        const executions = this.executionOptions(entry);
         const loadings = loadingChoices(entry);
         const state = mode === 'add' ? selection.stateOf(entry.key) : null;
         const required = state === 'dependency';
@@ -292,6 +309,7 @@ export class ExtensionReview extends React.PureComponent {
         const {mode, entries, DialogFrame, failure, onRetry} = this.props;
         const t = this.t.bind(this);
         const selection = this.selection();
+        const allRequired = this.allRequired();
         const anyUnsandboxed = [...this.included()]
             .some(key => this.state.decisions.get(key).execution === 'unsandboxed');
         // The bulk control offers whatever at least one row could be set to. Opening a project of
@@ -301,7 +319,7 @@ export class ExtensionReview extends React.PureComponent {
             .filter(mode => entries.some(entry => loadingChoices(entry).includes(mode)));
         const body = (
             <div className="twextsec-review">
-                <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : 'openIntro')}</p>
+                <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : allRequired ? 'allRequiredIntro' : 'openIntro')}</p>
                 {failure && (
                     <Failure
                         failure={failure}
@@ -309,8 +327,8 @@ export class ExtensionReview extends React.PureComponent {
                         t={t}
                     />
                 )}
-                <div className="twextsec-bulk">
-                    <Choices
+                {(!allRequired || bulkLoadings.length > 0) && <div className="twextsec-bulk">
+                    {!allRequired && <Choices
                         name="execution-all"
                         label={t('executionBulk')}
                         value={null}
@@ -318,7 +336,7 @@ export class ExtensionReview extends React.PureComponent {
                             ['deny', 'sandboxed', 'unsandboxed']}
                         onChange={this.handleBulkExecution}
                         t={t}
-                    />
+                    />}
                     {bulkLoadings.length > 0 && (
                         <React.Fragment>
                             <Choices
@@ -332,7 +350,7 @@ export class ExtensionReview extends React.PureComponent {
                             <p className="twextsec-note">{t('loadingNote')}</p>
                         </React.Fragment>
                     )}
-                </div>
+                </div>}
                 {anyUnsandboxed && (
                     <p
                         className="twextsec-warning"
