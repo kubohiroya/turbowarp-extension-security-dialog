@@ -309,7 +309,7 @@ test('the creator name is shown as the extension own claim', () => {
         entries: [cacheableRow('a', {metadata: {author: 'Someone'}})]
     });
     assert.match(view.rowFor('a').textContent, /Someone/);
-    assert.match(view.rowFor('a').textContent, /not verified/);
+    assert.match(view.rowFor('a').textContent, /unverified claim/);
     view.unmount();
 });
 

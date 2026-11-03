@@ -242,7 +242,11 @@ export class ExtensionReview extends React.PureComponent {
                     {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
                     {metadata.version && <span>{t('version')} {metadata.version}</span>}
                 </div>
-                <p className="twextsec-source">{sourceLabel(entry, t)}</p>
+                {/* One line: a long address is cut short here and kept whole in the tooltip. */}
+                <p
+                    className="twextsec-source"
+                    title={sourceLabel(entry, t)}
+                >{sourceLabel(entry, t)}</p>
                 {entry.source.sha256 && (
                     <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
                 )}
@@ -257,10 +261,18 @@ export class ExtensionReview extends React.PureComponent {
                 )}
                 <p className="twextsec-about">{getExtensionDescription(metadata, this.props.locale)}</p>
                 <p className="twextsec-claim">
-                    {t('creator')}: {metadata.author || t('creatorUnknown')} — {t('unverified')}
+                    {t('creator')}: {metadata.author || t('creatorUnknown')}
                 </p>
-                {state && <p className="twextsec-state">{required ?
-                    t('state-dependency', {names: roots.join(', ')}) : t(`state-${state}`)}</p>}
+                {/* Where the row stands and whether the catalog vouches for it share one line. */}
+                <div className="twextsec-status">
+                    {state && <span className="twextsec-state">{required ?
+                        t('state-dependency', {names: roots.join(', ')}) : t(`state-${state}`)}</span>}
+                    {isTrusted(entry) ? <span className="twextsec-trusted">{t('trusted')}</span> : (
+                        <span className="twextsec-requirement">
+                            {t(`requirement-${unsandboxedRequirement(metadata)}`)}
+                        </span>
+                    )}
+                </div>
                 {failure && (
                     <Failure
                         failure={failure}
@@ -268,31 +280,28 @@ export class ExtensionReview extends React.PureComponent {
                         t={t}
                     />
                 )}
-                {isTrusted(entry) ? <p className="twextsec-trusted">{t('trusted')}</p> : (
-                    <Choices
-                        name={`execution-${entry.key}`}
-                        label={t('execution')}
-                        value={decision.execution}
-                        options={executions}
-                        onChange={event => this.decide(entry.key, {execution: event.target.value})}
-                        t={t}
-                    />
-                )}
-                {!isTrusted(entry) && (
-                    <p className="twextsec-requirement">
-                        {t(`requirement-${unsandboxedRequirement(metadata)}`)}
-                    </p>
-                )}
-                {loadings.length > 0 && (
-                    <Choices
-                        name={`loading-${entry.key}`}
-                        label={t('loading')}
-                        value={decision.loading}
-                        options={loadings}
-                        onChange={event => this.decide(entry.key, {loading: event.target.value})}
-                        t={t}
-                    />
-                )}
+                <div className="twextsec-choices">
+                    {!isTrusted(entry) && (
+                        <Choices
+                            name={`execution-${entry.key}`}
+                            label={t('execution')}
+                            value={decision.execution}
+                            options={executions}
+                            onChange={event => this.decide(entry.key, {execution: event.target.value})}
+                            t={t}
+                        />
+                    )}
+                    {loadings.length > 0 && (
+                        <Choices
+                            name={`loading-${entry.key}`}
+                            label={t('loading')}
+                            value={decision.loading}
+                            options={loadings}
+                            onChange={event => this.decide(entry.key, {loading: event.target.value})}
+                            t={t}
+                        />
+                    )}
+                </div>
                 {/* With nothing to choose the row still says how it loads, because that is part
                     of what the person is agreeing to run, not an omission. */}
                 {loadings.length === 0 && decision.loading !== undefined && (
