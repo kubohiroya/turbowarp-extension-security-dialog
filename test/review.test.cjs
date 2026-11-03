@@ -465,3 +465,16 @@ test('a row says its ID once: beside its name, or as the heading when it has non
     assert.equal(view.rowFor('b').querySelector('.twextsec-id'), null);
     view.unmount();
 });
+
+test('when adding, the icon chooses its row like the name does', async () => {
+    const view = render({mode: 'add', entries: [catalogRow('a', {metadata: {name: 'A'}})], onComplete: () => {}});
+    await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+    const row = view.rowFor('a');
+    const box = row.querySelector('input[type="checkbox"]');
+    assert.equal(box.checked, false);
+    act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
+    assert.equal(row.querySelector('input[type="checkbox"]').checked, true);
+    act(() => { Simulate.click(row.querySelector('.twextsec-preview-pick')); });
+    assert.equal(row.querySelector('input[type="checkbox"]').checked, false);
+    view.unmount();
+});

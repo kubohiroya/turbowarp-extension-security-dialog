@@ -218,6 +218,15 @@ export class ExtensionReview extends React.PureComponent {
         const required = state === 'dependency';
         const roots = required ? [...(selection.requiredBy.get(entry.key) || [])] : [];
         const failure = entry.state && entry.state.error;
+        const preview = (
+            <ExtensionPreview
+                url={metadata.banner || fallbackBanner}
+                fallback={!metadata.banner}
+                name={metadata.name || entry.key}
+                cache={this.props.previewCache}
+                locale={this.props.locale}
+            />
+        );
         return (
             <li
                 key={entry.key}
@@ -250,15 +259,15 @@ export class ExtensionReview extends React.PureComponent {
                 {entry.source.sha256 && (
                     <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
                 )}
-                {(
-                    <ExtensionPreview
-                        url={metadata.banner || fallbackBanner}
-                        fallback={!metadata.banner}
-                        name={metadata.name || entry.key}
-                        cache={this.props.previewCache}
-                        locale={this.props.locale}
-                    />
-                )}
+                {/* When adding, the icon is a larger target for the same choice as the checkbox, which
+                    stays the one control a keyboard or screen reader uses. */}
+                {mode === 'add' ? (
+                    <span
+                        className="twextsec-preview-pick"
+                        aria-hidden="true"
+                        onClick={required || state === 'loaded' ? undefined : () => this.toggle(entry.key)}
+                    >{preview}</span>
+                ) : preview}
                 <p className="twextsec-about">{getExtensionDescription(metadata, this.props.locale)}</p>
                 <p className="twextsec-claim">
                     {t('creator')}: {metadata.author || t('creatorUnknown')}
