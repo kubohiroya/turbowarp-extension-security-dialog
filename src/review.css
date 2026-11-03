@@ -1,4 +1,9 @@
 .twextsec-review { box-sizing: border-box; color: var(--ui-modal-foreground, #263145); font: inherit; }
+/* Only the catalog content scrolls; its actions keep their place in the host's available height. */
+.twextsec-review[data-mode="add"] { position: relative; display: grid;
+    grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; }
+.twextsec-scroll { grid-area: 1 / 1; min-height: 0; overflow: auto; overscroll-behavior: contain;
+    scrollbar-gutter: stable; padding-right: 4px; }
 .twextsec-review *, .twextsec-review *::before, .twextsec-review *::after { box-sizing: inherit; }
 .twextsec-review a { color: inherit; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
 .twextsec-review a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 2px; }
@@ -12,6 +17,8 @@
     max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto;
     border: 1px solid #90a4bf; border-radius: 8px; background: #243247; color: #fff;
     box-shadow: 0 4px 20px #0006; font-size: 14px; line-height: 1.5; }
+.twextsec-review[data-mode="add"] > .twextsec-warning { position: absolute; grid-area: 1 / 1 / 2 / 2;
+    bottom: 12px; max-height: calc(100% - 24px); }
 .twextsec-warning > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .twextsec-warning-close { flex: none; min-width: 64px; min-height: 44px; padding: 8px 12px;
     border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit;
@@ -66,6 +73,9 @@
 .twextsec-choices .twextsec-choice legend { float: left; padding: 0; margin-right: 8px; }
 .twextsec-choices .twextsec-choice label { margin-right: 10px; }
 .twextsec-actions { display: flex; justify-content: flex-end; gap: 12px; margin: 0; padding: 0; }
+.twextsec-review[data-mode="add"] > .twextsec-actions { grid-area: 2 / 1; padding: 12px 0 env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--ui-black-transparent, #0000001a); background: var(--ui-modal-background, #fff); }
+.twextsec-review[data-mode="add"] > .twextsec-actions button { min-height: 44px; }
 .twextsec-actions button { font: inherit; padding: 8px 16px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
 .twextsec-actions button[data-testid="twextsec-complete"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
 .twextsec-actions button:focus-visible { outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }

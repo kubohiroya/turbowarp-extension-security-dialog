@@ -24,7 +24,7 @@ before(async () => {
                     description: 'First line\\nhttps://example.test/help#details\\ncontact@example.test'},
                 state: {trusted: true}}));
             ReactDOM.render(React.createElement(ExtensionReview, {mode: 'add', entries, locale,
-                previewCache: null, onComplete: answer => {window.answer = [...answer];}}),
+                previewCache: null, onComplete: answer => {window.answer = answer === null ? null : [...answer];}}),
                 document.getElementById('app'));
         `, resolveDir: process.cwd()},
         bundle: true, write: false, format: 'iife', platform: 'browser'
@@ -80,6 +80,11 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                 const errors = [];
                 page.on('pageerror', error => errors.push(error.message));
                 await page.goto(`${base}/?locale=${locale}&theme=${theme}`);
+                const actions = page.locator('.twextsec-actions');
+                const initialActions = await actions.boundingBox();
+                assert.ok(initialActions.y >= 0 && initialActions.y + initialActions.height <= page.viewportSize().height);
+                assert.equal(await page.getByTestId('twextsec-cancel').isVisible(), true);
+                assert.equal(await page.getByTestId('twextsec-complete').isVisible(), true);
                 const checkbox = page.locator('[data-key="extension3"] input[type="checkbox"]');
                 const row = page.locator('[data-key="extension3"]');
                 for (const [selector, expected] of [
@@ -105,16 +110,18 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                 const name = await row.locator('strong').boundingBox();
                 assert.ok(before.x + before.width < icon.x && icon.x + icon.width < name.x);
                 assert.ok(Math.abs(before.y + before.height / 2 - (icon.y + icon.height / 2)) < 2);
-                const scroll = await page.locator('#app').evaluate(element => element.scrollTop);
+                const scroller = page.locator('.twextsec-scroll');
+                const scroll = await scroller.evaluate(element => element.scrollTop);
                 await checkbox.check();
                 const notice = page.locator('.twextsec-warning');
                 await notice.waitFor({state: 'visible'});
                 assert.deepEqual(await checkbox.boundingBox(), before);
-                assert.equal(await page.locator('#app').evaluate(element => element.scrollTop), scroll);
+                assert.equal(await scroller.evaluate(element => element.scrollTop), scroll);
+                assert.deepEqual(await actions.boundingBox(), initialActions);
                 const rect = await notice.boundingBox();
                 const viewport = page.viewportSize();
                 assert.ok(rect.x >= 0 && rect.x + rect.width <= viewport.width);
-                assert.ok(Math.abs(rect.y + rect.height - (viewport.height - 16)) < 2);
+                assert.ok(rect.y + rect.height <= initialActions.y - 8);
                 const colors = await notice.evaluate(element => {
                     const style = getComputedStyle(element);
                     return {text: style.color, background: style.backgroundColor,
@@ -133,15 +140,45 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                 await checkbox.uncheck();
                 await checkbox.check();
                 await notice.waitFor({state: 'visible'});
+                await scroller.evaluate(element => {element.scrollTop = element.scrollHeight;});
+                assert.deepEqual(await actions.boundingBox(), initialActions);
+                const last = await page.locator('.twextsec-row').last().boundingBox();
+                assert.ok(last.y + last.height <= initialActions.y);
                 if (process.env.TW_SECURITY_SCREENSHOT_DIR) {
                     await page.screenshot({path: `${process.env.TW_SECURITY_SCREENSHOT_DIR}/${locale}-${theme}-${mobile ? 'mobile' : 'desktop'}.png`});
                 }
-                await notice.getByRole('button').click();
+                // The snackbar must not intercept the permanently visible action buttons.
                 await page.getByTestId('twextsec-complete').click();
                 assert.deepEqual(await page.evaluate(() => window.answer),
                     [['extension3', {execution: 'unsandboxed', loading: 'remote-cacheable'}]]);
+                await page.getByTestId('twextsec-cancel').focus();
+                await page.keyboard.press('Enter');
+                assert.equal(await page.evaluate(() => window.answer), null);
                 assert.deepEqual(errors, []);
                 await context.close();
             });
     }
+}
+
+for (const viewport of [{width: 700, height: 360}, {width: 320, height: 480}]) {
+    test(`${viewport.width}x${viewport.height}: actions remain reachable in short dialogs`, async () => {
+        const page = await browser.newPage({viewport});
+        try {
+            await page.goto(`${base}/?locale=ja&theme=dark`);
+            const actions = page.locator('.twextsec-actions');
+            const before = await actions.boundingBox();
+            assert.ok(before.y >= 0 && before.y + before.height <= viewport.height);
+            await page.locator('.twextsec-row').first().locator('input[type="checkbox"]').check();
+            const notice = await page.locator('.twextsec-warning').boundingBox();
+            assert.ok(notice.y >= 0 && notice.y + notice.height <= before.y - 8);
+            await page.locator('.twextsec-scroll').evaluate(element => {element.scrollTop = element.scrollHeight;});
+            assert.deepEqual(await actions.boundingBox(), before);
+            await page.getByTestId('twextsec-complete').focus();
+            await page.keyboard.press('Enter');
+            assert.deepEqual(await page.evaluate(() => window.answer),
+                [['extension0', {execution: 'unsandboxed', loading: 'remote-cacheable'}]]);
+        } finally {
+            await page.close();
+        }
+    });
 }
