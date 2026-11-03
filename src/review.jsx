@@ -81,6 +81,31 @@ const ChoiceLabel = ({kind, option, t}) => (
     </span>
 );
 
+/** Dismiss for this continuous warning; selecting unsandboxed again shows a fresh notice. */
+const UnsandboxedWarning = ({t}) => {
+    const [dismissed, setDismissed] = React.useState(false);
+    const returnFocus = React.useRef(null);
+    React.useEffect(() => {
+        returnFocus.current = document.activeElement;
+    }, []);
+    if (dismissed) return null;
+    return (
+        <aside className="twextsec-warning">
+            <span role="status">{t('unsandboxedWarning')}</span>
+            <button
+                type="button"
+                className="twextsec-warning-close"
+                onClick={() => {
+                    if (returnFocus.current && returnFocus.current.isConnected) {
+                        returnFocus.current.focus({preventScroll: true});
+                    }
+                    setDismissed(true);
+                }}
+            >{t('closeWarning')}</button>
+        </aside>
+    );
+};
+
 /** One choice among a few, as radios: every option stays readable without opening anything. */
 const Choices = ({name, value, options, disabled, label, onChange, t}) => (
     <fieldset className="twextsec-choice">
@@ -252,6 +277,7 @@ export class ExtensionReview extends React.PureComponent {
                 key={entry.key}
                 className="twextsec-row"
                 data-key={entry.key}
+                data-picking={mode === 'add' ? 'true' : undefined}
                 data-failed={failure ? 'true' : undefined}
             >
                 <div className="twextsec-head">
@@ -402,12 +428,7 @@ export class ExtensionReview extends React.PureComponent {
                         </React.Fragment>
                     )}
                 </div>}
-                {anyUnsandboxed && (
-                    <p
-                        className="twextsec-warning"
-                        role="note"
-                    >{t('unsandboxedWarning')}</p>
-                )}
+                {anyUnsandboxed && <UnsandboxedWarning t={t} />}
                 <ul className="twextsec-rows">
                     {entries.map(entry => this.renderRow(entry, selection))}
                 </ul>
