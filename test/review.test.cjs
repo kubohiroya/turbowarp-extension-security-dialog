@@ -144,10 +144,10 @@ test('a bulk choice reaches only the rows that have it to make', () => {
     view.unmount();
 });
 
-test('choosing the sandbox against the extension own claim warns without blocking', () => {
+test('a required row in a mixed batch still warns about sandboxed execution without blocking', () => {
     const view = render({
         mode: 'open',
-        entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}})]
+        entries: [cacheableRow('a', {metadata: {unsandboxed: 'required', name: 'Needs it'}}), cacheableRow('ordinary')]
     });
     assert.match(view.rowFor('a').textContent, /Says it needs to run without the sandbox/);
     assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
@@ -393,5 +393,62 @@ test('a row whose address carries the whole extension says so instead of printin
     // Printing the address would put the whole bundle in the row.
     assert.equal(label, 'Written into the project as a data address');
     assert.ok(!label.includes('base64'));
+    view.unmount();
+});
+
+test('all-required opening batches show one preset execution choice in both languages, while caching stays independent', () => {
+    for (const locale of ['ja', 'en']) {
+        const entries = [cacheableRow('a'),
+            row('b', {kind: 'embedded-data', url: 'data:text/javascript,unused'})]
+            .map(entry => ({...entry, metadata: {unsandboxed: 'required'}}));
+        let instance;
+        const view = render({mode: 'open', locale, entries, ref: value => {instance = value;}});
+        assert.equal(view.host.querySelector('input[name="execution-all"]'), null);
+        assert.equal(view.host.querySelectorAll('input[name^="execution-"]').length, 2);
+        for (const key of ['a', 'b']) assert.equal(view.radio(key, 'execution', 'unsandboxed').checked, true);
+        assert.match(view.host.querySelector('.twextsec-intro').textContent,
+            locale === 'ja' ? /選択済み/ : /already selected/);
+        assert.equal(view.answer, undefined);
+        act(() => {
+            instance.handleBulkExecution({target: {value: 'deny'}});
+            instance.decide('a', {execution: 'sandboxed'});
+        });
+        assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
+        const cache = view.radio('a', 'loading', 'remote-non-cacheable');
+        act(() => {cache.checked = true; Simulate.change(cache);});
+        assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
+        view.click('twextsec-complete');
+        assert.deepEqual(view.answer.get('a'), {execution: 'unsandboxed', loading: 'remote-non-cacheable'});
+        view.unmount();
+        const cancel = render({mode: 'open', locale, entries});
+        cancel.click('twextsec-cancel');
+        assert.equal(cancel.answer, null);
+        cancel.unmount();
+    }
+});
+
+test('an embedded all-required batch has no bulk controls and still waits for OK', () => {
+    const view = render({mode: 'open', entries: [row('a', {kind: 'embedded-file'},
+        {metadata: {unsandboxed: 'required'}})]});
+    assert.equal(view.host.querySelector('.twextsec-bulk'), null);
+    assert.equal(view.answer, undefined);
+    view.click('twextsec-complete');
+    assert.equal(view.answer.get('a').execution, 'unsandboxed');
+    view.unmount();
+});
+
+test('late descriptions preset only once the whole batch is required, without executing it', async () => {
+    const pending = new Map();
+    const view = render({mode: 'open', entries: [cacheableRow('a'), cacheableRow('b')],
+        loadInfo: url => new Promise(resolve => pending.set(url, resolve))});
+    assert.equal(view.radio('a', 'execution', 'sandboxed').checked, true);
+    await act(async () => {pending.get('https://example.test/a.js')({metadata: {unsandboxed: 'required'}});});
+    assert.equal(view.radio('a', 'execution', 'sandboxed').checked, true);
+    await act(async () => {pending.get('https://example.test/b.js')({metadata: {unsandboxed: 'required'}});});
+    assert.equal(view.host.querySelector('input[value="deny"]'), null);
+    assert.equal(view.host.querySelector('input[name="execution-all"]'), null);
+    assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
+    assert.equal(view.radio('b', 'execution', 'unsandboxed').checked, true);
+    assert.equal(view.answer, undefined);
     view.unmount();
 });

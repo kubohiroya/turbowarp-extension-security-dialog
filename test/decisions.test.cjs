@@ -13,7 +13,7 @@ const nonCacheableRow = key => remoteRow(key, 'remote-non-cacheable');
 const embeddedRow = (key, kind = 'embedded-file') => row(key, {kind, sha256: 'b'.repeat(64)});
 const legacyRow = key => row(key, {kind: 'legacy', url: `https://example.test/${key}.js`});
 
-test('nothing starts outside the sandbox unless the catalog vouches for it', () => {
+test('per-row and catalog defaults stay sandboxed unless the catalog vouches for it', () => {
     assert.equal(defaultDecision(catalogRow('a'), 'add').execution, 'sandboxed');
     // An extension saying it needs to be outside must not thereby place itself outside.
     assert.equal(defaultDecision({...catalogRow('a'), metadata: {unsandboxed: 'required'}}, 'add').execution, 'sandboxed');
@@ -82,4 +82,23 @@ test('choosing the sandbox against the extension own claim is flagged, not block
     assert.equal(contradictsDeclaration(entry, {execution: 'sandboxed'}), true);
     assert.equal(contradictsDeclaration(entry, {execution: 'unsandboxed'}), false);
     assert.equal(contradictsDeclaration(cacheableRow('a'), {execution: 'sandboxed'}), false);
+});
+
+test('only complete all-required opening batches preset execution, including over recorded choices', () => {
+    const entries = [cacheableRow('a'), embeddedRow('b')].map(entry =>
+        ({...entry, metadata: {unsandboxed: 'required'}}));
+    const recorded = new Map([
+        ['a', {execution: 'deny', loading: 'remote-non-cacheable'}],
+        ['b', {execution: 'sandboxed', loading: 'embedded-file'}]
+    ]);
+    const decisions = initialDecisions(entries, 'open', {recorded});
+    assert.deepEqual(decisions.get('a'), {execution: 'unsandboxed', loading: 'remote-non-cacheable'});
+    assert.deepEqual(decisions.get('b'), {execution: 'unsandboxed', loading: 'embedded-file'});
+    assert.equal(initialDecisions(entries, 'add').get('a').execution, 'sandboxed');
+    for (const extra of [cacheableRow('missing'),
+        {...cacheableRow('optional'), metadata: {unsandboxed: 'optional'}},
+        {...embeddedRow('failed'), metadata: {unsandboxed: 'required'}, state: {error: {message: 'offline'}}}]) {
+        assert.equal(initialDecisions([...entries, extra], 'open').get('a').execution, 'sandboxed');
+    }
+    assert.equal(initialDecisions([], 'open').size, 0);
 });
