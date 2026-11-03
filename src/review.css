@@ -24,7 +24,8 @@
 .twextsec-claim { font-size: .8em; }
 .twextsec-status { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 4px 0 0; font-size: .9em; }
 .twextsec-claim, .twextsec-requirement { opacity: .8; }
-.twextsec-trusted { font-weight: 500; }
+.twextsec-trusted { width: 22px; height: 22px; align-self: center; flex: none; }
+.twextsec-status:empty { display: none; }
 .twextsec-failed, .twextsec-contradiction { margin: 6px 0 0; color: var(--ui-danger, #b91c1c); }
 .twextsec-failed p { margin: 0; }
 .twextsec-failed .twextsec-retry-note { margin-top: 4px; font-size: .9em; }

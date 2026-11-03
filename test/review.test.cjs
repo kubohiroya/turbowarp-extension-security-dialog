@@ -89,7 +89,10 @@ test('a trusted row is stated, not asked about, and keeps its loading choice', (
         entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
-    assert.match(row.textContent, /📕 In the catalog/);
+    // Trust is the TurboWarp Plus mark with a check, named in words for anyone who cannot see it.
+    const mark = row.querySelector('.twextsec-head .twextsec-trusted');
+    assert.equal(mark.getAttribute('alt'), 'Trusted by TurboWarp Plus: runs without the sandbox');
+    assert.match(mark.getAttribute('src'), /^data:image\/svg\+xml;base64,/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
     assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
     view.click('twextsec-complete');

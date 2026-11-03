@@ -8,6 +8,7 @@ import {ExtensionPreview} from './preview.jsx';
 /* global __SECURITY_COMMON_BANNER__ */
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
+const trustedBadge = __SECURITY_TRUSTED_BADGE__;
 import {
     allRequireUnsandboxed, contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
     loadingModes
@@ -249,6 +250,16 @@ export class ExtensionReview extends React.PureComponent {
                     {mode === 'open' && <strong>{metadata.name || entry.key}</strong>}
                     {/* Without a name the heading is already the ID; saying it again adds nothing. */}
                     {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
+                    {/* Trust is a mark beside the name, the way a verified account is marked, with its
+                        meaning in words for anyone who cannot see it. */}
+                    {isTrusted(entry) && (
+                        <img
+                            className="twextsec-trusted"
+                            src={trustedBadge}
+                            alt={t('trusted')}
+                            title={t('trusted')}
+                        />
+                    )}
                     {metadata.version && <span>{t('version')} {metadata.version}</span>}
                 </div>
                 {/* One line: a long address is cut short here and kept whole in the tooltip. */}
@@ -272,13 +283,13 @@ export class ExtensionReview extends React.PureComponent {
                 <p className="twextsec-claim">
                     {t('creator')}: {metadata.author || t('creatorUnknown')}
                 </p>
-                {/* Where the row stands and whether the catalog vouches for it share one line. The
-                    checkbox already says chosen or not, so only the reasons it cannot be changed —
-                    another extension needs it, or it is already running — are put in words. */}
+                {/* The checkbox already says chosen or not, so only the reasons it cannot be changed —
+                    another extension needs it, or it is already running — are put in words, beside
+                    what an untrusted extension says about the sandbox. */}
                 <div className="twextsec-status">
                     {(required || state === 'loaded') && <span className="twextsec-state">{required ?
                         t('state-dependency', {names: roots.join(', ')}) : t('state-loaded')}</span>}
-                    {isTrusted(entry) ? <span className="twextsec-trusted">{t('trusted')}</span> : (
+                    {!isTrusted(entry) && (
                         <span className="twextsec-requirement">
                             {t(`requirement-${unsandboxedRequirement(metadata)}`)}
                         </span>

@@ -10,14 +10,17 @@ const {name, version} = JSON.parse(await fs.readFile(path.join(root, 'package.js
 const {revision, sourceState} = readBuildSource(root);
 await fs.writeFile(path.join(root, 'dist/build-info.json'),
     JSON.stringify({name, version, revision, sourceState}, null, 2) + '\n');
-const banner = `data:image/svg+xml;base64,${(await fs.readFile(path.join(root, 'assets/common.svg'))).toString('base64')}`;
+const dataURI = async file => `data:image/svg+xml;base64,${(await fs.readFile(path.join(root, file))).toString('base64')}`;
+const banner = await dataURI('assets/common.svg');
+const trustedBadge = await dataURI('assets/trusted.svg');
 for (const [format, extension] of [['esm','mjs'], ['cjs','cjs']]) {
     await build({
         absWorkingDir: root,
         entryPoints: ['src/index.js','src/react.jsx','src/turbowarp.js'],
         outdir: 'dist', outExtension: {'.js': `.${extension}`}, bundle: true,
         format, platform: 'browser', target: ['es2017'], external: ['react','react-dom'],
-        define: {__SECURITY_COMMON_BANNER__: JSON.stringify(banner)}, sourcemap: false
+        define: {__SECURITY_COMMON_BANNER__: JSON.stringify(banner),
+            __SECURITY_TRUSTED_BADGE__: JSON.stringify(trustedBadge)}, sourcemap: false
     });
 }
 const css = await fs.readFile(path.join(root, 'src/review.css'), 'utf8');
