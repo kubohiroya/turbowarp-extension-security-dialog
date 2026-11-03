@@ -62,6 +62,25 @@ const Failure = ({failure, onRetry, t}) => {
     );
 };
 
+const choiceIcons = {
+    sandboxed: '🛡️',
+    unsandboxed: '⚠️',
+    'remote-cacheable': '💼',
+    'remote-non-cacheable': '⬇️',
+    'embedded-file': '🥡',
+    'embedded-data': '📦'
+};
+
+/** Icons reinforce the visible label without changing its accessible name. */
+const ChoiceLabel = ({kind, option, t}) => (
+    <span className="twextsec-choice-label">
+        {choiceIcons[option] && (
+            <span className="twextsec-choice-icon" aria-hidden="true">{choiceIcons[option]}</span>
+        )}
+        <span>{t(`${kind}-${option}`)}</span>
+    </span>
+);
+
 /** One choice among a few, as radios: every option stays readable without opening anything. */
 const Choices = ({name, value, options, disabled, label, onChange, t}) => (
     <fieldset className="twextsec-choice">
@@ -76,7 +95,7 @@ const Choices = ({name, value, options, disabled, label, onChange, t}) => (
                     disabled={disabled}
                     onChange={onChange}
                 />
-                {t(`${name.startsWith('loading') ? 'loading' : 'execution'}-${option}`)}
+                <ChoiceLabel kind={name.startsWith('loading') ? 'loading' : 'execution'} option={option} t={t} />
             </label>
         ))}
     </fieldset>
@@ -326,7 +345,7 @@ export class ExtensionReview extends React.PureComponent {
                 {/* With nothing to choose the row still says how it loads, because that is part
                     of what the person is agreeing to run, not an omission. */}
                 {loadings.length === 0 && decision.loading !== undefined && (
-                    <p className="twextsec-loading-fixed">{t(`loading-${decision.loading}`)}</p>
+                    <p className="twextsec-loading-fixed"><ChoiceLabel kind="loading" option={decision.loading} t={t} /></p>
                 )}
                 {contradictsDeclaration(entry, decision) && (
                     <p
