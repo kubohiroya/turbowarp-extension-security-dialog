@@ -215,7 +215,8 @@ what a bundle says about its members is theirs, not its own.
 
 ```sh
 pnpm install
-pnpm run check   # build, 56 tests, and a packing dry run
+pnpm run check   # build, unit tests, and a packing dry run
+node --test test/wait.browser.mjs test/review.browser.mjs
 ```
 
 React and React DOM are peer dependencies, so the host supplies them. There are no runtime

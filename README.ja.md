@@ -6,6 +6,10 @@
 [MPL-2.0](LICENSE) です。「Incompatible With Secondary Licenses」の表示を付けていないので、
 GPL-3.0 で配布する大きな作品に組み込めます。TurboWarp-Plus-Editor はそうやって配信しています。
 
+0.8.5は、閉じられる注意表示、選択欄の配置、紹介・リリース・連絡先リンク、概要の改行、
+常時表示の追加/キャンセルボタンと、実行・保存方法のアイコンを含むnpm公開版です。
+詳細と互換性・切戻しは[0.8.5の公開記録](https://github.com/kubohiroya/turbowarp-extension-security-dialog/blob/v0.8.5/docs/releases/0.8.5.ja.md)を参照してください。
+
 ## 何を解決するか
 
 VM は機能拡張を1つずつ読み込み、そのたびに尋ねます。作品を開くことが確認の行列になり、最後の
@@ -223,8 +227,8 @@ const uninstall = installBatchExtensionLoader(vm, review, defaultURLs, createDec
 
 ```sh
 pnpm install
-pnpm run check   # ビルド、テスト56件、pack の dry run
-node --test test/review.browser.mjs # 日英・明暗・PC/モバイルの配置と閉じる操作
+pnpm run check   # ビルド、単体テスト、pack の dry run
+node --test test/wait.browser.mjs test/review.browser.mjs # 取得待ち・選択画面の実ブラウザ検証
 ```
 
 React と React DOM は peerDependencies なので、ホストが用意します。実行時の依存はありません。
