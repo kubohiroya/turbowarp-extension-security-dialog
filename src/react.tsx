@@ -1,4 +1,5 @@
 import type {ComponentType} from 'react';
+import Review from './review.js';
 import type {ExtensionMetadata, ReviewDecision, ReviewEntry, ReviewFailure, LoadingMode} from './review-types.js';
 import type {PreviewCache, ReviewMode} from './index.js';
 
@@ -33,5 +34,5 @@ export interface ExtensionReviewProps {
     onComplete(decisions: Map<string, ReviewDecision> | null): void;
 }
 
-export const ExtensionReview: ComponentType<ExtensionReviewProps>;
+export const ExtensionReview: ComponentType<ExtensionReviewProps> = Review;
 export default ExtensionReview;

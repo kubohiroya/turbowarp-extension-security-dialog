@@ -1,14 +1,47 @@
+import type {ExecutionDecision, ReviewDecision, ReviewEntry} from './review-types.js';
+import type {DecisionStorage} from './index.js';
+
+export interface BatchLoaderOptions {
+    /** Rows the host owns, read from the project before any extension code runs. */
+    collectEntries?: (project: unknown) => Promise<ReviewEntry[]>;
+    /** The same answer, handed to the host so it can drive the Loader's trust and caching. */
+    applyDecisions?: (decisions: Map<string, ReviewDecision>, entries: ReviewEntry[]) => void;
+    /** How the host names a project, so the opener's decisions can be remembered for it. */
+    identify?: (project: unknown) => Promise<string | null>;
+}
+
 import {initialDecisions, requiresReview} from './decisions.js';
+
+interface LoaderVM {
+    extensionManager: {
+        securityManager: {getSandboxMode(url: string): unknown};
+        getExtensionURLs(): Record<string, string>;
+        isExtensionLoaded(id: string): boolean;
+        isBuiltinExtension(id: string): boolean;
+        loadExtensionIdSync(id: string): void;
+        loadExtensionURL(url: string): Promise<unknown>;
+    };
+    _loadExtensions(ids: Iterable<string>, urls?: ReadonlyMap<string, string>): Promise<void>;
+    clear(...args: unknown[]): unknown;
+    loadProject(...args: unknown[]): Promise<unknown>;
+}
+
+type LegacyRow = ReviewEntry & {source: {kind: 'legacy'; url: string}};
+interface ProjectContext {
+    input: unknown;
+    key: string | null;
+    decisions: Map<string, ReviewDecision>;
+}
 
 const CANCELLED = 'EXTENSION_SECURITY_CANCELLED';
 
 /** The person said no, which is an answer, not a fault. Hosts tell it apart to avoid an error UI. */
-export const isExtensionSecurityCancelled = error => Boolean(error) && error.code === CANCELLED;
+export const isExtensionSecurityCancelled = (error: unknown) => (error as {code?: string} | null | undefined)?.code === CANCELLED;
 
 const cancellation = () => Object.assign(
     new Error('Extension loading cancelled by the person'), {code: CANCELLED});
 
-const sandboxModeFor = execution => (execution === 'unsandboxed' ? 'unsandboxed' : 'iframe');
+const sandboxModeFor = (execution: ExecutionDecision) => (execution === 'unsandboxed' ? 'unsandboxed' : 'iframe');
 
 /**
  * Put every extension question before the person once, before any extension code runs.
@@ -28,9 +61,12 @@ const sandboxModeFor = execution => (execution === 'unsandboxed' ? 'unsandboxed'
  * @param {object} options Host hooks: collectEntries, applyDecisions and identify.
  * @returns {Function} Restores the VM's own methods.
  */
-export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storage = null, {
+export function installBatchExtensionLoader(host: object,
+    review: (entries: ReviewEntry[], initial: Map<string, ReviewDecision>) => Promise<Map<string, ReviewDecision> | null>,
+    defaultURLs: Record<string, string> = {}, storage: DecisionStorage | null = null, {
     collectEntries, applyDecisions, identify
-} = {}) {
+}: BatchLoaderOptions = {}): () => void {
+    const vm = host as LoaderVM;
     const manager = vm && vm.extensionManager;
     const security = manager && manager.securityManager;
     if (!manager || !security || typeof vm._loadExtensions !== 'function') {
@@ -43,27 +79,27 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
     const originalProjectLoad = vm.loadProject;
 
     // Modes last only for the batch that chose them: a later load must ask again, not inherit.
-    const modes = new Map();
-    const refusedURLs = new Map();
+    const modes = new Map<string, ReturnType<typeof sandboxModeFor>>();
+    const refusedURLs = new Map<string, string>();
     let disposed = false;
     let queue = Promise.resolve();
-    let projects = Promise.resolve();
-    let project = null;
+    let projects: Promise<unknown> = Promise.resolve();
+    let project: ProjectContext | null = null;
 
-    const getSandboxMode = function (url) {
+    const getSandboxMode = function (url: string) {
         return modes.has(url) ? modes.get(url) : originalMode.call(security, url);
     };
     // A refused extension keeps its address so saving the project does not quietly drop it.
     const getExtensionURLs = function () {
         return Object.assign(Object.fromEntries(refusedURLs), originalURLs.call(manager));
     };
-    const clear = function (...args) {
+    const clear = function (...args: unknown[]) {
         refusedURLs.clear();
         return originalClear.apply(vm, args);
     };
 
-    const legacyRows = (ids, urls) => {
-        const byURL = new Map();
+    const legacyRows = (ids: Iterable<string>, urls: ReadonlyMap<string, string>) => {
+        const byURL = new Map<string, LegacyRow>();
         const builtins = [];
         for (const id of ids) {
             if (manager.isExtensionLoaded(id)) continue;
@@ -77,12 +113,12 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
             if (!byURL.has(url)) {
                 byURL.set(url, {key: url, ids: [], source: {kind: 'legacy', url}});
             }
-            byURL.get(url).ids.push(id);
+            byURL.get(url)!.ids.push(id);
         }
         return {rows: [...byURL.values()], builtins};
     };
 
-    const decide = async entries => {
+    const decide = async (entries: ReviewEntry[]) => {
         const recorded = project && project.key && storage ?
             await storage.read(project.key) : new Map();
         const starting = initialDecisions(entries, 'open', {
@@ -102,7 +138,7 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
         return answer;
     };
 
-    const load = async (ids, urls) => {
+    const load = async (ids: Iterable<string>, urls: ReadonlyMap<string, string>) => {
         if (disposed) throw cancellation();
         const {rows, builtins} = legacyRows(ids, urls);
         const supplied = collectEntries && project ?
@@ -114,7 +150,7 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
         }
         const decisions = await decide(entries);
         if (disposed || decisions === null) throw cancellation();
-        if (project) decisions.forEach((decision, key) => project.decisions.set(key, decision));
+        if (project) for (const [key, decision] of decisions) project.decisions.set(key, decision);
         // The host wires the Loader's trust and caching from the same answer, before anything runs.
         if (applyDecisions) applyDecisions(decisions, entries);
 
@@ -122,7 +158,7 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
         const loading = [];
         try {
             for (const row of rows) {
-                const {execution} = decisions.get(row.key);
+                const {execution} = decisions.get(row.key)!;
                 if (execution === 'deny') {
                     for (const id of row.ids) refusedURLs.set(id, row.source.url);
                     continue;
@@ -139,16 +175,16 @@ export function installBatchExtensionLoader(vm, review, defaultURLs = {}, storag
         }
     };
 
-    const loadExtensions = function (ids, urls = new Map()) {
+    const loadExtensions = function (ids: Iterable<string>, urls: ReadonlyMap<string, string> = new Map()) {
         const pending = queue.then(() => load(ids, urls));
         queue = pending.catch(() => {});
         return pending;
     };
 
-    const loadProject = function (...args) {
+    const loadProject = function (...args: unknown[]) {
         const pending = projects.then(async () => {
             if (disposed) throw cancellation();
-            const context = {input: args[0], key: null, decisions: new Map()};
+            const context: ProjectContext = {input: args[0], key: null, decisions: new Map()};
             try {
                 if (identify) context.key = await identify(args[0]);
             } catch (error) {

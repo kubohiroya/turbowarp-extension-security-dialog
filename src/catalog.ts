@@ -1,17 +1,27 @@
+import type {ExtensionMetadata} from './review-types.js';
+export interface CatalogCategory {
+    id: string; title: string; titleJa?: string; order: number;
+}
+
+export interface CatalogEntry {
+    key: string; id: string; ids: string[]; url: string; sha256?: string;
+    dependencies: readonly string[]; metadata: ExtensionMetadata; category?: CatalogCategory;
+}
+
 import {contactURL} from './display-urls.js';
 
 const ID = /^[A-Za-z0-9]+$/;
 
-const fail = message => {
+function fail(message: string): never {
     throw new Error(message);
-};
+}
 
-const object = (value, what) => {
+const object = (value: unknown, what: string): Record<string, unknown> => {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(`${what} must be an object`);
-    return value;
+    return value as Record<string, unknown>;
 };
 
-const string = (value, what, limit = 2048) => {
+const string = (value: unknown, what: string, limit = 2048): string => {
     if (typeof value !== 'string' || value.length === 0 || value.length > limit) fail(`${what} must be text`);
     return value;
 };
@@ -27,7 +37,7 @@ const string = (value, what, limit = 2048) => {
  * @param {boolean} allowHTTP True only for a creator's own page, which runs no code here.
  * @returns {string} The address, unchanged.
  */
-export const reviewURL = (value, what = 'URL', allowHTTP = false) => {
+export const reviewURL = (value: unknown, what = 'URL', allowHTTP = false) => {
     const text = string(value, what);
     let url;
     try {
@@ -42,14 +52,14 @@ export const reviewURL = (value, what = 'URL', allowHTTP = false) => {
     return text;
 };
 
-const metadataOf = value => {
+const metadataOf = (value: unknown): ExtensionMetadata => {
     const source = object(value, 'metadata');
-    const result = {};
+    const result: ExtensionMetadata = {};
     for (const key of ['name', 'id', 'description', 'author', 'version', 'license', 'package',
-        'banner', 'unsandboxed', 'updatedAt']) {
+        'banner', 'unsandboxed', 'updatedAt'] as const) {
         if (source[key] !== undefined) result[key] = string(source[key], key, 4096);
     }
-    for (const key of ['repository', 'docsURL']) {
+    for (const key of ['repository', 'docsURL'] as const) {
         if (source[key] !== undefined) result[key] = reviewURL(source[key], key);
     }
     // A contact is shown, never fetched or used to load code.
@@ -65,15 +75,15 @@ const metadataOf = value => {
     return result;
 };
 
-const categoriesOf = value => {
+const categoriesOf = (value: unknown) => {
     const list = value === undefined ? [] : value;
     if (!Array.isArray(list)) fail('categories must be a list');
-    const byId = new Map();
+    const byId = new Map<string, CatalogCategory>();
     list.forEach((item, order) => {
         const category = object(item, 'category');
         const id = string(category.id, 'category id', 128);
         if (byId.has(id)) fail(`Duplicate category ${id}`);
-        const resolved = {id, title: string(category.title, 'category title', 256), order};
+        const resolved: CatalogCategory = {id, title: string(category.title, 'category title', 256), order};
         if (category.titleJa !== undefined) resolved.titleJa = string(category.titleJa, 'category titleJa', 256);
         byId.set(id, Object.freeze(resolved));
     });
@@ -89,7 +99,7 @@ const categoriesOf = value => {
  * @param {unknown} data The parsed catalog document.
  * @returns {Array<object>} Frozen entries in catalog order, each with its resolved category.
  */
-export function parseExtensionCatalog(data) {
+export function parseExtensionCatalog(data: unknown): CatalogEntry[] {
     const document = object(data, 'catalog');
     if (document.schemaVersion !== undefined && document.schemaVersion !== 1) {
         fail(`Unsupported catalog schema ${document.schemaVersion}`);
@@ -97,8 +107,8 @@ export function parseExtensionCatalog(data) {
     const categories = categoriesOf(document.categories);
     const list = document.extensions;
     if (!Array.isArray(list)) fail('catalog extensions must be a list');
-    const byId = new Map();
-    const urls = new Set();
+    const byId = new Map<string, CatalogEntry>();
+    const urls = new Set<string>();
     const entries = list.map(item => {
         const source = object(item, 'extension');
         const id = string(source.id, 'extension id', 128);
@@ -109,7 +119,7 @@ export function parseExtensionCatalog(data) {
         urls.add(url);
         const dependencies = source.dependencies === undefined ? [] : source.dependencies;
         if (!Array.isArray(dependencies)) fail(`${id} dependencies must be a list`);
-        const entry = {
+        const entry: CatalogEntry = {
             key: id,
             id,
             ids: [id],
@@ -138,13 +148,13 @@ export function parseExtensionCatalog(data) {
         }
     }
     // A cycle has no load order, so refuse the catalog rather than pick one arbitrarily.
-    const state = new Map();
-    const walk = id => {
+    const state = new Map<string, "open" | "done">();
+    const walk = (id: string): void => {
         const mark = state.get(id);
         if (mark === 'done') return;
         if (mark === 'open') fail(`Dependency cycle at ${id}`);
         state.set(id, 'open');
-        for (const dependency of byId.get(id).dependencies) walk(dependency);
+        for (const dependency of byId.get(id)!.dependencies) walk(dependency);
         state.set(id, 'done');
     };
     for (const entry of entries) walk(entry.id);
@@ -157,7 +167,7 @@ export function parseExtensionCatalog(data) {
  * @param {AbortSignal} [signal] The caller's own deadline or cancellation.
  * @returns {Promise<Array<object>>} The parsed entries.
  */
-export async function loadExtensionCatalog(url, signal) {
+export async function loadExtensionCatalog(url: string, signal?: AbortSignal) {
     const address = reviewURL(url, 'catalog URL');
     const response = await fetch(address, {signal, credentials: 'omit', referrerPolicy: 'no-referrer'});
     if (!response.ok) fail(`Catalog request failed (HTTP ${response.status})`);

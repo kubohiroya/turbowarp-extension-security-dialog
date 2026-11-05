@@ -1,3 +1,4 @@
+import type {ExtensionMetadata} from './review-types.js';
 import {reviewURL} from './catalog.js';
 import {contactURL} from './display-urls.js';
 
@@ -5,7 +6,7 @@ const BLOCK = /\/\*\*([\s\S]*?)\*\//;
 const FIELD = /^[ \t]*\*?[ \t]*@([A-Za-z][A-Za-z0-9]*)[ \t]+(.*)$/;
 const LIMIT = 4096;
 
-const trimmed = value => value.replace(/\s+$/, '');
+const trimmed = (value: string) => value.replace(/\s+$/, '');
 
 /**
  * Read the text of a `data:` URL, base64 or percent-encoded.
@@ -15,7 +16,7 @@ const trimmed = value => value.replace(/\s+$/, '');
  * @param {string} url The data URL.
  * @returns {string} The text it carries.
  */
-export function decodeExtensionDataURL(url) {
+export function decodeExtensionDataURL(url: string) {
     const comma = url.indexOf(',');
     if (comma < 0) throw new Error('Not a data URL');
     const content = url.slice(comma + 1);
@@ -35,12 +36,12 @@ export function decodeExtensionDataURL(url) {
  * @param {string} source The extension's JavaScript, as text.
  * @returns {object} The fields it declared, with addresses checked for shape only.
  */
-export function parseExtensionMetadata(source) {
+export function parseExtensionMetadata(source: string): ExtensionMetadata {
     if (typeof source !== 'string') return {};
     const text = source.slice(0, 64 * 1024);
-    const metadata = {};
-    const descriptions = {};
-    const record = (name, raw, locale) => {
+    const metadata: ExtensionMetadata = {};
+    const descriptions: Record<string, string> = {};
+    const record = (name: string, raw: string, locale?: string) => {
         const value = trimmed(raw);
         if (value.length === 0 || value.length > LIMIT) return;
         if (name === 'description') {
@@ -48,7 +49,7 @@ export function parseExtensionMetadata(source) {
             else metadata.description = value;
             return;
         }
-        if (['repository', 'docsURL', 'authorURL'].includes(name)) {
+        if (name === 'repository' || name === 'docsURL' || name === 'authorURL') {
             try {
                 // A creator's contact is shown, never fetched or used to load code.
                 metadata[name] = name === 'authorURL' ? contactURL(value) : reviewURL(value, name);
@@ -59,7 +60,7 @@ export function parseExtensionMetadata(source) {
         }
         if (['name', 'id', 'author', 'version', 'license', 'banner', 'package', 'unsandboxed']
             .includes(name)) {
-            metadata[name] = value;
+            metadata[name as Exclude<keyof ExtensionMetadata, 'descriptions'>] = value;
         }
     };
     // The run of `//` lines TurboWarp's own extensions and its gallery open with comes first, so
@@ -82,7 +83,7 @@ export function parseExtensionMetadata(source) {
 }
 
 /** What a TurboWarp header calls each field, by the name this package gives it. */
-const HEADER_FIELDS = Object.freeze({
+const HEADER_FIELDS: Readonly<Record<string, string>> = Object.freeze({
     name: 'name', id: 'id', description: 'description', by: 'author', author: 'author',
     version: 'version', license: 'license', unsandboxed: 'unsandboxed',
     repository: 'repository', source: 'repository', 'docs url': 'docsURL', docsurl: 'docsURL',
@@ -98,8 +99,8 @@ const HEADER_FIELDS = Object.freeze({
  * @param {string} text The start of the extension's source.
  * @returns {Array<Array<string>>} `[name, value, locale?]` for each field, in order.
  */
-function headerFields(text) {
-    const fields = [];
+function headerFields(text: string) {
+    const fields: Array<[name: string, value: string, locale?: string]> = [];
     const seen = new Set();
     for (const line of text.split('\n')) {
         const comment = /^[ \t]*\/\/(.*)$/.exec(line);
@@ -126,7 +127,7 @@ function headerFields(text) {
  * @param {string} locale The reader's locale.
  * @returns {string} The best description available, or an empty string.
  */
-export function getExtensionDescription(metadata, locale = 'en') {
+export function getExtensionDescription(metadata: ExtensionMetadata, locale = 'en') {
     const declared = metadata && metadata.descriptions;
     if (!declared) return (metadata && metadata.description) || '';
     const tag = String(locale || 'en').toLowerCase();
@@ -143,7 +144,7 @@ export function getExtensionDescription(metadata, locale = 'en') {
  * @param {object} metadata The extension's declared fields.
  * @returns {string} One of required, optional, not-needed or unknown.
  */
-export function unsandboxedRequirement(metadata) {
+export function unsandboxedRequirement(metadata: ExtensionMetadata) {
     const declared = metadata && typeof metadata.unsandboxed === 'string' ?
         metadata.unsandboxed.trim().toLowerCase() : '';
     if (['required', 'true', 'yes'].includes(declared)) return 'required';
@@ -158,7 +159,7 @@ export function unsandboxedRequirement(metadata) {
  * @param {AbortSignal} [signal] The caller's own deadline or cancellation.
  * @returns {Promise<object>} The source text and the fields it declared.
  */
-export async function loadExtensionInfo(url, signal) {
+export async function loadExtensionInfo(url: string, signal?: AbortSignal) {
     // A project may carry an extension as a data: URL so stock TurboWarp can open it too. The
     // bytes are already in hand, so there is nothing to fetch and no address to check; refusing
     // the scheme would leave the person approving a row whose own description sits right there.

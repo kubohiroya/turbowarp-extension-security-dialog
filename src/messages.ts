@@ -1,4 +1,4 @@
-const messages = {
+const messages: Record<string, Record<string, string>> = {
     en: {
         addTitle: 'Choose extensions',
         openTitle: 'This project wants to run extensions',
@@ -111,7 +111,7 @@ const messages = {
  * @param {object} [values] Names to put into the `{placeholders}`.
  * @returns {string} The wording, with placeholders filled in.
  */
-export const formatMessage = (locale, key, values = {}) => {
+export const formatMessage = (locale: string | undefined, key: string, values: Record<string, string | number> = {}) => {
     const language = String(locale || 'en').toLowerCase().startsWith('ja') ? 'ja' : 'en';
     const template = messages[language][key] || messages.en[key] || key;
     return template.replace(/\{(\w+)\}/g, (match, name) =>

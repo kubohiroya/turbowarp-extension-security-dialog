@@ -4,7 +4,7 @@ import {displayURL} from './display-urls.js';
 // Match whole URLs before email addresses so a refused URL cannot turn into a partial email link.
 const addresses = /https?:\/\/[^\s<>"'。、「」『』【】]+|mailto:[^\s<>"'。、「」『』【】]+|[\w.!#$%&'*+/=?^`{|}~-]+@[A-Z0-9](?:[A-Z0-9.-]*[A-Z0-9])?\.[A-Z]{2,}/gi;
 
-const trimPunctuation = text => {
+const trimPunctuation = (text: string) => {
     let result = text;
     while (result) {
         const last = result.slice(-1);
@@ -23,7 +23,7 @@ const trimPunctuation = text => {
 };
 
 /** Render text, preserving everything except adding links around recognized addresses. */
-export const LinkedText = ({text}) => {
+export const LinkedText = ({text}: {text: string}) => {
     const parts = [];
     const input = String(text || '');
     const matcher = new RegExp(addresses.source, addresses.flags);

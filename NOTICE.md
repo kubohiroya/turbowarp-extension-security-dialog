@@ -9,7 +9,7 @@ the TurboWarp-Plus Editor ships it.
 
 `assets/common.svg` is the fallback icon shown when an extension has no preview of its own. It is
 original to this package: a jigsaw piece outline with a serif T, drawn for it and derived from no
-other work. `scripts/build.mjs` embeds it into `dist` as a base64 data URI, so it travels in the
+other work. `scripts/build.ts` embeds it into `dist` as a base64 data URI, so it travels in the
 published package.
 
 `assets/trusted.svg` is the mark beside an extension the host trusts: the TurboWarp Plus mark (the

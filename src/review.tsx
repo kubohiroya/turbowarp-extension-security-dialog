@@ -1,13 +1,26 @@
+import type {ExtensionReviewProps} from './react.js';
+import type {ExecutionDecision, ExtensionMetadata, LoadingMode, ReviewDecision, ReviewEntry,
+    ReviewFailure, ReviewSource} from './review-types.js';
+import type {ExtensionSelection} from './selection.js';
+
+type Translate = (key: string, values?: Record<string, string | number>) => string;
+type Choice = ExecutionDecision | LoadingMode;
+interface ReviewState {
+    decisions: Map<string, ReviewDecision>;
+    chosen: Set<string>;
+    described: Map<string, ExtensionMetadata>;
+}
 import React from 'react';
 import {formatMessage} from './messages.js';
 import {getExtensionDescription, unsandboxedRequirement} from './metadata.js';
 import {resolveExtensionSelection} from './selection.js';
 import {createPreviewCache} from './storage.js';
-import {ExtensionPreview} from './preview.jsx';
+import {ExtensionPreview} from './preview.js';
 import {displayURL, releaseURL} from './display-urls.js';
-import {LinkedText} from './linked-text.jsx';
+import {LinkedText} from './linked-text.js';
 
-/* global __SECURITY_COMMON_BANNER__ */
+declare const __SECURITY_COMMON_BANNER__: string;
+declare const __SECURITY_TRUSTED_BADGE__: string;
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
 const trustedBadge = __SECURITY_TRUSTED_BADGE__;
@@ -16,14 +29,10 @@ import {
     loadingModes
 } from './decisions.js';
 
-const bind = (instance, names) => names.forEach(name => {
-    instance[name] = instance[name].bind(instance);
-});
-
 /** The bytes travel with the project, so there is no address to fetch from or to print. */
-const isEmbedded = source => source.kind === 'embedded-file' || source.kind === 'embedded-data';
+const isEmbedded = (source: ReviewSource): source is Extract<ReviewSource, {kind: 'embedded-file' | 'embedded-data'}> => source.kind === 'embedded-file' || source.kind === 'embedded-data';
 
-const sourceLabel = (entry, t) => {
+const sourceLabel = (entry: ReviewEntry, t: Translate) => {
     if (entry.source.kind === 'embedded-file') return t('sourceEmbedded');
     // A project that carries the extension itself has a data: URL for an address. Printing it
     // would put the whole bundle in the row, so say where the bytes are instead.
@@ -43,7 +52,7 @@ const sourceLabel = (entry, t) => {
  * Offering "try again" for a failure that will fail the same way every time would be advice the
  * screen cannot back, so without `retryable` the failure is stated and nothing more.
  */
-const Failure = ({failure, onRetry, t}) => {
+const Failure = ({failure, onRetry, t}: {failure: ReviewFailure; onRetry?: () => void; t: Translate}) => {
     const retry = failure.retryable === true && typeof onRetry === 'function';
     return (
         <div
@@ -64,7 +73,7 @@ const Failure = ({failure, onRetry, t}) => {
     );
 };
 
-const choiceIcons = {
+const choiceIcons: Partial<Record<Choice, string>> = {
     sandboxed: '🛡️',
     unsandboxed: '⚠️',
     'remote-cacheable': '💼',
@@ -74,7 +83,7 @@ const choiceIcons = {
 };
 
 /** Icons reinforce the visible label without changing its accessible name. */
-const ChoiceLabel = ({kind, option, t}) => (
+const ChoiceLabel = ({kind, option, t}: {kind: string; option: Choice; t: Translate}) => (
     <span className="twextsec-choice-label">
         {choiceIcons[option] && (
             <span className="twextsec-choice-icon" aria-hidden="true">{choiceIcons[option]}</span>
@@ -84,9 +93,9 @@ const ChoiceLabel = ({kind, option, t}) => (
 );
 
 /** Dismiss for this continuous warning; selecting unsandboxed again shows a fresh notice. */
-const UnsandboxedWarning = ({t}) => {
+const UnsandboxedWarning = ({t}: {t: Translate}) => {
     const [dismissed, setDismissed] = React.useState(false);
-    const returnFocus = React.useRef(null);
+    const returnFocus = React.useRef<Element | null>(null);
     React.useEffect(() => {
         returnFocus.current = document.activeElement;
     }, []);
@@ -98,7 +107,8 @@ const UnsandboxedWarning = ({t}) => {
                 type="button"
                 className="twextsec-warning-close"
                 onClick={() => {
-                    if (returnFocus.current && returnFocus.current.isConnected) {
+                    if (returnFocus.current && returnFocus.current.isConnected &&
+                        "focus" in returnFocus.current && typeof returnFocus.current.focus === "function") {
                         returnFocus.current.focus({preventScroll: true});
                     }
                     setDismissed(true);
@@ -109,7 +119,10 @@ const UnsandboxedWarning = ({t}) => {
 };
 
 /** One choice among a few, as radios: every option stays readable without opening anything. */
-const Choices = ({name, value, options, disabled, label, onChange, t}) => (
+const Choices = <T extends Choice>({name, value, options, disabled, label, onChange, t}: {
+    name: string; value: T | null | undefined; options: T[]; disabled?: boolean;
+    label: string; onChange: (option: T) => void; t: Translate;
+}) => (
     <fieldset className="twextsec-choice">
         <legend>{label}</legend>
         {options.map(option => (
@@ -120,7 +133,7 @@ const Choices = ({name, value, options, disabled, label, onChange, t}) => (
                     value={option}
                     checked={value === option}
                     disabled={disabled}
-                    onChange={onChange}
+                    onChange={() => onChange(option)}
                 />
                 <ChoiceLabel kind={name.startsWith('loading') ? 'loading' : 'execution'} option={option} t={t} />
             </label>
@@ -136,10 +149,14 @@ const Choices = ({name, value, options, disabled, label, onChange, t}) => (
  * host hands in rows that are already resolved, and gets back decisions. Whatever the rows say
  * about themselves — a name, an author, a version — is the extension's own claim, shown as such.
  */
-export class ExtensionReview extends React.PureComponent {
-    constructor (props) {
+export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, ReviewState> {
+    private readonly controller: AbortController;
+    constructor (props: ExtensionReviewProps) {
         super(props);
-        bind(this, ['handleBulkExecution', 'handleBulkLoading', 'handleComplete', 'handleCancel']);
+        this.handleBulkExecution = this.handleBulkExecution.bind(this);
+        this.handleBulkLoading = this.handleBulkLoading.bind(this);
+        this.handleComplete = this.handleComplete.bind(this);
+        this.handleCancel = this.handleCancel.bind(this);
         this.state = {
             decisions: initialDecisions(props.entries, props.mode, {
                 recorded: props.initialDecisions, fallbackLoading: props.fallbackLoading
@@ -155,7 +172,7 @@ export class ExtensionReview extends React.PureComponent {
     }
     componentDidUpdate () {
         if (this.allRequired() && this.props.entries.some(entry =>
-            this.state.decisions.get(entry.key).execution !== 'unsandboxed')) {
+            this.state.decisions.get(entry.key)!.execution !== 'unsandboxed')) {
             // Late metadata can complete the batch, but never starts it without OK.
             this.setState(state => ({decisions: new Map([...state.decisions]
                 .map(([key, decision]) => [key, {...decision, execution: 'unsandboxed'}]))}));
@@ -181,45 +198,43 @@ export class ExtensionReview extends React.PureComponent {
             }
         }
     }
-    t (key, values) {
+    t (key: string, values?: Record<string, string | number>) {
         return formatMessage(this.props.locale, key, values);
     }
-    metadataOf (entry) {
+    metadataOf (entry: ReviewEntry) {
         return entry.metadata || this.state.described.get(entry.key) || {};
     }
     allRequired () {
         return this.props.mode === 'open' && allRequireUnsandboxed(this.props.entries.map(entry =>
             ({...entry, metadata: this.metadataOf(entry)})));
     }
-    executionOptions (entry) {
+    executionOptions (entry: ReviewEntry): ExecutionDecision[] {
         return this.allRequired() && !isTrusted(entry) ? ['unsandboxed'] : executionChoices(entry, this.props.mode);
     }
-    decide (key, change) {
+    decide (key: string, change: Partial<ReviewDecision>) {
         const entry = this.props.entries.find(entry => entry.key === key);
-        if (change.execution !== undefined && !this.executionOptions(entry).includes(change.execution)) return;
+        if (!entry || (change.execution !== undefined && !this.executionOptions(entry).includes(change.execution))) return;
         this.setState(state => ({
-            decisions: new Map(state.decisions).set(key, {...state.decisions.get(key), ...change})
+            decisions: new Map(state.decisions).set(key, {...state.decisions.get(key)!, ...change})
         }));
     }
-    handleBulkExecution (event) {
-        const execution = event.target.value;
+    handleBulkExecution (execution: ExecutionDecision) {
         this.setState(state => {
             const decisions = new Map(state.decisions);
             for (const entry of this.props.entries) {
                 if (this.executionOptions(entry).includes(execution)) {
-                    decisions.set(entry.key, {...decisions.get(entry.key), execution});
+                    decisions.set(entry.key, {...decisions.get(entry.key)!, execution});
                 }
             }
             return {decisions};
         });
     }
-    handleBulkLoading (event) {
-        const loading = event.target.value;
+    handleBulkLoading (loading: LoadingMode) {
         this.setState(state => {
             const decisions = new Map(state.decisions);
             for (const entry of this.props.entries) {
                 if (loadingChoices(entry).includes(loading)) {
-                    decisions.set(entry.key, {...decisions.get(entry.key), loading});
+                    decisions.set(entry.key, {...decisions.get(entry.key)!, loading});
                 }
             }
             return {decisions};
@@ -246,7 +261,7 @@ export class ExtensionReview extends React.PureComponent {
             .filter(entry => entry.state && entry.state.loaded).map(entry => entry.key);
         return resolveExtensionSelection(entries, this.state.chosen, loaded);
     }
-    toggle (key) {
+    toggle (key: string) {
         this.setState(state => {
             const chosen = new Set(state.chosen);
             if (chosen.has(key)) chosen.delete(key);
@@ -254,10 +269,10 @@ export class ExtensionReview extends React.PureComponent {
             return {chosen};
         });
     }
-    renderRow (entry, selection) {
+    renderRow (entry: ReviewEntry, selection: ExtensionSelection) {
         const {mode} = this.props;
         const t = this.t.bind(this);
-        const decision = this.state.decisions.get(entry.key);
+        const decision = this.state.decisions.get(entry.key)!;
         const metadata = this.metadataOf(entry);
         const website = displayURL(metadata.docsURL);
         const release = releaseURL(metadata);
@@ -332,7 +347,7 @@ export class ExtensionReview extends React.PureComponent {
                     className="twextsec-source"
                     title={sourceLabel(entry, t)}
                 >{sourceLabel(entry, t)}</p>
-                {entry.source.sha256 && (
+                {'sha256' in entry.source && entry.source.sha256 && (
                     <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
                 )}
                 {/* When adding, the icon is a larger target for the same choice as the checkbox, which
@@ -376,7 +391,7 @@ export class ExtensionReview extends React.PureComponent {
                             label={t('execution')}
                             value={decision.execution}
                             options={executions}
-                            onChange={event => this.decide(entry.key, {execution: event.target.value})}
+                            onChange={execution => this.decide(entry.key, {execution})}
                             t={t}
                         />
                     )}
@@ -386,7 +401,7 @@ export class ExtensionReview extends React.PureComponent {
                             label={t('loading')}
                             value={decision.loading}
                             options={loadings}
-                            onChange={event => this.decide(entry.key, {loading: event.target.value})}
+                            onChange={loading => this.decide(entry.key, {loading})}
                             t={t}
                         />
                     )}
@@ -411,7 +426,7 @@ export class ExtensionReview extends React.PureComponent {
         const selection = this.selection();
         const allRequired = this.allRequired();
         const anyUnsandboxed = [...this.included()]
-            .some(key => this.state.decisions.get(key).execution === 'unsandboxed');
+            .some(key => this.state.decisions.get(key)!.execution === 'unsandboxed');
         // The bulk control offers whatever at least one row could be set to. Opening a project of
         // nothing but embedded and non-cacheable rows leaves nothing to set, and a control that
         // reaches no row would read as a choice the person does not actually have.
@@ -484,12 +499,13 @@ export class ExtensionReview extends React.PureComponent {
         }
         return body;
     }
+
+    static defaultProps = {
+        locale: 'en', fallbackLoading: 'remote-cacheable' as const, previewCache: createPreviewCache()
+    };
 }
 
 // A preview is kept in the browser the same way a `remote-cacheable` extension is, so the second
 // look at a catalog costs nothing. A host may pass its own cache, or null to keep nothing.
-ExtensionReview.defaultProps = {
-    locale: 'en', fallbackLoading: 'remote-cacheable', previewCache: createPreviewCache()
-};
 
 export default ExtensionReview;

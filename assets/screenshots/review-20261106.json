@@ -1,0 +1,16 @@
+{
+  "packageVersion": "0.8.5",
+  "sourceBase": "cba70ed1df196300cfb155da4397a50a920dd786",
+  "capture": "Local Chromium rendering of the built ExtensionReview with fixture catalog and project rows; no extension code executed.",
+  "chromium": "156.0.8078.4",
+  "viewport": {
+    "width": 1000,
+    "height": 760
+  },
+  "sha256": {
+    "review-add-en-20261106.png": "192b9d1394fcacfb5dcb7a0774e46c19cd49d5a6a25f3ab34afd5580162b3b88",
+    "review-add-ja-20261106.png": "704b5910ca9691446e178fac1bb992cfffa61d79c6a1f232c3c706c6e1012286",
+    "review-open-en-20261106.png": "4cfa11a66cd2f7305b5be0a19af4478be3540962f8d579a3a90c8f0c9f8bc310",
+    "review-open-ja-20261106.png": "8b6178a30761ed412a8741c7d2bd30b1b6aae850bbe56135532d8e4085dc0043"
+  }
+}

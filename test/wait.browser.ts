@@ -15,7 +15,7 @@ const VIEWPORT = {width: 1000, height: 800};
 let browser, server, base;
 
 const entry = `
-import {createExtensionWaitDialog} from './src/index.js';
+import {createExtensionWaitDialog} from './src/index.ts';
 const wait = window.wait = createExtensionWaitDialog(document, 'ja', {delayMs: 30});
 window.ready = true;
 `;

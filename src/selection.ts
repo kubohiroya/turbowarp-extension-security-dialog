@@ -1,3 +1,11 @@
+export type SelectionState = 'loaded' | 'selected' | 'dependency' | 'unselected';
+
+export interface ExtensionSelection {
+    selected: Set<string>; explicit: Set<string>; required: Set<string>;
+    requiredBy: Map<string, Set<string>>; loaded: Set<string>;
+    ordered: Array<{id: string}>; stateOf(id: string): SelectionState;
+}
+
 /**
  * Close a chosen set over its dependencies, and say why each row is in it.
  *
@@ -9,14 +17,15 @@
  * @param {Iterable<string>} [loaded] The IDs already running in the host.
  * @returns {object} The closed set, why each row is in it, and the order to load them in.
  */
-export function resolveExtensionSelection(entries, chosen = [], loaded = []) {
+export function resolveExtensionSelection(entries: Array<{id: string; dependencies?: readonly string[]}>,
+    chosen: Iterable<string> = [], loaded: Iterable<string> = []): ExtensionSelection {
     const byId = new Map(entries.map(entry => [entry.id, entry]));
     const explicit = new Set([...chosen].filter(id => byId.has(id)));
     const already = new Set([...loaded].filter(id => byId.has(id)));
-    const selected = new Set();
-    const requiredBy = new Map();
+    const selected = new Set<string>();
+    const requiredBy = new Map<string, Set<string>>();
 
-    const take = (id, root) => {
+    const take = (id: string, root: string | null): void => {
         if (root !== null) {
             const roots = requiredBy.get(id) || new Set();
             roots.add(root);
@@ -24,7 +33,7 @@ export function resolveExtensionSelection(entries, chosen = [], loaded = []) {
         }
         if (selected.has(id)) return;
         selected.add(id);
-        for (const dependency of byId.get(id).dependencies || []) {
+        for (const dependency of byId.get(id)!.dependencies || []) {
             take(dependency, root === null ? id : root);
         }
     };
@@ -32,15 +41,15 @@ export function resolveExtensionSelection(entries, chosen = [], loaded = []) {
 
     // A dependency has to be loaded before whatever needs it, and catalog order breaks the
     // remaining ties, so two runs over one catalog never disagree about the order.
-    const ordered = [];
+    const ordered: ExtensionSelection["ordered"] = [];
     const placed = new Set();
-    const place = id => {
+    const place = (id: string): void => {
         if (placed.has(id)) return;
         placed.add(id);
-        for (const dependency of byId.get(id).dependencies || []) {
+        for (const dependency of byId.get(id)!.dependencies || []) {
             if (selected.has(dependency)) place(dependency);
         }
-        ordered.push(byId.get(id));
+        ordered.push(byId.get(id)!);
     };
     for (const entry of entries) {
         if (selected.has(entry.id)) place(entry.id);

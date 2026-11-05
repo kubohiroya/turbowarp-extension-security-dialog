@@ -1,3 +1,12 @@
+import type {PreviewCache} from './storage.js';
+
+interface PreviewProps {
+    url: string;
+    name: string;
+    fallback: boolean;
+    cache?: PreviewCache | null;
+    locale?: string;
+}
 import React from 'react';
 import {formatMessage} from './messages.js';
 
@@ -9,8 +18,10 @@ import {formatMessage} from './messages.js';
  * row from being read or answered. It is also never evidence — nothing here is checked against a
  * digest, and what the row's own checks say is elsewhere.
  */
-export class ExtensionPreview extends React.PureComponent {
-    constructor (props) {
+export class ExtensionPreview extends React.PureComponent<PreviewProps, {src: string | null}> {
+    private controller: AbortController;
+    private objectURL: string | null;
+    constructor (props: PreviewProps) {
         super(props);
         this.state = {src: null};
         this.controller = new AbortController();
@@ -19,7 +30,7 @@ export class ExtensionPreview extends React.PureComponent {
     componentDidMount () {
         this.show();
     }
-    componentDidUpdate (previous) {
+    componentDidUpdate (previous: PreviewProps) {
         if (previous.url !== this.props.url) {
             this.release();
             this.controller.abort();
@@ -36,7 +47,7 @@ export class ExtensionPreview extends React.PureComponent {
         URL.revokeObjectURL(this.objectURL);
         this.objectURL = null;
     }
-    adopt (blob) {
+    adopt (blob: Blob) {
         if (this.controller.signal.aborted) return;
         this.objectURL = URL.createObjectURL(blob);
         this.setState({src: this.objectURL});
