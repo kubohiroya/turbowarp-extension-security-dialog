@@ -15,24 +15,29 @@ an extension asks twice: once to pick it, once to allow it.
 
 This package collects the whole project, puts one question, and only then loads anything.
 
-## Extension review in the browser
+## Extension review in the public Editor
 
-**Add extensions.** Selecting Motion Capture also selects its Camera Input dependency. The
-execution and loading choices have icons, and the extension links to its release notes and
-contact. Choosing unsandboxed execution opens a dismissible notice above the persistent
-Cancel and Add buttons.
+These screenshots were taken on 6 November 2026 in the
+[public TurboWarp Plus Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en)
+with security dialog 0.8.5.
 
-![Add review with a selected extension, its dependency and an unsandboxed warning](./assets/screenshots/review-add-en-20261106.png)
+**Add extensions.** In the TurboWarp Plus catalog, selecting TurboWarp-Title-Menu shows a
+dismissible warning about running without the sandbox. The row shows loading options with
+icons and links to the extension page, release notes and creator contact. Cancel and Add
+stay visible as the list scrolls. Closing the warning keeps the selection.
 
-**Open a project.** When every extension declares that it requires unsandboxed execution, the
-review preselects that option and waits for OK or Cancel. In this example the extension is
-stored in the project file.
+![Public catalog with TurboWarp-Title-Menu selected, a dismissible warning and fixed Cancel and Add buttons](./assets/screenshots/public-review-add-en-20261106.png)
 
-![Open review with the required execution mode selected and the OK and Cancel buttons](./assets/screenshots/review-open-en-20261106.png)
+**Open a project.** This SB3 stores Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5
+as `data:` URLs. All three declare that they require unsandboxed execution, so the dialog
+preselects the only execution option and waits for OK or Cancel. No extension has run at
+the point shown.
 
-The images show the built component in Chromium with fixture entries. The same component is
-used in the public Editor. See the [capture record](./assets/screenshots/review-20261106.json),
-[Japanese screenshots](./README.ja.md) and [public Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en).
+![Public Editor review with unsandboxed execution preselected for the three required extensions](./assets/screenshots/public-review-open-en-20261106.png)
+
+See the [capture record](./assets/screenshots/public-review-20261106.json) for the deployed
+revisions, bundle integrity, image hashes and interaction checks, and the
+[Japanese README](./README.ja.md) for the same screens in Japanese.
 
 ## Entry points
 

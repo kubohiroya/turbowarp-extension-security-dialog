@@ -18,22 +18,28 @@ VM は機能拡張を1つずつ読み込み、そのたびに尋ねます。作�
 
 このパッケージは作品全体をまとめて集め、1つの問いにして、そのあとで読み込みます。
 
-## ブラウザーでの拡張確認画面
+## 公開 Editor の拡張確認画面
 
-**機能拡張を追加する。** Motion Capture を選ぶと、依存先の Camera Input も選択されます。
-実行方法と読み込み元の選択肢にはアイコンが付き、拡張のバージョンや連絡先から関連ページを開けます。
-サンドボックスなしを選ぶと、常時表示される「キャンセル」「追加」の上に、閉じられる注意が出ます。
+2026年11月6日に、共通ダイアログ 0.8.5 が配信されている
+[公開 TurboWarp Plus Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja) で撮影しました。
 
-![拡張と依存先が選択され、サンドボックスなしの注意が表示された追加画面](./assets/screenshots/review-add-ja-20261106.png)
+**機能拡張を追加する。** TurboWarp Plus カタログで TurboWarp-Title-Menu を選ぶと、
+サンドボックスなしで実行する場合の注意が出ます。拡張の行には読み込み元のアイコンと、
+拡張の紹介・リリース・製作者の連絡先へのリンクがあります。一覧をスクロールしても
+「キャンセル」「追加」は下部に表示され、注意を閉じても選択は残ります。
 
-**作品を開く。** 全拡張がサンドボックスなしを必須と申告している場合は、その選択肢が選択済みになり、
-OK またはキャンセルを待ちます。この例では、機能拡張を作品ファイルの中に保存しています。
+![TurboWarp-Title-Menu を選択した公開カタログ。閉じられる注意と固定のキャンセル・追加ボタンを表示](./assets/screenshots/public-review-add-ja-20261106.png)
 
-![必須の実行方法が選択され、OK とキャンセルが表示された作品を開く画面](./assets/screenshots/review-open-ja-20261106.png)
+**作品を開く。** この SB3 には Camera Source 0.19.4、Asset Cache 0.3.2、Bubble 0.13.5 を
+`data:` URL として保存しています。3件ともサンドボックスなしを必須と申告しているため、
+実行方法はその選択肢だけが選択済みになり、OK またはキャンセルを待ちます。
+図版の時点では、どの拡張もまだ実行していません。
 
-図版は、公開 Editor でも使われるコンポーネントを、サンプルの拡張情報で Chromium に描画したものです。
-[撮影記録](./assets/screenshots/review-20261106.json)・[英語版の図版](./README.md)・
-[公開 Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja)
+![公開 Editor の作品を開く確認画面。3件の必須拡張でサンドボックスなしを選択済み](./assets/screenshots/public-review-open-ja-20261106.png)
+
+配信リビジョン、配布物の整合性、画像のハッシュ、日英の操作確認は
+[撮影記録](./assets/screenshots/public-review-20261106.json)に記載しています。
+[英語版 README](./README.md) にも同じ画面を掲載しています。
 
 ## 入口
 
