@@ -3,10 +3,10 @@ import {existsSync} from 'node:fs';
 import path from 'node:path';
 
 const sourcePaths = ['src', 'assets/common.svg', 'scripts', 'package.json', 'pnpm-lock.yaml',
-    'README.md', 'README.ja.md', 'NOTICE.md', 'LICENSE'];
+    'tsconfig.json', 'README.md', 'README.ja.md', 'NOTICE.md', 'LICENSE'];
 
 /** npm may prepare a pinned GitHub archive without a .git directory. */
-export function readBuildSource(root, archiveRevision = process.env.TWEXTSEC_SOURCE_REVISION) {
+export function readBuildSource(root: string, archiveRevision = process.env.TWEXTSEC_SOURCE_REVISION) {
     if (existsSync(path.join(root, '.git'))) {
         const revision = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
         if (!/^[a-f0-9]{40}$/.test(revision)) throw new Error('A full source revision is required.');

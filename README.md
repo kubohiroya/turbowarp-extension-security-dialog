@@ -15,19 +15,29 @@ an extension asks twice: once to pick it, once to allow it.
 
 This package collects the whole project, puts one question, and only then loads anything.
 
-## Public Editor screenshots
+## Extension review in the public Editor
 
-This is the [public Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en) on
-3 November 2026, opening the published Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5 bundles.
-All three declare unsandboxed execution required, so that is the only execution choice shown and is already selected.
-The other two execution choices and execution bulk control are absent. OK runs the extensions; Cancel stops loading.
-No extension has run before OK.
+These screenshots were taken on 6 November 2026 in the
+[public TurboWarp Plus Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=en)
+with security dialog 0.8.5.
 
-![English review with only Without the sandbox selected for all three required extensions. The other two execution choices and execution bulk control are absent; choose OK or Cancel.](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/all-required-open-en-20261103.png)
+**Add extensions.** In the TurboWarp Plus catalog, selecting TurboWarp-Title-Menu shows a
+dismissible warning about running without the sandbox. The row shows loading options with
+icons and links to the extension page, release notes and creator contact. Cancel and Add
+stay visible as the list scrolls. Closing the warning keeps the selection.
 
-The same dialog was captured in [Japanese](./README.ja.md). These are unmodified dialog-only browser captures.
-Distribution and image hashes, pinned Editor revisions and the checks for both languages are recorded in
-[the capture manifest](./assets/screenshots/all-required-open-20261103.json).
+![Public catalog with TurboWarp-Title-Menu selected, a dismissible warning and fixed Cancel and Add buttons](./assets/screenshots/public-review-add-en-20261106.png)
+
+**Open a project.** This SB3 stores Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5
+as `data:` URLs. All three declare that they require unsandboxed execution, so the dialog
+preselects the only execution option and waits for OK or Cancel. No extension has run at
+the point shown.
+
+![Public Editor review with unsandboxed execution preselected for the three required extensions](./assets/screenshots/public-review-open-en-20261106.png)
+
+See the [capture record](./assets/screenshots/public-review-20261106.json) for the deployed
+revisions, bundle integrity, image hashes and interaction checks, and the
+[Japanese README](./README.ja.md) for the same screens in Japanese.
 
 ## Entry points
 
@@ -40,7 +50,7 @@ Distribution and image hashes, pinned Editor revisions and the checks for both l
 
 ## The screen
 
-```jsx
+```tsx
 import {ExtensionReview} from '@kubohiroya/turbowarp-extension-security-dialog/react';
 import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 
@@ -86,7 +96,7 @@ write permission back over it. So `loadingChoices` reads the choices off the row
 needs no table beside it — a row whose source names a form is already loading that way, and the
 screen states it instead of asking.
 
-### What it will not do
+### Execution, trust and remembered choices
 
 **When opening a project whose extensions all declare unsandboxed execution required, that mode is preselected.**
 This applies only to a non-empty list with every declaration available and no failed row. The other two
@@ -96,17 +106,26 @@ Nothing runs before OK. Loading-source and cache-decline choices remain independ
 Adding from the catalog, or opening a mixed, optional, undeclared or failed batch, keeps the sandbox
 as the default and leaves the execution choices available. A choice contradicting a declaration is warned about.
 
-**A trusted row is stated, not asked about.** An extension the catalog lists is treated like the
-host's own gallery: it runs without the sandbox and offers no execution choice. A project with
-nothing but trusted rows is not worth stopping, so `requiresReview` says to skip the screen.
+**The host identifies trusted rows** through `entry.state.trusted`. The dialog marks those rows
+as trusted and sets them to run without the sandbox. The host can skip review for a project
+whose rows are all trusted using `requiresReview`.
 
 **A remembered answer is honoured only where it is still one of the choices.** A project that
 moved from `remote-cacheable` to embedded bytes, or a row that has since become trusted, does not
 carry a stale answer into a screen that no longer offers it.
 
+In add mode, the checkbox, preview icon and extension name appear together. The catalog area
+scrolls independently of Cancel and Add. Dismissing the unsandboxed notice preserves the selection
+and returns focus to the control that opened it.
+
+For trusted entries, the trust badge links to the extension page when provided. Supported
+GitHub versions link to their release notes. The description preserves line breaks and turns
+HTTP(S) URLs and email addresses into links. The creator's contact appears next to their name
+when supplied.
+
 ### When loading fails
 
-```jsx
+```tsx
 <ExtensionReview
     /* ...as above */
     failure={{code: error.code, message: error.message, retryable: isWorthAskingAgain(error)}}
@@ -129,7 +148,7 @@ retry controls. `code` is optional display text, and `retryable` defaults to no 
 
 Published packages include `dist/build-info.json`, also exported as
 `@kubohiroya/turbowarp-extension-security-dialog/build-info`. It records `name`, `version`, the full
-source `revision` and `sourceState` (`commit` or `working-tree`). Hosts can pin the exact version
+source `revision` and `sourceState` (`commit`, `working-tree` or `git-archive`). Hosts can pin the exact version
 and verify its revision before deployment. To roll back, restore the previous package version and
 lockfile; to hide the new failure UI, stop passing `failure` and `onRetry`.
 
@@ -215,8 +234,9 @@ what a bundle says about its members is theirs, not its own.
 
 ```sh
 pnpm install
+pnpm run typecheck
 pnpm run check   # build, unit tests, and a packing dry run
-node --test test/wait.browser.mjs test/review.browser.mjs
+node --test test/wait.browser.ts test/review.browser.ts
 ```
 
 React and React DOM are peer dependencies, so the host supplies them. There are no runtime

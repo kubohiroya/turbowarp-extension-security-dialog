@@ -54,9 +54,10 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "test": "pnpm run build && node --test test/*.test.cjs",
-    "check": "pnpm run test && npm pack --dry-run --ignore-scripts",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.ts",
+    "test": "pnpm run build && node --test test/*.test.cts",
+    "check": "pnpm run typecheck && pnpm run test && npm pack --dry-run --ignore-scripts",
     "prepack": "pnpm run build",
     "prepare": "pnpm run build"
   },
@@ -74,10 +75,14 @@
   },
   "devDependencies": {
     "@playwright/test": "1.64.1",
+    "@types/node": "^24.19.2",
+    "@types/react": "^16.14.70",
+    "@types/react-dom": "^16.9.25",
     "esbuild": "^0.28.2",
     "jsdom": "^26.1.0",
     "react": "^16.14.0",
-    "react-dom": "^16.14.0"
+    "react-dom": "^16.14.0",
+    "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@11.28.8",
   "engines": {

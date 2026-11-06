@@ -2,14 +2,14 @@
 
 ## This package
 
-Everything in `src/` and `assets/` was written for this package and is covered by
+The code in `src/` and the original icons in `assets/` are covered by
 [LICENSE](./LICENSE) (MPL-2.0). No file here carries the "Incompatible With Secondary Licenses"
 notice, so this code can be combined into a larger work distributed under GPL-3.0 — which is how
 the TurboWarp-Plus Editor ships it.
 
 `assets/common.svg` is the fallback icon shown when an extension has no preview of its own. It is
 original to this package: a jigsaw piece outline with a serif T, drawn for it and derived from no
-other work. `scripts/build.mjs` embeds it into `dist` as a base64 data URI, so it travels in the
+other work. `scripts/build.ts` embeds it into `dist` as a base64 data URI, so it travels in the
 published package.
 
 `assets/trusted.svg` is the mark beside an extension the host trusts: the TurboWarp Plus mark (the
@@ -42,3 +42,9 @@ The source distributions are Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 
 unmodified browser captures; source integrity, Editor revisions, image hashes and checks are recorded in
 `assets/screenshots/all-required-open-20261103.json`. The captured interface and extension graphics retain
 their respective rights holders and applicable licenses.
+
+`assets/screenshots/public-review-{add,open}-{en,ja}-20261106.png` show the public Editor on
+6 November 2026 with security dialog 0.8.5. The add screenshots use the live TurboWarp Plus
+catalog. The open screenshots use the published bundles listed above, embedded in an SB3.
+See `assets/screenshots/public-review-20261106.json` for deployment revisions, source integrity,
+image hashes and interaction checks.

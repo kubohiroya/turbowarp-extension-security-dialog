@@ -5,7 +5,7 @@ const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 
 test('build provenance uses its own checkout, and requires an explicit pin for an archive', async () => {
-    const {readBuildSource} = await import('../scripts/build-source.mjs');
+    const {readBuildSource} = await import('../scripts/build-source.ts');
     const root = path.resolve(__dirname, '..');
     const expected = execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim();
     assert.equal(readBuildSource(root, 'a'.repeat(40)).revision, expected);

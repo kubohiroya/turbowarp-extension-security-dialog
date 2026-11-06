@@ -18,18 +18,28 @@ VM は機能拡張を1つずつ読み込み、そのたびに尋ねます。作�
 
 このパッケージは作品全体をまとめて集め、1つの問いにして、そのあとで読み込みます。
 
-## 公開Editorのスクリーンショット
+## 公開 Editor の拡張確認画面
 
-2026年11月3日の[公開Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja)で、
-配布済みのCamera Source 0.19.4・Asset Cache 0.3.2・Bubble 0.13.5を開いた実画面です。
-3件すべてが「サンドボックスなし」を必須と申告しているため、その選択肢だけを選択済みで表示します。
-「動かさない」「サンドボックスの中で」と実行方法の一括指定は表示せず、OKで実行するかキャンセルで中止します。
-OK前にはどの拡張も実行していません。
+2026年11月6日に、共通ダイアログ 0.8.5 が配信されている
+[公開 TurboWarp Plus Editor](https://kubohiroya.github.io/turbowarp-plus-editor/editor.html?lang=ja) で撮影しました。
 
-![全拡張が必須と申告しているため、サンドボックスなしだけが選択済みの日本語確認画面。他の2実行選択肢と一括指定はなく、OKかキャンセルで続ける](https://raw.githubusercontent.com/kubohiroya/turbowarp-extension-security-dialog/main/assets/screenshots/all-required-open-ja-20261103.png)
+**機能拡張を追加する。** TurboWarp Plus カタログで TurboWarp-Title-Menu を選ぶと、
+サンドボックスなしで実行する場合の注意が出ます。拡張の行には読み込み元のアイコンと、
+拡張の紹介・リリース・製作者の連絡先へのリンクがあります。一覧をスクロールしても
+「キャンセル」「追加」は下部に表示され、注意を閉じても選択は残ります。
 
-同じダイアログの[英語版](./README.md)も撮影しました。画像はダイアログ部分を無加工で撮影したもので、
-配布物と画像のhash・Editorの固定revision・日英の確認結果を[撮影台帳](./assets/screenshots/all-required-open-20261103.json)に記録しています。
+![TurboWarp-Title-Menu を選択した公開カタログ。閉じられる注意と固定のキャンセル・追加ボタンを表示](./assets/screenshots/public-review-add-ja-20261106.png)
+
+**作品を開く。** この SB3 には Camera Source 0.19.4、Asset Cache 0.3.2、Bubble 0.13.5 を
+`data:` URL として保存しています。3件ともサンドボックスなしを必須と申告しているため、
+実行方法はその選択肢だけが選択済みになり、OK またはキャンセルを待ちます。
+図版の時点では、どの拡張もまだ実行していません。
+
+![公開 Editor の作品を開く確認画面。3件の必須拡張でサンドボックスなしを選択済み](./assets/screenshots/public-review-open-ja-20261106.png)
+
+配信リビジョン、配布物の整合性、画像のハッシュ、日英の操作確認は
+[撮影記録](./assets/screenshots/public-review-20261106.json)に記載しています。
+[英語版 README](./README.md) にも同じ画面を掲載しています。
 
 ## 入口
 
@@ -42,7 +52,7 @@ OK前にはどの拡張も実行していません。
 
 ## 画面
 
-```jsx
+```tsx
 import {ExtensionReview} from '@kubohiroya/turbowarp-extension-security-dialog/react';
 import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 
@@ -86,7 +96,7 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 `loadingChoices` は行の source から選択肢を読み取り、横に対応表を置く必要がありません。source が
 持ち方を名指している行はもうそのように読み込まれているので、画面は尋ねるのではなく述べます。
 
-### しないこと
+### 実行方法・信頼済みの拡張・記憶した選択
 
 **作品を開くとき、全件がサンドボックスなしを必須と申告していれば、そのモードを選択済みにします。**
 取得失敗がなく、空でない一覧のすべての申告が揃った場合だけ適用します。「動かさない」と
@@ -115,16 +125,16 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 自動では消えず、「閉じる」で非表示にしても選択や許可は変わりません。警告が必要な選択を
 すべて解除するまでは閉じた状態を保ち、再び選択したときは表示し直します。
 
-**信頼済みの行は、尋ねずに述べます。** カタログに載っている拡張はホストの標準ギャラリーと同じ
-扱いで、サンドボックスなしで動き、実行の選択肢を出しません。信頼済みの行だけの作品は止める
-価値が無いので、`requiresReview` が画面を出さなくてよいと答えます。
+**信頼済みかどうかはホストが決めます。** `entry.state.trusted` を指定した行には信頼済みの印を付け、
+サンドボックスなしを適用します。すべての行が信頼済みの作品では、ホストは `requiresReview` で確認を
+省略できます。
 
 **記録された答えは、いまも選択肢である場合だけ尊重します。** 作品が `remote-cacheable` から
 埋め込みに変わった、行が信頼済みになった、といった場合に、もう提示しない答えを持ち込みません。
 
 ### 読み込みに失敗したとき
 
-```jsx
+```tsx
 <ExtensionReview
     /* ...上と同じ */
     failure={{code: error.code, message: error.message, retryable: isWorthAskingAgain(error)}}
@@ -147,7 +157,7 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 
 公開パッケージには `dist/build-info.json` を含め、
 `@kubohiroya/turbowarp-extension-security-dialog/build-info` からも参照できます。`name`、`version`、
-ソースの完全な `revision`、`sourceState`（`commit` または `working-tree`）を記録します。ホスト側は
+ソースの完全な `revision`、`sourceState`（`commit`、`working-tree`、`git-archive`）を記録します。ホスト側は
 完全版を固定し、配信前に revision を照合できます。切り戻しはパッケージ版と lockfile を元に戻す
 ことで行えます。新しい失敗表示だけを止める場合は、`failure` と `onRetry` を渡さないでください。
 
@@ -227,8 +237,9 @@ const uninstall = installBatchExtensionLoader(vm, review, defaultURLs, createDec
 
 ```sh
 pnpm install
+pnpm run typecheck
 pnpm run check   # ビルド、単体テスト、pack の dry run
-node --test test/wait.browser.mjs test/review.browser.mjs # 取得待ち・選択画面の実ブラウザ検証
+node --test test/wait.browser.ts test/review.browser.ts # 取得待ち・選択画面の実ブラウザ検証
 ```
 
 React と React DOM は peerDependencies なので、ホストが用意します。実行時の依存はありません。

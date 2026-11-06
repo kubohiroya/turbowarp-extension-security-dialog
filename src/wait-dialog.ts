@@ -1,3 +1,9 @@
+export interface ExtensionWaitDialog {
+    show(info: {url?: string; attempt?: number; attempts?: number}): void;
+    hide(): void;
+    dispose(): void;
+}
+
 import {formatMessage} from './messages.js';
 
 // The dialog carries its own styles because its hosts are not all CSS pipelines: the Editor
@@ -17,7 +23,7 @@ const styles = '.twextsec-wait{position:fixed;left:50vw;top:50vh;right:auto;bott
     '.twextsec-wait-source{overflow-wrap:anywhere;font-size:.85em;opacity:.7}' +
     '.twextsec-wait-note{margin-bottom:0;font-size:.9em;opacity:.8}';
 
-const injectStyles = document => {
+const injectStyles = (document: Document) => {
     if (!document.head || document.querySelector('[data-twextsec-wait-style]')) return;
     const element = document.createElement('style');
     element.setAttribute('data-twextsec-wait-style', '');
@@ -25,7 +31,7 @@ const injectStyles = document => {
     document.head.appendChild(element);
 };
 
-const text = (document, tag, value, className) => {
+const text = (document: Document, tag: string, value: string, className?: string) => {
     const element = document.createElement(tag);
     element.textContent = value;
     if (className) element.className = className;
@@ -52,17 +58,17 @@ const text = (document, tag, value, className) => {
  * @param {object} options How long a wait has to look like before it is worth a dialog.
  * @returns {object} The show, hide and dispose ends of one dialog.
  */
-export function createExtensionWaitDialog(document, locale = 'en', {delayMs = 300} = {}) {
-    let dialog = null;
-    let timer = null;
-    let latest = null;
+export function createExtensionWaitDialog(document: Document, locale = 'en', {delayMs = 300} = {}): ExtensionWaitDialog {
+    let dialog: HTMLDialogElement | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let latest: Parameters<ExtensionWaitDialog['show']>[0] | null = null;
     let disposed = false;
-    const label = key => formatMessage(locale, key, latest || {});
+    const label = (key: string) => formatMessage(locale, key, latest || {});
 
     const render = () => {
         if (!dialog) return;
-        dialog.querySelector('[data-twextsec-wait="attempt"]').textContent = label('fetchWaitRetry');
-        dialog.querySelector('[data-twextsec-wait="source"]').textContent = latest.url || '';
+        dialog.querySelector('[data-twextsec-wait="attempt"]')!.textContent = label('fetchWaitRetry');
+        dialog.querySelector('[data-twextsec-wait="source"]')!.textContent = latest?.url || '';
     };
     const open = () => {
         timer = null;
@@ -96,7 +102,7 @@ export function createExtensionWaitDialog(document, locale = 'en', {delayMs = 30
          * @param {object} info The url, the attempt it leads to, and how many there are in all.
          * @returns {void}
          */
-        show(info) {
+        show(info: Parameters<ExtensionWaitDialog['show']>[0]) {
             if (disposed) return;
             latest = info || {};
             if (dialog) render();

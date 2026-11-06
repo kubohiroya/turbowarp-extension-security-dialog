@@ -1,0 +1,257 @@
+{
+  "formatVersion": 1,
+  "capturedOn": "2026-11-06",
+  "timeZone": "Asia/Tokyo",
+  "issue": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/78",
+  "editor": "https://kubohiroya.github.io/turbowarp-plus-editor/",
+  "editorBuild": {
+    "repository": "https://github.com/kubohiroya/scratch-gui",
+    "revision": "5388bf13fd5c147dd879b19d6afd9b81870196db",
+    "coreRepository": "https://github.com/kubohiroya/turbowarp-extension-data-editor",
+    "coreRevision": "5b8c653c6536518cf87c8b1273f73ff9eb47e1ca",
+    "coreVersion": "0.8.0",
+    "securityPackage": "@kubohiroya/turbowarp-extension-security-dialog",
+    "securityVersion": "0.8.5",
+    "siteRepository": "https://github.com/kubohiroya/turbowarp-plus-editor",
+    "siteRevision": "98388060c9be3a9302df6583006ca97c96b9081f",
+    "extensionIntegration": {
+      "loaderRepository": "kubohiroya/turbowarp-extension-loader",
+      "loaderRevision": "3d27ff926cdfbc73cf9e7a198f4d804f219fc1a4",
+      "loaderSource": "npm",
+      "loaderVersion": "0.8.0",
+      "loaderIntegrity": "sha512-DMeJoSErRDUUfK/JPIOVEV3W82BKHHtVXjNUd0lTMg7TsYI91/hmakuOZUDKBqv/y+T9dmaZRWlf4ab/3JP9sg==",
+      "vmRepository": "kubohiroya/scratch-vm",
+      "vmRevision": "78e5f032c2a44a6e636f0e72fd290c6584506c82",
+      "packagerRepository": "TurboWarp/packager",
+      "packagerRevision": "c115bdf525c5f49f0fb689a21b335ccb70fc22d2",
+      "featureDefault": true,
+      "assets": {
+        "plus-packager.html": "4f4d58c13b64d8551b4eb80f70dfe6115f58ea7c7fe58b8fb04dc8f8a36f8677",
+        "plus-packager.js": "bf7bcaaf47d12161996823b3b8787084d1398b62376896c6255e74353ff4c081"
+      },
+      "scaffolding": {
+        "packagerRevision": "c115bdf525c5f49f0fb689a21b335ccb70fc22d2",
+        "vmVersion": "2.1.46",
+        "vmManagerSha256": "dc3630988ea3d3211469040b2416200b76c6b237672af41010384571a4fa3415",
+        "buildId": "b3a0544cecac62876c6e3e23ca4d01e70e2bf844f869039e507fc7443b4da20c",
+        "sourceHashes": {
+          "scaffolding-full.js": "2c2aa29bdaae931c00be616345e7ac4269ec4621ee044cbbd8540c432b388339",
+          "scaffolding-min.js": "2c2aa29bdaae931c00be616345e7ac4269ec4621ee044cbbd8540c432b388339",
+          "addons.js": "51a27eea489bf09d626e0f6c138c8eaf7b673931ceac9d13021fa1be959e2382"
+        }
+      }
+    },
+    "documentEditor": {
+      "repository": "https://github.com/kubohiroya/turbowarp-document-editor",
+      "revision": "39feb6428f04b30ce54a74e0fd58ad89ff17ced3",
+      "version": "0.1.0-rc.4",
+      "metadata": "document-editor/build-info.json",
+      "source": "npm",
+      "integrity": "sha512-gJShwkQggnWHMm5mm102YxODJyf0HLka73TnGsiNvyhzkFEM3ZWr1ppVgwP8fQabp3fOMjRmF2DegVjCKSJl5g=="
+    },
+    "scriptTransfer": {
+      "repository": "https://github.com/kubohiroya/turbowarp-script-transfer",
+      "revision": "b8192730b1d9bc93d3067153b6c41df4f6ad4e0c",
+      "version": "0.1.1",
+      "featureDefault": true
+    },
+    "spriteProperties": {
+      "package": "@kubohiroya/turbowarp-editor-sprite-properties",
+      "version": "0.1.1",
+      "revision": "80825f7275f6f87d47053870d31cba69fc189f30",
+      "source": "local-tarball",
+      "artifact": "vendor/turbowarp-editor-sprite-properties-0.1.1.tgz",
+      "integrity": "sha512-Fe4AcOadcNCLVRakeM9X4tJ59wMdPUcvR3eK9XAs459wY1eIVLbvkYBQWyTke++1AdaZahq2b9Rq7OuUNg93Qg==",
+      "featureDefault": false
+    },
+    "familyNotices": {
+      "index": "notices/family.json",
+      "packages": [
+        "@kubohiroya/turbowarp-document-data@0.5.0-rc.1",
+        "@kubohiroya/turbowarp-document-data@0.5.0-rc.2",
+        "@kubohiroya/turbowarp-document-data@0.6.0-rc.0",
+        "@kubohiroya/turbowarp-document-editor@0.1.0-rc.4",
+        "@kubohiroya/turbowarp-document-source@0.1.0-rc.0",
+        "@kubohiroya/turbowarp-document-source@0.2.0-rc.0",
+        "@kubohiroya/turbowarp-editor-backpack@0.1.0",
+        "@kubohiroya/turbowarp-editor-layout@0.1.0",
+        "@kubohiroya/turbowarp-editor-sprite-properties@0.1.1",
+        "@kubohiroya/turbowarp-editor-surfaces@0.1.0",
+        "@kubohiroya/turbowarp-editor-transfer@0.1.0",
+        "@kubohiroya/turbowarp-editor-views@0.1.0",
+        "@kubohiroya/turbowarp-editor-windows@0.6.1",
+        "@kubohiroya/turbowarp-extension-data-editor@0.7.0",
+        "@kubohiroya/turbowarp-extension-data-editor@0.8.0",
+        "@kubohiroya/turbowarp-extension-loader@0.8.0",
+        "@kubohiroya/turbowarp-extension-security-dialog@0.8.5",
+        "@kubohiroya/turbowarp-named-data@0.8.0-rc.0",
+        "@kubohiroya/turbowarp-named-functions@0.4.1-rc.1",
+        "@kubohiroya/turbowarp-plus-editor-ui@0.1.0",
+        "@kubohiroya/turbowarp-sb3-save-format@0.4.0-rc.2",
+        "@kubohiroya/turbowarp-script-transfer@0.1.1",
+        "@kubohiroya/turbowarp-structured-data@0.11.0-rc.1",
+        "@kubohiroya/turbowarp-yaml-json@0.8.0-rc.0",
+        "@kubohiroya/turbowarp-yaml-json@0.9.0-rc.0",
+        "scratch-vm@2.1.46"
+      ],
+      "undeclared": [
+        "@kubohiroya/turbowarp-extension-data-editor@0.7.0"
+      ]
+    }
+  },
+  "method": "Dialog element screenshots of the deployed Editor. Add uses its live TurboWarp Plus catalog. Open uses the File menu and a local SB3 containing the verified published bundles as data URLs. No approval or extension execution.",
+  "browser": {
+    "name": "Chromium",
+    "version": "156.0.8078.4",
+    "viewport": {
+      "width": 1440,
+      "height": 1250
+    },
+    "deviceScaleFactor": 1,
+    "openUserAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36"
+  },
+  "fixture": {
+    "sha256": "c78c285900acbf77c8bc180aa68427e1d10aa052a4e6a57479dbe60ebab11ef8",
+    "extensions": [
+      {
+        "id": "kubohiroyacamerasource",
+        "name": "Camera Source",
+        "version": "0.19.4",
+        "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-camera-source/-/turbowarp-camera-source-0.19.4.tgz",
+        "distFile": "package/dist/camera-source.js",
+        "integrity": "sha512-/3KYLTm7IVRM/l24XSvQUO1wKSNclWRmbaBSHHwu7CJ6PTim+J0nmp4CRK8bkO2kZ2rCKMosNnVW76seIKf8kg==",
+        "sha256": "4867ca8024d55468cc54c68ddcd524b3475a1f8ac98c7b134438885ae14c30c2"
+      },
+      {
+        "id": "kubohiroyaassetcache",
+        "name": "Asset Cache",
+        "version": "0.3.2",
+        "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-asset-cache/-/turbowarp-asset-cache-0.3.2.tgz",
+        "distFile": "package/dist/asset-cache.js",
+        "integrity": "sha512-XFFh+jO8/xBj71dCn8Ogxaacer92YcdUYlrYBttS/0wNOxJeZnplywYxdBeXID+S0HPBdGIwMiK/Obujw0RoUQ==",
+        "sha256": "6fa0692280f1c7c4e1ea33974d8c0591bdb276db8f2e5f44c5e07d70299b7745"
+      },
+      {
+        "id": "kubohiroyabubble",
+        "name": "Bubble",
+        "version": "0.13.5",
+        "tarball": "https://registry.npmjs.org/@kubohiroya/turbowarp-bubble/-/turbowarp-bubble-0.13.5.tgz",
+        "distFile": "package/dist/turbowarp-bubble.js",
+        "integrity": "sha512-xIfG0QVrfF08I6+Jrz3kljvjqmx3VakErl3DUCpLLM13WTOvXq4dS7lahRfnynhSdjS/j+YSQvWDFqozxJo0hg==",
+        "sha256": "4b42edd1c2f051e0b7b93f5ab1c268211a93a0af505e633bed210c82a98a8b2f"
+      }
+    ]
+  },
+  "captures": [
+    {
+      "locale": "ja",
+      "mode": "add",
+      "file": "assets/screenshots/public-review-add-ja-20261106.png",
+      "capturedAt": "2026-11-06T02:37:15.796Z",
+      "width": 1440,
+      "height": 1250,
+      "sha256": "8714b629edd5d6bbb3a527a6b3ee1116e0beeabad124d880afc2d5452b99598f",
+      "checks": {
+        "extension": "TurboWarp-Title-Menu",
+        "id": "kubohiroyaturbowarptitlemenu",
+        "catalogRows": 42,
+        "selected": true,
+        "warning": "サンドボックスなしの拡張は、作品・エディター・このサイトのデータにアクセスできます。信頼できるコードにだけ選んでください。\n閉じる",
+        "metadataLinks": [
+          "https://kubohiroya.github.io/turbowarp-title-menu/",
+          "https://github.com/kubohiroya/turbowarp-title-menu/releases/tag/v0.5.0",
+          "https://github.com/kubohiroya"
+        ],
+        "fixedActions": "キャンセル\n追加",
+        "actionPositionStableWhileScrolling": true,
+        "dismissalPreservesSelection": true
+      }
+    },
+    {
+      "locale": "ja",
+      "mode": "open",
+      "file": "assets/screenshots/public-review-open-ja-20261106.png",
+      "capturedAt": "2026-11-06T02:37:17.019Z",
+      "width": 768,
+      "height": 685,
+      "sha256": "33a09b614f4cbba9a5ff26d5e826c805534bad485649b698624807142469aef9",
+      "checks": {
+        "extensions": [
+          "Camera Source",
+          "Asset Cache",
+          "Bubble"
+        ],
+        "executionChoicesPerRow": 1,
+        "unsandboxedPreselected": true,
+        "executionBulkAbsent": true,
+        "okEnabled": true,
+        "cancelEnabled": true,
+        "loadedBeforeApproval": [
+          false,
+          false,
+          false
+        ],
+        "loadedAfterCancel": [
+          false,
+          false,
+          false
+        ]
+      }
+    },
+    {
+      "locale": "en",
+      "mode": "add",
+      "file": "assets/screenshots/public-review-add-en-20261106.png",
+      "capturedAt": "2026-11-06T02:37:18.051Z",
+      "width": 1440,
+      "height": 1250,
+      "sha256": "27f14d538e3388cc03967ed7fb82fce18d530787b02d1fc9ed2e83dbfc68ff97",
+      "checks": {
+        "extension": "TurboWarp-Title-Menu",
+        "id": "kubohiroyaturbowarptitlemenu",
+        "catalogRows": 42,
+        "selected": true,
+        "warning": "Without the sandbox, an extension can reach the project, the editor and this site’s data. Choose it only for code you trust.\nClose",
+        "metadataLinks": [
+          "https://kubohiroya.github.io/turbowarp-title-menu/",
+          "https://github.com/kubohiroya/turbowarp-title-menu/releases/tag/v0.5.0",
+          "https://github.com/kubohiroya"
+        ],
+        "fixedActions": "Cancel\nAdd",
+        "actionPositionStableWhileScrolling": true,
+        "dismissalPreservesSelection": true
+      }
+    },
+    {
+      "locale": "en",
+      "mode": "open",
+      "file": "assets/screenshots/public-review-open-en-20261106.png",
+      "capturedAt": "2026-11-06T02:37:19.227Z",
+      "width": 768,
+      "height": 679,
+      "sha256": "35efb01404ad33149e5e0f627620d242c36b7b4c79f78bd85292f222067e26d2",
+      "checks": {
+        "extensions": [
+          "Camera Source",
+          "Asset Cache",
+          "Bubble"
+        ],
+        "executionChoicesPerRow": 1,
+        "unsandboxedPreselected": true,
+        "executionBulkAbsent": true,
+        "okEnabled": true,
+        "cancelEnabled": true,
+        "loadedBeforeApproval": [
+          false,
+          false,
+          false
+        ],
+        "loadedAfterCancel": [
+          false,
+          false,
+          false
+        ]
+      }
+    }
+  ]
+}
