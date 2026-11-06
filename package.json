@@ -50,6 +50,9 @@
     "webpack4.css",
     "README.md",
     "README.ja.md",
+    "assets/screenshots/review-add-*-20261106.png",
+    "assets/screenshots/review-open-*-20261106.png",
+    "assets/screenshots/review-20261106.json",
     "NOTICE.md",
     "LICENSE"
   ],
@@ -57,7 +60,7 @@
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build.ts",
     "test": "pnpm run build && node --test test/*.test.cts",
-    "check": "pnpm run test && npm pack --dry-run --ignore-scripts",
+    "check": "pnpm run typecheck && pnpm run test && npm pack --dry-run --ignore-scripts",
     "prepack": "pnpm run build",
     "prepare": "pnpm run build"
   },
