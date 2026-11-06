@@ -1,4 +1,9 @@
 .twextsec-review { box-sizing: border-box; color: var(--ui-modal-foreground, #263145); font: inherit; }
+/* Cap the host overlay when the editor is wider than the mobile viewport. */
+[class~="ReactModalPortal"] > :has(> [role="dialog"] .twextsec-review[data-mode="open"]) {
+    max-width: 100vw;
+    max-height: 100vh;
+}
 /* Only the catalog content scrolls; its actions keep their place in the host's available height. */
 .twextsec-review[data-mode="add"] { position: relative; display: grid;
     grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; }
