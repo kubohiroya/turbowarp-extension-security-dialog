@@ -425,6 +425,10 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         const t = this.t.bind(this);
         const selection = this.selection();
         const allRequired = this.allRequired();
+        const rowExecutions = entries.filter(entry => !isTrusted(entry))
+            .map(entry => this.state.decisions.get(entry.key)?.execution);
+        const bulkExecution = rowExecutions.every(execution => execution === rowExecutions[0]) ?
+            rowExecutions[0] : undefined;
         const anyUnsandboxed = [...this.included()]
             .some(key => this.state.decisions.get(key)!.execution === 'unsandboxed');
         // The bulk control offers whatever at least one row could be set to. Opening a project of
@@ -446,7 +450,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                     {!allRequired && <Choices
                         name="execution-all"
                         label={t('executionBulk')}
-                        value={null}
+                        value={bulkExecution}
                         options={mode === 'add' ? ['sandboxed', 'unsandboxed'] :
                             ['deny', 'sandboxed', 'unsandboxed']}
                         onChange={this.handleBulkExecution}

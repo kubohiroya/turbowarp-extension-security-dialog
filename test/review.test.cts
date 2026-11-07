@@ -185,18 +185,26 @@ test('adding offers all four forms, because adding is authoring', () => {
     view.unmount();
 });
 
-test('a bulk choice reaches only the rows that have it to make', () => {
+test('bulk execution reflects the choices of the rows it can change', () => {
     const view = render({
         mode: 'open',
-        entries: [cacheableRow('a'), cacheableRow('vouched', {state: {trusted: true}})]
+        entries: [cacheableRow('a'), cacheableRow('b'), cacheableRow('vouched', {state: {trusted: true}})]
     });
-    act(() => {
-        const all = view.host.querySelector('input[name="execution-all"][value="deny"]');
-        all.checked = true;
-        Simulate.change(all);
-    });
+    const bulkExecution = () => view.host.querySelector('input[name="execution-all"]:checked')?.value;
+    for (const execution of ['deny', 'sandboxed', 'unsandboxed']) {
+        act(() => {view.radio('all', 'execution', execution).click();});
+        assert.equal(bulkExecution(), execution);
+        for (const key of ['a', 'b']) assert.equal(view.radio(key, 'execution', execution).checked, true);
+    }
+    act(() => {view.radio('a', 'execution', 'deny').click();});
+    assert.equal(bulkExecution(), undefined);
+    act(() => {view.radio('b', 'execution', 'deny').click();});
+    assert.equal(bulkExecution(), 'deny');
+    assert.equal(view.answer, undefined);
     view.click('twextsec-complete');
-    assert.equal(view.answer.get('a').execution, 'deny');
+    for (const key of ['a', 'b']) {
+        assert.deepEqual(view.answer.get(key), {execution: 'deny', loading: 'remote-cacheable'});
+    }
     // The trusted row has no execution choice, so a bulk choice cannot reach it.
     assert.equal(view.answer.get('vouched').execution, 'unsandboxed');
     view.unmount();
