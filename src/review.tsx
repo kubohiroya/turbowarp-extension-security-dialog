@@ -12,7 +12,8 @@ interface ReviewState {
 }
 import React from 'react';
 import {formatMessage} from './messages.js';
-import {getExtensionDescription, unsandboxedRequirement} from './metadata.js';
+import {getExtensionDescription, loadExtensionInfo, unsandboxedRequirement} from './metadata.js';
+import {readInlineExtensionName} from './inline-name.js';
 import {resolveExtensionSelection} from './selection.js';
 import {createPreviewCache} from './storage.js';
 import {ExtensionPreview} from './preview.js';
@@ -145,8 +146,8 @@ const Choices = <T extends Choice>({name, value, options, disabled, label, onCha
  * The one screen that asks how extensions may run.
  *
  * Adding and opening differ in what is on the list and what can be chosen, not in how the
- * question is put, so they share this component. Nothing here fetches or runs an extension: the
- * host hands in rows that are already resolved, and gets back decisions. Whatever the rows say
+ * question is put, so they share this component. The screen can read a description before the
+ * host runs any code. The host hands in rows and gets back decisions. Whatever the rows say
  * about themselves — a name, an author, a version — is the extension's own claim, shown as such.
  */
 export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, ReviewState> {
@@ -184,14 +185,19 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
     /** Read each row's own description, one at a time; a failure leaves the row as it was. */
     async describe () {
         const {loadInfo, entries} = this.props;
-        if (!loadInfo) return;
         for (const entry of entries) {
-            if (entry.metadata || isEmbedded(entry.source)) continue;
+            if (isEmbedded(entry.source)) continue;
+            const {url} = entry.source;
+            const inline = entry.source.kind === 'legacy' && url.startsWith('data:');
+            const read = loadInfo ?? (inline ? loadExtensionInfo : undefined);
+            if (!read || (entry.metadata && (!inline || entry.metadata.name?.trim()))) continue;
             try {
-                const info = await loadInfo(entry.source.url, this.controller.signal);
+                const info = await read(url, this.controller.signal);
                 if (this.controller.signal.aborted) return;
+                const metadata = info.metadata || {};
+                const name = inline && !metadata.name?.trim() ? readInlineExtensionName(info.source, entry.ids) : undefined;
                 this.setState(state => ({
-                    described: new Map(state.described).set(entry.key, info.metadata || {})
+                    described: new Map(state.described).set(entry.key, name ? {...metadata, name} : metadata)
                 }));
             } catch (error) {
                 if (this.controller.signal.aborted) return;
@@ -202,7 +208,9 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         return formatMessage(this.props.locale, key, values);
     }
     metadataOf (entry: ReviewEntry) {
-        return entry.metadata || this.state.described.get(entry.key) || {};
+        const described = this.state.described.get(entry.key);
+        if (!described) return entry.metadata || {};
+        return {...described, ...entry.metadata, name: entry.metadata?.name?.trim() || described.name};
     }
     allRequired () {
         return this.props.mode === 'open' && allRequireUnsandboxed(this.props.entries.map(entry =>
@@ -274,6 +282,9 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         const t = this.t.bind(this);
         const decision = this.state.decisions.get(entry.key)!;
         const metadata = this.metadataOf(entry);
+        const declaredName = metadata.name?.trim();
+        const ids = entry.ids.join(', ');
+        const name = declaredName || ids || t('extensionUnknown');
         const website = displayURL(metadata.docsURL);
         const release = releaseURL(metadata);
         const executions = this.executionOptions(entry);
@@ -294,7 +305,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
             <ExtensionPreview
                 url={metadata.banner || fallbackBanner}
                 fallback={!metadata.banner}
-                name={metadata.name || entry.key}
+                name={name}
                 cache={this.props.previewCache}
                 locale={this.props.locale}
             />
@@ -316,12 +327,12 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                                 disabled={required || state === 'loaded'}
                                 onChange={() => this.toggle(entry.key)}
                             />
-                            <strong>{metadata.name || entry.key}</strong>
+                            <strong>{name}</strong>
                         </label>
                     )}
-                    {mode === 'open' && <strong>{metadata.name || entry.key}</strong>}
+                    {mode === 'open' && <strong>{name}</strong>}
                     {/* Without a name the heading is already the ID; saying it again adds nothing. */}
-                    {metadata.name && <span className="twextsec-id">{entry.ids.join(', ')}</span>}
+                    {declaredName && ids && <span className="twextsec-id">{ids}</span>}
                     {/* Trust is a mark beside the name, the way a verified account is marked, with its
                         meaning in words for anyone who cannot see it. */}
                     {isTrusted(entry) && (website ? (
@@ -330,7 +341,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                             href={website}
                             target="_blank"
                             rel="noopener noreferrer"
-                            aria-label={`${t('extensionPage')}: ${metadata.name || entry.key}`}
+                            aria-label={`${t('extensionPage')}: ${name}`}
                         >{badge}</a>
                     ) : badge)}
                     {metadata.version && (release ? (

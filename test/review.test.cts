@@ -15,6 +15,7 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 const {act, Simulate} = require('react-dom/test-utils');
 const {ExtensionReview} = require('../dist/react.cjs');
+const {loadExtensionInfo} = require('../dist/index.cjs');
 
 const row = (key, source, extra = {}) => ({key, ids: [key], source, ...extra});
 const catalogRow = (key, extra) => row(key, {kind: 'catalog', url: `https://example.test/${key}.js`}, extra);
@@ -458,13 +459,90 @@ test('a row whose address carries the whole extension says so instead of printin
     const bundle = `data:application/javascript;base64,${'QQ'.repeat(4000)}`;
     const view = render({
         mode: 'open',
+        entries: [{key: bundle, ids: ['inline', 'companion'], source: {kind: 'legacy', url: bundle}}]
+    });
+    try {
+        const entry = view.rows()[0];
+        assert.equal(entry.querySelector('.twextsec-source').textContent, 'Written into the project as a data address');
+        assert.equal(entry.querySelector('strong').textContent, 'inline, companion');
+        assert.equal(entry.querySelector('.twextsec-preview').alt, 'Preview of inline, companion');
+    } finally {
+        view.unmount();
+    }
+});
+
+const dataURL = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
+
+test('embedded names are read even when the host only supplied a banner', async () => {
+    const bundle = dataURL('// Name: 埋め込み拡張\n// Description: From the source\nthrow new Error("Do not run");');
+    const banner = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+    let reading;
+    const view = render({
+        mode: 'open', locale: 'ja',
+        entries: [{key: bundle, ids: ['inline'], source: {kind: 'legacy', url: bundle}, metadata: {banner}}],
+        loadInfo: (url, signal) => (reading = loadExtensionInfo(url, signal))
+    });
+    try {
+        const entry = view.rows()[0];
+        assert.equal(entry.querySelector('strong').textContent, 'inline');
+        await act(async () => {await reading;});
+        assert.equal(entry.querySelector('strong').textContent, '埋め込み拡張');
+        assert.equal(entry.querySelector('.twextsec-preview').getAttribute('src'), banner);
+        assert.equal(entry.querySelector('.twextsec-about').textContent, 'From the source');
+    } finally {
+        view.unmount();
+    }
+});
+
+test('embedded code without a header can supply a literal getInfo name for the matching ID', async () => {
+    const bundle = dataURL(`
+        throw new Error("Do not run");
+        class Other { getInfo() { return {id: "other", name: "Wrong name"}; } }
+        class Extension { getInfo() { return {"id":"inline","name":"Literal name",blocks:[]}; } }
+        Scratch.extensions.register(new Extension());
+    `);
+    const view = render({
+        mode: 'open',
         entries: [{key: bundle, ids: ['inline'], source: {kind: 'legacy', url: bundle}}]
     });
-    const label = view.rows()[0].querySelector('.twextsec-source').textContent;
-    // Printing the address would put the whole bundle in the row.
-    assert.equal(label, 'Written into the project as a data address');
-    assert.ok(!label.includes('base64'));
-    view.unmount();
+    try {
+        await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+        assert.equal(view.rows()[0].querySelector('strong').textContent, 'Literal name');
+    } finally {
+        view.unmount();
+    }
+});
+
+test('dynamic names and broken embedded data leave a usable ID heading', async () => {
+    const dynamic = dataURL(`
+        class Extension { getInfo() { return {id: "inline", name: getName()}; } }
+        // getInfo() { return {id: "inline", name: "A name in a comment"}; }
+    `);
+    const broken = 'data:text/javascript;base64,!!!';
+    const requests = new Map();
+    const view = render({
+        mode: 'open',
+        entries: [
+            {key: dynamic, ids: ['inline'], source: {kind: 'legacy', url: dynamic}},
+            {key: broken, ids: ['broken'], source: {kind: 'legacy', url: broken}}
+        ],
+        loadInfo: (url, signal) => {
+            const request = loadExtensionInfo(url, signal);
+            requests.set(url, request);
+            return request;
+        }
+    });
+    try {
+        await act(async () => {
+            await requests.get(dynamic);
+            await assert.rejects(requests.get(broken));
+        });
+        assert.deepEqual(view.rows().map(entry => entry.querySelector('strong').textContent), ['inline', 'broken']);
+        view.click('twextsec-cancel');
+        assert.equal(view.answer, null);
+    } finally {
+        view.unmount();
+    }
 });
 
 test('all-required opening batches show one preset execution choice in both languages, while caching stays independent', () => {
