@@ -74,6 +74,59 @@ test('the batch mode does not outlive the batch', async () => {
     uninstall();
 });
 
+test('an opted-in project reviews a changed URL before replacing its loaded registration', async () => {
+    const {vm, calls, manager} = fakeVM({loaded: ['existing']});
+    const url = 'data:text/javascript,updated';
+    vm.pending = ['existing'];
+    vm.pendingURLs = new Map([['existing', url]]);
+    let loaded = true;
+    manager.isExtensionLoaded = () => loaded;
+    const originalURLs = manager.getExtensionURLs;
+    manager.getExtensionURLs = () => loaded ? originalURLs() : {};
+    const load = manager.loadExtensionURL;
+    manager.loadExtensionURL = async value => {
+        await load(value);
+        loaded = true;
+    };
+    manager.getExtensionServicePort = () => ({
+        prepareLegacyReplacement(ids) {
+            calls.push(['detach', ids]);
+            loaded = false;
+            return {
+                async commit() {calls.push(['commit']);},
+                rollback() {loaded = true; calls.push(['rollback']);}
+            };
+        }
+    });
+    let decision = null;
+    const uninstall = installBatchExtensionLoader(vm, async rows => {
+        calls.push(['review', rows.map(row => row.source.url)]);
+        assert.equal(loaded, true);
+        return decision && new Map([[url, {execution: decision}]]);
+    });
+    const loadFolder = () => vm.loadProject('folder', {replaceLegacyExtensions: true});
+    await vm.loadProject('ordinary');
+    assert.deepEqual(calls.splice(0), [['project', 'ordinary']]);
+    await assert.rejects(loadFolder(), error => isExtensionSecurityCancelled(error));
+    assert.deepEqual(calls.splice(0), [['project', 'folder'], ['review', [url]]]);
+    assert.equal(loaded, true);
+    decision = 'sandboxed';
+    await loadFolder();
+    assert.deepEqual(calls.splice(0), [
+        ['project', 'folder'], ['review', [url]], ['detach', ['existing']], ['url', url, 'iframe'], ['commit']
+    ]);
+    manager.loadExtensionURL = async () => {throw new Error('load failed');};
+    await assert.rejects(loadFolder(), /load failed/u);
+    assert.deepEqual(calls.splice(0), [['project', 'folder'], ['review', [url]], ['detach', ['existing']], ['rollback']]);
+    assert.equal(loaded, true);
+    decision = 'deny';
+    await loadFolder();
+    assert.deepEqual(calls, [['project', 'folder'], ['review', [url]], ['detach', ['existing']], ['commit']]);
+    assert.equal(loaded, false);
+    assert.equal(manager.getExtensionURLs().existing, url);
+    uninstall();
+});
+
 test('rows the host collects are asked about but loaded by the host, not here', async () => {
     const {vm, calls} = fakeVM();
     let handed = null;

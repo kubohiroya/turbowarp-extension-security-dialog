@@ -20,6 +20,10 @@ interface LoaderVM {
         isBuiltinExtension(id: string): boolean;
         loadExtensionIdSync(id: string): void;
         loadExtensionURL(url: string): Promise<unknown>;
+        getExtensionServicePort?(): {prepareLegacyReplacement?(ids: string[]): {
+            commit(options: {allowMissingReplacement: boolean}): Promise<void>;
+            rollback(): void;
+        }};
     };
     _loadExtensions(ids: Iterable<string>, urls?: ReadonlyMap<string, string>): Promise<void>;
     clear(...args: unknown[]): unknown;
@@ -31,6 +35,7 @@ interface ProjectContext {
     input: unknown;
     key: string | null;
     decisions: Map<string, ReviewDecision>;
+    replaceLegacyExtensions: boolean;
 }
 
 const CANCELLED = 'EXTENSION_SECURITY_CANCELLED';
@@ -54,6 +59,8 @@ const sandboxModeFor = (execution: ExecutionDecision) => (execution === 'unsandb
  * It loads nothing but ordinary custom extensions itself. A Plus extension belongs to the Loader,
  * which fetches and verifies it; those rows arrive through `collectEntries` and leave through
  * `applyDecisions`, so this module never needs the Loader's types or its code.
+ * A host can call `vm.loadProject(input, {replaceLegacyExtensions: true})` to review changed URLs
+ * for already registered IDs before replacing those registrations through the VM service port.
  * @param {object} vm The VM to wrap. Its own methods are restored when the returned function runs.
  * @param {Function} review Puts the rows to the person; resolves with decisions, or null for no.
  * @param {object} defaultURLs The VM's own table of addresses for extensions it knows by ID.
@@ -101,8 +108,15 @@ export function installBatchExtensionLoader(host: object,
     const legacyRows = (ids: Iterable<string>, urls: ReadonlyMap<string, string>) => {
         const byURL = new Map<string, LegacyRow>();
         const builtins = [];
+        const replacements: string[] = [];
+        const registered = project?.replaceLegacyExtensions ? originalURLs.call(manager) : null;
         for (const id of ids) {
-            if (manager.isExtensionLoaded(id)) continue;
+            if (manager.isExtensionLoaded(id)) {
+                const existing = registered && Object.hasOwn(registered, id) ? registered[id] : undefined;
+                const incoming = urls.get(id);
+                if (!existing || !incoming || existing === incoming) continue;
+                replacements.push(id);
+            }
             if (manager.isBuiltinExtension(id)) {
                 builtins.push(id);
                 continue;
@@ -115,7 +129,7 @@ export function installBatchExtensionLoader(host: object,
             }
             byURL.get(url)!.ids.push(id);
         }
-        return {rows: [...byURL.values()], builtins};
+        return {rows: [...byURL.values()], builtins, replacements};
     };
 
     const decide = async (entries: ReviewEntry[]) => {
@@ -140,7 +154,7 @@ export function installBatchExtensionLoader(host: object,
 
     const load = async (ids: Iterable<string>, urls: ReadonlyMap<string, string>) => {
         if (disposed) throw cancellation();
-        const {rows, builtins} = legacyRows(ids, urls);
+        const {rows, builtins, replacements} = legacyRows(ids, urls);
         const supplied = collectEntries && project ?
             await collectEntries(project.input) : [];
         const entries = [...supplied, ...rows];
@@ -155,6 +169,11 @@ export function installBatchExtensionLoader(host: object,
         if (applyDecisions) applyDecisions(decisions, entries);
 
         for (const id of builtins) manager.loadExtensionIdSync(id);
+        const port = replacements.length ? manager.getExtensionServicePort?.() : undefined;
+        const replacement = port?.prepareLegacyReplacement?.(replacements);
+        if (replacements.length && !replacement) throw new Error('The VM cannot replace legacy extension registrations');
+        const replaced = new Set(replacements);
+        const expected: string[] = [];
         const loading = [];
         try {
             for (const row of rows) {
@@ -164,15 +183,28 @@ export function installBatchExtensionLoader(host: object,
                     continue;
                 }
                 modes.set(row.source.url, sandboxModeFor(execution));
+                expected.push(...row.ids.filter(id => replaced.has(id)));
                 loading.push(Promise.resolve().then(() => manager.loadExtensionURL(row.source.url)));
             }
             // Drain failures as well as successes before the batch's modes are released.
             const results = await Promise.allSettled(loading);
             const failure = results.find(result => result.status === 'rejected');
             if (failure) throw failure.reason;
+            const missing = expected.find(id => !manager.isExtensionLoaded(id));
+            if (missing) throw new Error(`Replacement extension did not register: ${missing}`);
+        } catch (error) {
+            // A partially loaded batch can already own some IDs. Only restore the old services
+            // when no replacement took ownership, as the VM cannot restore a conflicting ID.
+            if (replacement) {
+                if (replacements.some(id => manager.isExtensionLoaded(id))) await replacement.commit({allowMissingReplacement: true});
+                else replacement.rollback();
+            }
+            throw error;
         } finally {
             modes.clear();
         }
+        // A denied row must stop using the old implementation, while keeping the new URL for Save.
+        if (replacement) await replacement.commit({allowMissingReplacement: true});
     };
 
     const loadExtensions = function (ids: Iterable<string>, urls: ReadonlyMap<string, string> = new Map()) {
@@ -184,7 +216,9 @@ export function installBatchExtensionLoader(host: object,
     const loadProject = function (...args: unknown[]) {
         const pending = projects.then(async () => {
             if (disposed) throw cancellation();
-            const context: ProjectContext = {input: args[0], key: null, decisions: new Map()};
+            const options = args[1] as {replaceLegacyExtensions?: boolean} | null | undefined;
+            const context: ProjectContext = {input: args[0], key: null, decisions: new Map(),
+                replaceLegacyExtensions: options?.replaceLegacyExtensions === true};
             try {
                 if (identify) context.key = await identify(args[0]);
             } catch (error) {
