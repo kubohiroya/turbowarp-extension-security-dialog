@@ -1,5 +1,7 @@
 import type {ComponentType} from 'react';
 import Review from './review.js';
+export {ExtensionRow} from './extension-row.js';
+export type {ExtensionRowPick, ExtensionRowProps} from './extension-row.js';
 import type {ExtensionMetadata, ReviewDecision, ReviewEntry, ReviewFailure, LoadingMode} from './review-types.js';
 import type {PreviewCache, ReviewMode} from './index.js';
 

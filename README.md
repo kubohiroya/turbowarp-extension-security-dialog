@@ -44,7 +44,7 @@ revisions, bundle integrity, image hashes and interaction checks, and the
 | Import | What it is |
 | --- | --- |
 | `.` | Reading a catalog, reading an extension's own description, closing a selection over its dependencies, remembering what the opener chose, the wait dialog, wording |
-| `./react` | `ExtensionReview`, the screen |
+| `./react` | `ExtensionReview`, the screen, and `ExtensionRow`, one row of its list |
 | `./turbowarp` | `installBatchExtensionLoader`, which wraps a VM so the question comes first |
 | `./styles.css`, `./webpack4.css` | The screen's styles; the second has class names wrapped in `:global()` for a CSS-modules build |
 
@@ -122,6 +122,29 @@ For trusted entries, the trust badge links to the extension page when provided. 
 GitHub versions link to their release notes. The description preserves line breaks and turns
 HTTP(S) URLs and email addresses into links. The creator's contact appears next to their name
 when supplied.
+
+### Using one row of the list
+
+`ExtensionRow` draws the same row the screen draws for each extension: its name (with a checkbox, if it can be chosen), IDs, trusted mark, version with a link to its release notes, picture, description, and creator with contact. Another screen that lists extensions shows them the same way. In TurboWarp Plus Editor, the screen that chooses which block palette groups to show uses it.
+
+```tsx
+import {ExtensionRow} from '@kubohiroya/turbowarp-extension-security-dialog/react';
+import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
+
+<ul>
+    <ExtensionRow
+        metadata={{name: 'Pen Plus', author: 'Creator', version: '2.0.0'}}
+        ids={['penplus']}
+        locale="en"
+        pick={{checked: shown, onToggle: () => setShown(!shown)}}  // leave out for no checkbox
+        itemProps={{'data-key': 'penplus'}}
+    >
+        {/* the host's own content, after the creator */}
+    </ExtensionRow>
+</ul>
+```
+
+`details` goes between the heading and the picture; the review screen puts the source and digest there. `children` goes after the creator; the review screen puts its execution and loading choices there. The row is an `<li>`, so put it in a `<ul>` or `<ol>`. When `pick.disabled` is set, neither the checkbox nor the picture changes the choice.
 
 ### When loading fails
 

@@ -12,19 +12,12 @@ interface ReviewState {
 }
 import React from 'react';
 import {formatMessage} from './messages.js';
-import {getExtensionDescription, loadExtensionInfo, unsandboxedRequirement} from './metadata.js';
+import {loadExtensionInfo, unsandboxedRequirement} from './metadata.js';
 import {readInlineExtensionName} from './inline-name.js';
 import {resolveExtensionSelection} from './selection.js';
 import {createPreviewCache} from './storage.js';
-import {ExtensionPreview} from './preview.js';
-import {displayURL, releaseURL} from './display-urls.js';
-import {LinkedText} from './linked-text.js';
+import {ExtensionRow} from './extension-row.js';
 
-declare const __SECURITY_COMMON_BANNER__: string;
-declare const __SECURITY_TRUSTED_BADGE__: string;
-// A row with no picture of its own still gets one, so the list does not read as half-filled.
-const fallbackBanner = __SECURITY_COMMON_BANNER__;
-const trustedBadge = __SECURITY_TRUSTED_BADGE__;
 import {
     allRequireUnsandboxed, contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
     loadingModes
@@ -282,101 +275,37 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         const t = this.t.bind(this);
         const decision = this.state.decisions.get(entry.key)!;
         const metadata = this.metadataOf(entry);
-        const declaredName = metadata.name?.trim();
-        const ids = entry.ids.join(', ');
-        const name = declaredName || ids || t('extensionUnknown');
-        const website = displayURL(metadata.docsURL);
-        const release = releaseURL(metadata);
         const executions = this.executionOptions(entry);
         const loadings = loadingChoices(entry);
         const state = mode === 'add' ? selection.stateOf(entry.key) : null;
         const required = state === 'dependency';
         const roots = required ? [...(selection.requiredBy.get(entry.key) || [])] : [];
         const failure = entry.state && entry.state.error;
-        const badge = (
-            <img
-                className="twextsec-trusted"
-                src={trustedBadge}
-                alt={t('trusted')}
-                title={t('trusted')}
-            />
-        );
-        const preview = (
-            <ExtensionPreview
-                url={metadata.banner || fallbackBanner}
-                fallback={!metadata.banner}
-                name={name}
-                cache={this.props.previewCache}
-                locale={this.props.locale}
-            />
-        );
         return (
-            <li
+            <ExtensionRow
                 key={entry.key}
-                className="twextsec-row"
-                data-key={entry.key}
-                data-picking={mode === 'add' ? 'true' : undefined}
-                data-failed={failure ? 'true' : undefined}
+                metadata={metadata}
+                ids={entry.ids}
+                locale={this.props.locale}
+                trusted={isTrusted(entry)}
+                previewCache={this.props.previewCache}
+                itemProps={{'data-key': entry.key, 'data-failed': failure ? 'true' : undefined}}
+                pick={mode === 'add' ? {
+                    checked: selection.selected.has(entry.key),
+                    disabled: required || state === 'loaded',
+                    onToggle: () => this.toggle(entry.key)
+                } : undefined}
+                details={<>
+                    {/* One line: a long address is cut short here and kept whole in the tooltip. */}
+                    <p
+                        className="twextsec-source"
+                        title={sourceLabel(entry, t)}
+                    >{sourceLabel(entry, t)}</p>
+                    {'sha256' in entry.source && entry.source.sha256 && (
+                        <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
+                    )}
+                </>}
             >
-                <div className="twextsec-head">
-                    {mode === 'add' && (
-                        <label className="twextsec-pick">
-                            <input
-                                type="checkbox"
-                                checked={selection.selected.has(entry.key)}
-                                disabled={required || state === 'loaded'}
-                                onChange={() => this.toggle(entry.key)}
-                            />
-                            <strong>{name}</strong>
-                        </label>
-                    )}
-                    {mode === 'open' && <strong>{name}</strong>}
-                    {/* Without a name the heading is already the ID; saying it again adds nothing. */}
-                    {declaredName && ids && <span className="twextsec-id">{ids}</span>}
-                    {/* Trust is a mark beside the name, the way a verified account is marked, with its
-                        meaning in words for anyone who cannot see it. */}
-                    {isTrusted(entry) && (website ? (
-                        <a
-                            className="twextsec-trusted-link"
-                            href={website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            aria-label={`${t('extensionPage')}: ${name}`}
-                        >{badge}</a>
-                    ) : badge)}
-                    {metadata.version && (release ? (
-                        <a
-                            href={release}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title={t('releaseNotes')}
-                        >{t('version')} {metadata.version}</a>
-                    ) : <span>{t('version')} {metadata.version}</span>)}
-                </div>
-                {/* One line: a long address is cut short here and kept whole in the tooltip. */}
-                <p
-                    className="twextsec-source"
-                    title={sourceLabel(entry, t)}
-                >{sourceLabel(entry, t)}</p>
-                {'sha256' in entry.source && entry.source.sha256 && (
-                    <p className="twextsec-digest">{t('digest')} {entry.source.sha256}</p>
-                )}
-                {/* When adding, the icon is a larger target for the same choice as the checkbox, which
-                    stays the one control a keyboard or screen reader uses. */}
-                {mode === 'add' ? (
-                    <span
-                        className="twextsec-preview-pick"
-                        aria-hidden="true"
-                        onClick={required || state === 'loaded' ? undefined : () => this.toggle(entry.key)}
-                    >{preview}</span>
-                ) : preview}
-                <p className="twextsec-about"><LinkedText text={getExtensionDescription(metadata, this.props.locale)} /></p>
-                <p className="twextsec-claim">
-                    {t('creator')}: <LinkedText text={metadata.author || t('creatorUnknown')} />
-                    {metadata.authorURL && (
-                        <span className="twextsec-contact"> <LinkedText text={metadata.authorURL} /></span>
-                    )}
-                </p>
                 {/* The checkbox already says chosen or not, so only the reasons it cannot be changed —
                     another extension needs it, or it is already running — are put in words. The one
                     mark beside them is the warning for an extension that says it must leave the
@@ -428,7 +357,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                         role="alert"
                     >{t('requirement-required')}</p>
                 )}
-            </li>
+            </ExtensionRow>
         );
     }
     render () {
