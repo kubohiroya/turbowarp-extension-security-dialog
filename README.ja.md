@@ -46,7 +46,7 @@ VM は機能拡張を1つずつ読み込み、そのたびに尋ねます。作�
 | import | 中身 |
 | --- | --- |
 | `.` | カタログの読み込み、拡張自身の申告の読み取り、依存の閉包、開く人の選択の記憶、取得待ちのダイアログ、文言 |
-| `./react` | 画面そのもの `ExtensionReview` |
+| `./react` | 画面そのもの `ExtensionReview` と、一覧の1行 `ExtensionRow` |
 | `./turbowarp` | VM を包んで問いを先に出す `installBatchExtensionLoader` |
 | `./styles.css`、`./webpack4.css` | 画面のスタイル。後者は CSS modules 向けにクラス名を `:global()` で包んだもの |
 
@@ -131,6 +131,29 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 
 **記録された答えは、いまも選択肢である場合だけ尊重します。** 作品が `remote-cacheable` から
 埋め込みに変わった、行が信頼済みになった、といった場合に、もう提示しない答えを持ち込みません。
+
+### 一覧の1行だけを使う
+
+`ExtensionRow` は、画面の各行と同じ1行を描きます。拡張の名前（チェックボックス付きも可）、ID、信頼済みの印、版とリリースノートへのリンク、画像、概要、製作者と連絡先です。ほかの画面で機能拡張を並べるときにも、拡張が同じ見た目になります。TurboWarp Plus Editor では、ブロックパレットの表示を選ぶ画面が使います。
+
+```tsx
+import {ExtensionRow} from '@kubohiroya/turbowarp-extension-security-dialog/react';
+import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
+
+<ul>
+    <ExtensionRow
+        metadata={{name: 'Pen Plus', author: 'Creator', version: '2.0.0'}}
+        ids={['penplus']}
+        locale="ja"
+        pick={{checked: shown, onToggle: () => setShown(!shown)}}  // 省くとチェックボックスなし
+        itemProps={{'data-key': 'penplus'}}
+    >
+        {/* 製作者の下に、ホスト自身の内容を置く */}
+    </ExtensionRow>
+</ul>
+```
+
+`details` は見出しと画像のあいだに置く内容で、確認画面は読み込み元とダイジェストをここに出します。`children` は製作者の下に置く内容で、確認画面は実行方法と読み込み元の選択をここに出します。行は `<li>` なので、`<ul>` か `<ol>` の中に置きます。`pick.disabled` のときは、チェックボックスも画像も選択を変えません。
 
 ### 読み込みに失敗したとき
 
