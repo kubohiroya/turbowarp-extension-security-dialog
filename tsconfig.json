@@ -6,7 +6,33 @@
     "strict": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@kubohiroya/turbowarp-extension-security-dialog": [
+        "./src/index.ts"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/react": [
+        "./src/react.tsx"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/turbowarp": [
+        "./src/turbowarp.ts"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/catalog-library": [
+        "./src/catalog-library.tsx"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/project-review": [
+        "./src/project-review.tsx"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/project-review-channel": [
+        "./src/project-review-channel.ts"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/permission-ui": [
+        "./src/permission-ui.ts"
+      ],
+      "@kubohiroya/turbowarp-extension-security-dialog/load-errors": [
+        "./src/load-errors.ts"
+      ]
+    }
   },
   "include": [
     "src/**/*.ts",

@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.9.1-ownership.0",
+  "version": "0.9.1",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
   "author": {
@@ -93,7 +93,7 @@
   "peerDependencies": {
     "react": "^16.14.0 || ^17 || ^18 || ^19",
     "react-dom": "^16.14.0 || ^17 || ^18 || ^19",
-    "@kubohiroya/turbowarp-extension-loader": ">=0.11.1 <0.12.0 || 0.11.2-ownership.0",
+    "@kubohiroya/turbowarp-extension-loader": ">=0.11.1 <0.12.0",
     "@turbowarp/jszip": ">=3.12.0 <4"
   },
   "peerDependenciesMeta": {
