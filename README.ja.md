@@ -274,3 +274,8 @@ React と React DOM は peerDependencies なので、ホストが用意します
 0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。
 
 npmが固定したGitHubアーカイブを`.git`なしでビルドする場合、インストーラーはlockfileと同じ完全SHAを`TWEXTSEC_SOURCE_REVISION`で渡します。`sourceState: "git-archive"`として記録し、完全SHAがなければビルドを拒否します。ホストはインストール後の記録をmanifest・lockfileと照合します。
+
+## Editor の実装との責務分担
+
+Editor 独自実装の移管元とライセンス確認は [EDITOR-MIGRATION.md](EDITOR-MIGRATION.md) に記録しています。
+追加した公開 API は GUI モジュールを import せず、ホストから必要な値・データ・コールバックを受け取ります。
