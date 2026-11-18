@@ -17,9 +17,9 @@ const trustedBadge = await dataURI('assets/trusted.svg');
 for (const [format, extension] of [['esm','mjs'], ['cjs','cjs']] as const) {
     await build({
         absWorkingDir: root,
-        entryPoints: ['src/index.ts','src/react.tsx','src/turbowarp.ts'],
+        entryPoints: ['src/index.ts','src/react.tsx','src/turbowarp.ts','src/catalog-library.tsx','src/project-review.tsx','src/project-review-channel.ts','src/permission-ui.ts','src/load-errors.ts'],
         outdir: 'dist', outExtension: {'.js': `.${extension}`}, bundle: true,
-        format, platform: 'browser', target: ['es2017'], external: ['react','react-dom'],
+        format, platform: 'browser', target: ['es2017'], external: ['react','react-dom','@kubohiroya/turbowarp-extension-security-dialog','@kubohiroya/turbowarp-extension-security-dialog/react','@kubohiroya/turbowarp-extension-security-dialog/turbowarp','@kubohiroya/turbowarp-extension-loader','@turbowarp/jszip'],
         define: {__SECURITY_COMMON_BANNER__: JSON.stringify(banner),
             __SECURITY_TRUSTED_BADGE__: JSON.stringify(trustedBadge)}, sourcemap: false
     });

@@ -1,6 +1,6 @@
 {
   "name": "@kubohiroya/turbowarp-extension-security-dialog",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Batch extension security review, previews and per-project defaults for TurboWarp hosts",
   "type": "module",
   "author": {
@@ -40,7 +40,34 @@
     },
     "./build-info": "./dist/build-info.json",
     "./styles.css": "./styles.css",
-    "./webpack4.css": "./webpack4.css"
+    "./webpack4.css": "./webpack4.css",
+    "./catalog-library": {
+      "types": "./dist/catalog-library.d.ts",
+      "import": "./dist/catalog-library.mjs",
+      "require": "./dist/catalog-library.cjs"
+    },
+    "./catalog-library.css": "./src/catalog-library.css",
+    "./project-review": {
+      "types": "./dist/project-review.d.ts",
+      "import": "./dist/project-review.mjs",
+      "require": "./dist/project-review.cjs"
+    },
+    "./project-review-channel": {
+      "types": "./dist/project-review-channel.d.ts",
+      "import": "./dist/project-review-channel.mjs",
+      "require": "./dist/project-review-channel.cjs"
+    },
+    "./project-review.css": "./src/project-review.css",
+    "./permission-ui": {
+      "types": "./dist/permission-ui.d.ts",
+      "import": "./dist/permission-ui.mjs",
+      "require": "./dist/permission-ui.cjs"
+    },
+    "./load-errors": {
+      "types": "./dist/load-errors.d.ts",
+      "import": "./dist/load-errors.mjs",
+      "require": "./dist/load-errors.cjs"
+    }
   },
   "files": [
     "dist",
@@ -51,7 +78,9 @@
     "README.md",
     "README.ja.md",
     "NOTICE.md",
-    "LICENSE"
+    "LICENSE",
+    "src",
+    "EDITOR-MIGRATION.md"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -63,7 +92,9 @@
   },
   "peerDependencies": {
     "react": "^16.14.0 || ^17 || ^18 || ^19",
-    "react-dom": "^16.14.0 || ^17 || ^18 || ^19"
+    "react-dom": "^16.14.0 || ^17 || ^18 || ^19",
+    "@kubohiroya/turbowarp-extension-loader": ">=0.11.1 <0.12.0",
+    "@turbowarp/jszip": ">=3.12.0 <4"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -84,7 +115,9 @@
     "jsdom": "^26.1.0",
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "@kubohiroya/turbowarp-extension-loader": "0.11.1",
+    "@turbowarp/jszip": "3.12.0"
   },
   "packageManager": "pnpm@11.28.8",
   "engines": {
