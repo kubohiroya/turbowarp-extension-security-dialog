@@ -2,7 +2,7 @@ import {execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import path from 'node:path';
 
-const sourcePaths = ['src', 'assets/common.svg', 'scripts', 'package.json', 'pnpm-lock.yaml',
+const sourcePaths = ['src', 'assets/common.svg', 'assets/trusted.svg', 'assets/host-trusted.svg', 'scripts', 'package.json', 'pnpm-lock.yaml',
     'tsconfig.json', 'README.md', 'README.ja.md', 'NOTICE.md', 'LICENSE'];
 
 /** npm may prepare a pinned GitHub archive without a .git directory. */

@@ -63,7 +63,7 @@ export const reviewRows = (entries: CatalogEntry[], vm: LibraryVM,
     metadata: entry.metadata,
     source: {kind: loader ? 'catalog' : 'legacy', url: entry.url},
     dependencies: [...(entry.dependencies || [])],
-    state: {trusted: true, loaded: vm.extensionManager.isExtensionLoaded(entry.id)}
+    state: {trusted: true, plusFamily: true, loaded: vm.extensionManager.isExtensionLoaded(entry.id)}
 }));
 
 export interface CatalogLibraryPorts {

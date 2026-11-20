@@ -188,9 +188,10 @@ test('a trusted row is stated, not asked about, and keeps its loading choice', (
         entries: [cacheableRow('vouched', {state: {trusted: true}})]
     });
     const row = view.rowFor('vouched');
-    // Trust is the TurboWarp Plus mark with a check, named in words for anyone who cannot see it.
+    // Execution trust alone carries no family branding.
     const mark = row.querySelector('.twextsec-head .twextsec-trusted');
-    assert.equal(mark.getAttribute('alt'), 'Trusted by TurboWarp Plus: runs without the sandbox');
+    assert.equal(mark.getAttribute('alt'), 'Trusted by the host: runs without the sandbox');
+    assert.doesNotMatch(Buffer.from(mark.src.split(',')[1], 'base64').toString(), /TurboWarp/);
     assert.match(mark.getAttribute('src'), /^data:image\/svg\+xml;base64,/);
     assert.equal(view.radio('vouched', 'execution', 'sandboxed'), null);
     assert.notEqual(view.radio('vouched', 'loading', 'remote-non-cacheable'), null);
@@ -476,7 +477,10 @@ test('a preview blocked by CORS still displays directly, and a broken image leav
     assert.equal(image.getAttribute('src'), entry.metadata.banner);
     assert.equal(image.getAttribute('referrerpolicy'), 'no-referrer');
     act(() => {Simulate.error(image);});
-    assert.equal(view.host.querySelector('.twextsec-preview'), null);
+    const fallback = view.host.querySelector('.twextsec-preview-fallback');
+    assert.notEqual(fallback, null);
+    assert.match(fallback.src, /^data:image\/svg\+xml;base64,/);
+    assert.doesNotMatch(Buffer.from(fallback.src.split(',')[1], 'base64').toString(), /TurboWarp/);
     // The row is still readable and still answerable.
     assert.match(view.rowFor('a').textContent, /A/);
     view.click('twextsec-complete');
@@ -503,6 +507,32 @@ test('partial host metadata still acquires its own banner while retaining the ho
         assert.equal(view.rowFor('b').querySelector('.twextsec-preview').getAttribute('src'), hostBanner);
         assert.equal(view.rowFor('a').querySelector('.twextsec-preview-fallback'), null);
         assert.match(view.rowFor('a').textContent, /Author/);
+        assert.equal(view.answer, undefined);
+    } finally {view.unmount();}
+});
+
+test('verified embedded family rows acquire their catalog SVG without reading or executing embedded source', async () => {
+    const banner = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"/>').toString('base64');
+    let sourceReads = 0;
+    const previewKeys = [];
+    const view = render({mode: 'open', previewCache: null, entries: [
+        row('one', {kind: 'embedded-file', sha256: 'a'.repeat(64)}, {state: {trusted: true, plusFamily: true}}),
+        row('two', {kind: 'embedded-data', sha256: 'b'.repeat(64)}, {state: {trusted: true, plusFamily: true}})
+    ], loadInfo: async () => {sourceReads++; return {source: '', metadata: {}};},
+    loadPreview: async (entry, signal) => {
+        assert.equal(signal.aborted, false);
+        previewKeys.push(entry.key);
+        return banner;
+    }});
+    try {
+        await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+        assert.deepEqual(previewKeys, ['one', 'two']);
+        for (const key of previewKeys) {
+            const image = view.rowFor(key).querySelector('.twextsec-preview');
+            assert.equal(image.getAttribute('src'), banner);
+            assert.equal(image.classList.contains('twextsec-preview-fallback'), false);
+        }
+        assert.equal(sourceReads, 0);
         assert.equal(view.answer, undefined);
     } finally {view.unmount();}
 });

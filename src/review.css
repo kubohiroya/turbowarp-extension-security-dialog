@@ -32,18 +32,21 @@
 .twextsec-warning-close:hover { background: #ffffff1a; }
 .twextsec-warning-close:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
 .twextsec-rows { margin: 10px 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
-.twextsec-row { padding: 8px 10px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px;
-    display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 10px; }
-/* The icon sits in its own column beside everything else the row says. */
+.twextsec-row { position: relative; min-height: 110px; padding: 8px 10px;
+    border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 8px;
+    display: grid; grid-template-columns: 180px minmax(0, 1fr); column-gap: 12px; align-content: start; }
+/* Keep every preview at the same 90px height beside the extension's description. */
 .twextsec-row > * { grid-column: 2; }
-.twextsec-row > .twextsec-preview, .twextsec-row > .twextsec-preview-pick { grid-column: 1; grid-row: 1 / span 20; }
+/* The image reserves its height without creating empty implicit rows below the text. */
+.twextsec-row > .twextsec-preview, .twextsec-row > .twextsec-preview-pick {
+    position: absolute; left: 10px; top: 8px; grid-column: auto; }
 /* Reserve room for the host's larger checkbox before the icon, keeping the name's label intact. */
-.twextsec-row[data-picking="true"] { position: relative; grid-template-columns: 82px minmax(0, 1fr); }
+.twextsec-row[data-picking="true"] { position: relative; grid-template-columns: 222px minmax(0, 1fr); }
 .twextsec-row[data-picking="true"] > .twextsec-preview-pick { margin-left: 42px; }
 .twextsec-row[data-picking="true"] > .twextsec-head { min-height: 44px; align-items: center; }
 .twextsec-row[data-picking="true"] .twextsec-pick input[type="checkbox"] {
-    position: absolute; left: 10px; top: 30px; transform: translateY(-50%); }
-.twextsec-preview-pick { display: block; cursor: pointer; }
+    position: absolute; left: 10px; top: 55px; transform: translateY(-50%); }
+.twextsec-preview-pick { display: block; width: 180px; max-width: 100%; cursor: pointer; }
 .twextsec-row[data-failed="true"] { border-color: var(--ui-danger, #b91c1c); }
 .twextsec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .twextsec-pick { display: flex; align-items: center; gap: 8px; cursor: pointer; }
@@ -55,6 +58,8 @@
 .twextsec-digest { margin: 2px 0 0; }
 .twextsec-about, .twextsec-claim { margin: 2px 0 0; font-size: .9em; }
 .twextsec-about { white-space: pre-wrap; overflow-wrap: anywhere; }
+.twextsec-about:empty { display: none; }
+.twextsec-loading-fixed { margin: 2px 0 0; }
 .twextsec-claim { overflow-wrap: anywhere; }
 .twextsec-contact { margin-left: .5em; }
 .twextsec-claim { font-size: .8em; }
@@ -106,6 +111,15 @@
 .twextsec-execution button:disabled { opacity: .5; cursor: default; }
 .twextsec-execution button:focus-visible { position: relative; z-index: 2;
     outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
-/* Catalog banners are block icons, so a row shows its picture at icon size, not as a wide banner. */
-.twextsec-preview { display: block; width: 40px; height: 40px; object-fit: contain; margin: 2px 0 0; border-radius: 6px; }
+/* Contain square block SVGs at full height, centered in the same wide banner area. */
+.twextsec-preview { display: block; width: 180px; max-width: 100%; height: auto; aspect-ratio: 2;
+    object-fit: contain; object-position: center; margin: 2px 0 0; border-radius: 6px; }
 .twextsec-preview-fallback { opacity: .5; }
+@media (max-width: 640px) {
+    .twextsec-row, .twextsec-row[data-picking="true"] { min-height: 0; grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+    .twextsec-row > * { grid-column: 1; }
+    .twextsec-row > .twextsec-preview, .twextsec-row > .twextsec-preview-pick {
+        position: static; grid-column: 1; grid-row: auto; justify-self: center; }
+    .twextsec-row[data-picking="true"] > .twextsec-preview-pick { margin-left: 0; }
+    .twextsec-row[data-picking="true"] .twextsec-pick input[type="checkbox"] { position: static; transform: none; }
+}

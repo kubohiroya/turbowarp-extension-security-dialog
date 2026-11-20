@@ -12,17 +12,20 @@ import {
 import React from 'react';
 
 import {embeddedExtensionName} from './embedded-extension-name.js';
+import {createCatalogPreviewResolver} from './catalog-preview.js';
+import type {PreviewCatalog} from './catalog-preview.js';
 
 import type {createProjectReviewChannel, ReadEmbeddedReviewFile} from './project-review-channel.js';
 export {embeddedExtensionName} from './embedded-extension-name.js';
 export interface ProjectReviewPorts {
+    catalog?: PreviewCatalog;
     trusted: {ready?(): Promise<void>; listedDigests?: ReadonlySet<unknown>; isTrustedCode(options: any): boolean | Promise<boolean>; isTrustedURL(url: string | undefined): boolean | Promise<boolean>};
     pendingReview: ReturnType<typeof createProjectReviewChannel>['pendingPlusReview'];
     reviewedArchive(input: unknown): {project: Record<string, unknown>} | undefined;
     duringApproval<T>(vm: object, run: () => Promise<T>): Promise<T>;
     styles: Record<string, string>;
 }
-export function createProjectSecurityReview({trusted: defaultTrusted, pendingReview: pendingPlusReview,
+export function createProjectSecurityReview({catalog, trusted: defaultTrusted, pendingReview: pendingPlusReview,
     reviewedArchive: reviewedProjectArchive, duringApproval: duringProjectLoadApproval, styles}: ProjectReviewPorts) {
     const hex = (bytes: any) => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
 
@@ -101,7 +104,7 @@ export function createProjectSecurityReview({trusted: defaultTrusted, pendingRev
             source,
             requestedExecution: spec.execution,
             dependencies: [...spec.dependencies],
-            ...(vouched ? {state: {trusted: true}} : {})};
+            ...(vouched ? {state: {trusted: true, plusFamily: true}} : {})};
     }));
 
     const frames = new WeakMap();
@@ -168,12 +171,12 @@ export function createProjectSecurityReview({trusted: defaultTrusted, pendingRev
                     const url = 'url' in entry.source ? entry.source.url : undefined;
                     // Only an ordinary custom extension is trusted by its address alone. A Plus row
                     // arrives already judged by its address and pinned digest together.
-                    const vouched = entry.source.kind === 'legacy' &&
-                        (isTrusted(url) || await trusted.isTrustedURL(url));
+                    const plusFamily = entry.source.kind === 'legacy' && await trusted.isTrustedURL(url);
+                    const vouched = entry.source.kind === 'legacy' && (isTrusted(url) || plusFamily);
                     const banner = bannerFor({ids: entry.ids, url});
                     return {...entry,
                         ...(banner ? {metadata: {...entry.metadata, banner}} : {}),
-                        ...(vouched ? {state: {...entry.state, trusted: true}} : {})};
+                        ...(vouched ? {state: {...entry.state, trusted: true, plusFamily}} : {})};
                 }));
                 const starting = initialDecisions(rows, 'open', {recorded: initial});
                 if (!requiresReview(rows)) return starting;
@@ -208,6 +211,7 @@ export function createProjectSecurityReview({trusted: defaultTrusted, pendingRev
             // A custom extension's name, description, creator and licence are its own leading comment,
             // read without running it, so the row says what it is and labels each part a claim.
             loadInfo: loadExtensionInfo,
+            loadPreview: createCatalogPreviewResolver(catalog),
             onComplete
         }),
         /**

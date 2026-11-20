@@ -76,6 +76,8 @@ export interface ReviewFailure {
 export interface ReviewEntryState {
     loaded?: boolean;
     trusted?: boolean;
+    /** Set by the host's Plus catalog lookup, never by extension-declared metadata. */
+    plusFamily?: boolean;
     error?: ReviewFailure;
 }
 

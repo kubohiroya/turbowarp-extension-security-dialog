@@ -18,6 +18,7 @@ import {readInlineExtensionName} from './inline-name.js';
 import {resolveExtensionSelection} from './selection.js';
 import {createPreviewCache} from './storage.js';
 import {ExtensionRow} from './extension-row.js';
+import {createGalleryPreviewResolver} from './gallery-preview.js';
 
 import {
     allRequireUnsandboxed, contradictsDeclaration, executionChoices, initialDecisions, isTrusted, loadingChoices,
@@ -201,29 +202,47 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
     componentWillUnmount () {
         this.controller.abort();
     }
-    /** Read each row's own description, one at a time; a failure leaves the row as it was. */
+    /** Read descriptions and gallery pictures independently; neither blocks the person's answer. */
     async describe () {
-        const {loadInfo, entries} = this.props;
-        for (const entry of entries) {
-            if (isEmbedded(entry.source)) continue;
-            const {url} = entry.source;
-            const inline = entry.source.kind === 'legacy' && url.startsWith('data:');
-            const read = loadInfo ?? (inline ? loadExtensionInfo : undefined);
-            // A host may only know the ID, version or catalog icon. Fill the other fields from
-            // the source instead of treating any partial metadata as a complete description.
-            if (!read) continue;
-            try {
-                const info = await read(url, this.controller.signal);
-                if (this.controller.signal.aborted) return;
-                const metadata = info.metadata || {};
-                const name = inline && !metadata.name?.trim() ? readInlineExtensionName(info.source, entry.ids) : undefined;
-                this.setState(state => ({
-                    described: new Map(state.described).set(entry.key, name ? {...metadata, name} : metadata)
-                }));
-            } catch (error) {
-                if (this.controller.signal.aborted) return;
-            }
-        }
+        const {loadInfo, loadPreview, entries} = this.props;
+        const galleryPreview = createGalleryPreviewResolver();
+        await Promise.all(entries.map(async entry => {
+            const picture = !entry.metadata?.banner ? Promise.resolve()
+                .then(() => loadPreview?.(entry, this.controller.signal))
+                .catch(() => undefined)
+                .then(banner => banner || ('url' in entry.source ? galleryPreview(entry.source.url, this.controller.signal) : undefined))
+                .then(banner => {
+                if (!banner || this.controller.signal.aborted) return;
+                this.setState(state => {
+                    const metadata = state.described.get(entry.key) || {};
+                    return {described: new Map(state.described).set(entry.key, {
+                        ...metadata, banner: metadata.banner || banner
+                    })};
+                });
+            }) : Promise.resolve();
+            const describeSource = async () => {
+                if (isEmbedded(entry.source)) return;
+                const {url} = entry.source;
+                const inline = entry.source.kind === 'legacy' && url.startsWith('data:');
+                const read = loadInfo ?? (inline ? loadExtensionInfo : undefined);
+                // Partial host metadata must not hide the source's own name and description.
+                if (!read) return;
+                try {
+                    const info = await read(url, this.controller.signal);
+                    if (this.controller.signal.aborted) return;
+                    const metadata = info.metadata || {};
+                    const name = inline && !metadata.name?.trim() ? readInlineExtensionName(info.source, entry.ids) : undefined;
+                    this.setState(state => ({
+                        described: new Map(state.described).set(entry.key, {
+                            ...state.described.get(entry.key), ...metadata, ...(name ? {name} : {})
+                        })
+                    }));
+                } catch {
+                    // A missing source description must not hide a gallery image or block review.
+                }
+            };
+            await Promise.all([picture, describeSource()]);
+        }));
     }
     t (key: string, values?: Record<string, string | number>) {
         return formatMessage(this.props.locale, key, values);
@@ -321,6 +340,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                 ids={entry.ids}
                 locale={this.props.locale}
                 trusted={isTrusted(entry)}
+                plusFamily={entry.state?.plusFamily === true}
                 previewCache={this.props.previewCache}
                 itemProps={{'data-key': entry.key, 'data-failed': failure ? 'true' : undefined}}
                 pick={mode === 'add' ? {

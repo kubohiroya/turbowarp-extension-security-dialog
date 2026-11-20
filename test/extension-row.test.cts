@@ -85,3 +85,16 @@ test('the host adds its own attributes, details under the heading and content af
     assert.equal(order.at(-1), 'host-groups');
     view.unmount();
 });
+
+test('the Plus mark requires host-confirmed family membership rather than claimed metadata or trust alone', () => {
+    const generic = renderRow({metadata: {...metadata, plusFamily: true}, trusted: true});
+    const neutral = generic.row.querySelector('.twextsec-trusted');
+    assert.equal(neutral.alt, 'Trusted by the host: runs without the sandbox');
+    assert.doesNotMatch(Buffer.from(neutral.src.split(',')[1], 'base64').toString(), /TurboWarp/);
+    generic.unmount();
+    const family = renderRow({metadata, trusted: true, plusFamily: true});
+    const badge = family.row.querySelector('.twextsec-trusted');
+    assert.equal(badge.alt, 'TurboWarp Plus family');
+    assert.match(Buffer.from(badge.src.split(',')[1], 'base64').toString(), /TurboWarp Plus/);
+    family.unmount();
+});

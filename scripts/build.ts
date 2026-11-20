@@ -14,6 +14,7 @@ await fs.writeFile(path.join(root, 'dist/build-info.json'),
 const dataURI = async (file: string) => `data:image/svg+xml;base64,${(await fs.readFile(path.join(root, file))).toString('base64')}`;
 const banner = await dataURI('assets/common.svg');
 const trustedBadge = await dataURI('assets/trusted.svg');
+const hostTrustedBadge = await dataURI('assets/host-trusted.svg');
 for (const [format, extension] of [['esm','mjs'], ['cjs','cjs']] as const) {
     await build({
         absWorkingDir: root,
@@ -21,7 +22,8 @@ for (const [format, extension] of [['esm','mjs'], ['cjs','cjs']] as const) {
         outdir: 'dist', outExtension: {'.js': `.${extension}`}, bundle: true,
         format, platform: 'browser', target: ['es2017'], external: ['react','react-dom','@kubohiroya/turbowarp-extension-security-dialog','@kubohiroya/turbowarp-extension-security-dialog/react','@kubohiroya/turbowarp-extension-security-dialog/turbowarp','@kubohiroya/turbowarp-extension-loader','@turbowarp/jszip'],
         define: {__SECURITY_COMMON_BANNER__: JSON.stringify(banner),
-            __SECURITY_TRUSTED_BADGE__: JSON.stringify(trustedBadge)}, sourcemap: false
+            __SECURITY_TRUSTED_BADGE__: JSON.stringify(trustedBadge),
+            __SECURITY_HOST_TRUSTED_BADGE__: JSON.stringify(hostTrustedBadge)}, sourcemap: false
     });
 }
 const css = await fs.readFile(path.join(root, 'src/review.css'), 'utf8');

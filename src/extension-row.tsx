@@ -10,6 +10,7 @@ import {LinkedText} from './linked-text.js';
 
 declare const __SECURITY_COMMON_BANNER__: string;
 declare const __SECURITY_TRUSTED_BADGE__: string;
+declare const __SECURITY_HOST_TRUSTED_BADGE__: string;
 // A row with no picture of its own still gets one, so the list does not read as half-filled.
 const fallbackBanner = __SECURITY_COMMON_BANNER__;
 const trustedBadge = __SECURITY_TRUSTED_BADGE__;
@@ -30,6 +31,8 @@ export interface ExtensionRowProps {
     locale?: string;
     /** Marks the row as trusted by the host. */
     trusted?: boolean;
+    /** The host confirmed membership in the TurboWarp Plus family. Independent of execution trust. */
+    plusFamily?: boolean;
     /** Given, the row has a checkbox, and its picture chooses the same way. */
     pick?: ExtensionRowPick;
     /** Where pictures are kept between visits; null keeps nothing. */
@@ -47,7 +50,7 @@ export interface ExtensionRowProps {
  * picture, what it says it does and who made it. The review screen and any other list of
  * extensions draw the same row, so an extension looks the same wherever it is offered.
  */
-export const ExtensionRow = ({metadata, ids = [], locale, trusted = false, pick, previewCache, itemProps, details,
+export const ExtensionRow = ({metadata, ids = [], locale, trusted = false, plusFamily = false, pick, previewCache, itemProps, details,
     children}: ExtensionRowProps) => {
     const t = (key: string) => formatMessage(locale, key);
     const declaredName = metadata.name?.trim();
@@ -58,15 +61,16 @@ export const ExtensionRow = ({metadata, ids = [], locale, trusted = false, pick,
     const badge = (
         <img
             className="twextsec-trusted"
-            src={trustedBadge}
-            alt={t('trusted')}
-            title={t('trusted')}
+            src={plusFamily ? trustedBadge : __SECURITY_HOST_TRUSTED_BADGE__}
+            alt={t(plusFamily ? 'plusFamily' : 'trusted')}
+            title={t(plusFamily ? 'plusFamily' : 'trusted')}
         />
     );
     const preview = (
         <ExtensionPreview
             url={metadata.banner || fallbackBanner}
             fallback={!metadata.banner}
+            fallbackURL={fallbackBanner}
             name={name}
             cache={previewCache}
             locale={locale}
