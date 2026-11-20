@@ -297,3 +297,11 @@ dependencies.
 The design record of the MPL-2.0 rewrite in 0.6.0 is in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
 
 When npm prepares a pinned GitHub archive without `.git`, the installer must pass its locked full SHA as `TWEXTSEC_SOURCE_REVISION`. The build records `sourceState: "git-archive"` and fails without a full SHA; the host verifies it against its manifest and lockfile.
+
+## Resource declarations
+
+Catalog metadata may contain `resourceDeclaration`, following `@kubohiroya/turbowarp-extension-manifest/resources` 0.6.0. The add screen and project-open review use the same `ExtensionRow` disclosure: original SVG icons, visible localized labels, conditional use, purposes, providers and network direction/content. Missing declarations and explicit empty lists have distinct labels. The optional field is display-only and does not grant execution or browser permission.
+
+The project-review port resolves declarations before asking. A declaration belongs to a catalog ID and exact URL/digest; embedded and legacy inline code are matched by digest. A project-supplied package name or declaration cannot borrow another version's claim. An unavailable catalog leaves the declaration unknown and does not block denial/cancellation. Existing host integration ports suffice; Scratch GUI code is unchanged. Roll back to 0.11.0 and the previous dependencies to remove the display.
+
+Resource disclosures show only icons by default. Click the icon row or press Enter/Space to expand or collapse the labels and details. Accessible names remain available while collapsed.

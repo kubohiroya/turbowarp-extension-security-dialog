@@ -13,6 +13,8 @@ import React from 'react';
 
 import {embeddedExtensionName} from './embedded-extension-name.js';
 import {createCatalogPreviewResolver} from './catalog-preview.js';
+import {createCatalogResourceResolver} from './catalog-resources.js';
+import type {ReviewEntry} from './review-types.js';
 import type {PreviewCatalog} from './catalog-preview.js';
 
 import type {createProjectReviewChannel, ReadEmbeddedReviewFile} from './project-review-channel.js';
@@ -28,6 +30,13 @@ export interface ProjectReviewPorts {
 export function createProjectSecurityReview({catalog, trusted: defaultTrusted, pendingReview: pendingPlusReview,
     reviewedArchive: reviewedProjectArchive, duringApproval: duringProjectLoadApproval, styles}: ProjectReviewPorts) {
     const hex = (bytes: any) => Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('');
+    const resolveResources = createCatalogResourceResolver(catalog);
+    const withResources = async (entry: ReviewEntry) => {
+        // Only the host's version-matched catalog may supply this field on an open-project row.
+        const {resourceDeclaration: _claim, ...metadata} = entry.metadata || {};
+        const resourceDeclaration = await resolveResources(entry, AbortSignal.timeout(5000));
+        return {...entry, metadata: {...metadata, ...(resourceDeclaration ? {resourceDeclaration} : {})}};
+    };
 
     /**
      * The project document a load was handed, whatever form it arrived in.
@@ -97,14 +106,14 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         ]);
         const source = typeof spec.source.url === 'string' && spec.source.type.startsWith('remote-') ?
             {kind: spec.source.type, url: spec.source.url, sha256: spec.sha256} : {kind: spec.source.type, sha256: spec.sha256};
-        return {key: spec.id,
+        return withResources({key: spec.id,
             ids: [spec.id],
             metadata: {id: spec.id, ...(name ? {name} : {}), ...(spec.version ? {version: spec.version} : {}),
                 ...(spec.publisher ? {author: spec.publisher} : {})},
             source,
             requestedExecution: spec.execution,
             dependencies: [...spec.dependencies],
-            ...(vouched ? {state: {trusted: true, plusFamily: true}} : {})};
+            ...(vouched ? {state: {trusted: true, plusFamily: true}} : {})});
     }));
 
     const frames = new WeakMap();
@@ -174,9 +183,9 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
                     const plusFamily = entry.source.kind === 'legacy' && await trusted.isTrustedURL(url);
                     const vouched = entry.source.kind === 'legacy' && (isTrusted(url) || plusFamily);
                     const banner = bannerFor({ids: entry.ids, url});
-                    return {...entry,
+                    return withResources({...entry,
                         ...(banner ? {metadata: {...entry.metadata, banner}} : {}),
-                        ...(vouched ? {state: {...entry.state, trusted: true, plusFamily}} : {})};
+                        ...(vouched ? {state: {...entry.state, trusted: true, plusFamily}} : {})});
                 }));
                 const starting = initialDecisions(rows, 'open', {recorded: initial});
                 if (!requiresReview(rows)) return starting;

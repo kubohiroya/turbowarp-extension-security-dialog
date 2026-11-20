@@ -731,3 +731,37 @@ test('when adding, the icon chooses its row like the name does', async () => {
     assert.equal(row.querySelector('input[type="checkbox"]').checked, false);
     view.unmount();
 });
+
+for (const mode of ['add', 'open']) for (const locale of ['ja', 'en']) {
+    test(`${mode}/${locale}: resource icons and visible text explain conditional use without granting execution`, () => {
+        const declaration = {schemaVersion: 1, resources: [
+            {type: 'camera', usage: 'conditional', purpose: {en: 'Read QR frames <script>', ja: 'QR映像を読む <script>'},
+                condition: {en: 'When scanning', ja: '撮影する場合'}, via: ['@owner/camera']},
+            {type: 'network', usage: 'required', purpose: {en: 'Download a model', ja: 'モデルを取得'},
+                data: {direction: 'download', content: {en: 'Model weights', ja: 'モデルの重み'}}}
+        ]};
+        const base = mode === 'add' ? catalogRow : cacheableRow;
+        const view = render({mode, locale, entries: [base('camera', {metadata: {resourceDeclaration: declaration}})]});
+        const row = view.rowFor('camera');
+        const details = row.querySelector('.twextsec-resources');
+        assert.equal(details.querySelectorAll('svg[aria-hidden="true"]').length, 2);
+        assert.match(details.querySelector('summary').textContent, locale === 'ja' ? /カメラ（条件付き）/ : /Camera \(conditional\)/);
+        assert.match(details.textContent, locale === 'ja' ? /モデルの重み/ : /Model weights/);
+        assert.match(details.textContent, /@owner\/camera/);
+        assert.equal(details.querySelector('script'), null);
+        assert.equal(view.answer, undefined);
+        Simulate.click(details.querySelector('summary'));
+        assert.equal(view.answer, undefined);
+        view.click(mode === 'open' ? 'twextsec-cancel' : 'twextsec-cancel');
+        assert.equal(view.answer, null);
+        view.unmount();
+    });
+}
+
+test('resource UI distinguishes missing and reviewed-empty declarations', () => {
+    const view = render({mode: 'add', locale: 'ja', entries: [catalogRow('old'),
+        catalogRow('empty', {metadata: {resourceDeclaration: {schemaVersion: 1, resources: []}}})]});
+    assert.equal(view.rowFor('old').querySelector('.twextsec-resource-status').textContent, 'リソース利用：未申告');
+    assert.equal(view.rowFor('empty').querySelector('.twextsec-resource-status').textContent, 'リソース利用の申告：なし');
+    view.unmount();
+});

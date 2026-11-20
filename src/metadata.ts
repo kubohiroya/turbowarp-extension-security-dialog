@@ -60,7 +60,7 @@ export function parseExtensionMetadata(source: string): ExtensionMetadata {
         }
         if (['name', 'id', 'author', 'version', 'license', 'banner', 'package', 'unsandboxed']
             .includes(name)) {
-            metadata[name as Exclude<keyof ExtensionMetadata, 'descriptions'>] = value;
+            metadata[name as Exclude<keyof ExtensionMetadata, 'descriptions' | 'resourceDeclaration'>] = value;
         }
     };
     // The run of `//` lines TurboWarp's own extensions and its gallery open with comes first, so

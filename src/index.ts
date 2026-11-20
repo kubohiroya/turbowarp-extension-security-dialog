@@ -3,6 +3,7 @@ export * from './catalog.js';
 export * from './metadata.js';
 export {createGalleryPreviewResolver} from './gallery-preview.js';
 export {createCatalogPreviewResolver} from './catalog-preview.js';
+export {createCatalogResourceResolver} from './catalog-resources.js';
 export type {PreviewCatalog} from './catalog-preview.js';
 export * from './selection.js';
 export * from './storage.js';

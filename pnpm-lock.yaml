@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@kubohiroya/turbowarp-extension-manifest':
+        specifier: 0.6.0
+        version: 0.6.0
     devDependencies:
       '@kubohiroya/turbowarp-extension-loader':
         specifier: 0.12.0
@@ -240,6 +244,10 @@ packages:
   '@kubohiroya/turbowarp-extension-loader@0.12.0':
     resolution: {integrity: sha512-mgt5y2oToh8DM9Sa9N8zV1CRMo6GC/zPO2RfLgCFC5gsgI58eP6/OHEX/OjFJGYteh4upBohgz35I2QrCFMZXg==}
     engines: {node: '>=26'}
+
+  '@kubohiroya/turbowarp-extension-manifest@0.6.0':
+    resolution: {integrity: sha512-GnNFESu2EeyrFkuxOQoFsEta3HwnNjen0PJm7DOOy2wPuqItqaogEUq80ccnJ/GwfVwfMS9V5Eddsga5CbF+Mw==}
+    engines: {node: '>=24'}
 
   '@playwright/test@1.64.1':
     resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
@@ -615,6 +623,8 @@ snapshots:
     optional: true
 
   '@kubohiroya/turbowarp-extension-loader@0.12.0': {}
+
+  '@kubohiroya/turbowarp-extension-manifest@0.6.0': {}
 
   '@playwright/test@1.64.1':
     dependencies:
