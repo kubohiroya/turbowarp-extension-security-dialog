@@ -80,6 +80,27 @@ test('a data URL already decoded is dropped when the request is abandoned', asyn
         loadExtensionInfo('data:application/javascript,void%200', controller.signal), /aborted/u);
 });
 
+test('HTTP metadata is display-only and relative banners follow the final extension URL', async () => {
+    const previous = globalThis.fetch;
+    const requests = [];
+    globalThis.fetch = async (url, options) => {
+        requests.push({url, options});
+        return {ok: true, url: 'http://localhost:8613/redirected/extension.js',
+            text: async () => '// Name: Local extension\n// Banner: ./images/banner.png\nthrow new Error("Do not execute");'};
+    };
+    try {
+        const info = await loadExtensionInfo('http://localhost:8613/extension.js');
+        assert.equal(info.metadata.name, 'Local extension');
+        assert.equal(info.metadata.banner, 'http://localhost:8613/redirected/images/banner.png');
+        assert.equal(requests[0].options.credentials, 'omit');
+        assert.equal(requests[0].options.referrerPolicy, 'no-referrer');
+        for (const url of ['javascript:alert(1)', 'file:///tmp/extension.js', 'http://user:pass@localhost/a.js']) {
+            await assert.rejects(loadExtensionInfo(url));
+        }
+        assert.equal(requests.length, 1);
+    } finally {globalThis.fetch = previous;}
+});
+
 // TurboWarp's own extensions, and the gallery's, describe themselves in a run of `//` lines.
 const header = `// Name: Security bundle fixture
 // ID: securityfixture

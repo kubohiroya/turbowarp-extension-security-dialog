@@ -120,7 +120,8 @@ export function createProjectSecurityReview({trusted: defaultTrusted, pendingRev
     const frameFor = (Modal: any) => {
         if (!frames.has(Modal)) {
             const Frame = ({title, onCancel, children}: any) => React.createElement(Modal, {
-                id: 'extension-security-batch', className: styles.frame, contentLabel: title, onRequestClose: onCancel
+                id: 'extension-security-batch', className: styles.frame, contentLabel: title, onRequestClose: onCancel,
+                manageHistory: false
             }, React.createElement('div', {className: styles.body}, children));
             frames.set(Modal, Frame);
         }

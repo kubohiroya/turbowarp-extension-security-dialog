@@ -69,14 +69,16 @@ export class ExtensionPreview extends React.PureComponent<PreviewProps, {src: st
             const response = await fetch(url, {
                 signal: this.controller.signal, credentials: 'omit', referrerPolicy: 'no-referrer'
             });
-            if (!response.ok) return;
+            if (!response.ok) throw new Error('Preview request failed');
             const blob = await response.blob();
             if (this.controller.signal.aborted) return;
             // Keeping it is a convenience; a browser that refuses still shows the picture now.
-            if (cache) await cache.write(url, blob);
             this.adopt(blob);
+            if (cache) await cache.write(url, blob);
         } catch (error) {
-            // A preview that cannot be shown leaves the row exactly as it was.
+            // Images can be displayed across origins even when CORS prevents reading their
+            // bytes for the cache. Keep the author's image instead of dropping it in that case.
+            if (!this.controller.signal.aborted && this.objectURL === null) this.setState({src: url});
         }
     }
     render () {
@@ -85,6 +87,8 @@ export class ExtensionPreview extends React.PureComponent<PreviewProps, {src: st
             <img
                 className={this.props.fallback ? 'twextsec-preview twextsec-preview-fallback' : 'twextsec-preview'}
                 src={this.state.src}
+                referrerPolicy="no-referrer"
+                onError={() => this.setState({src: null})}
                 alt={formatMessage(this.props.locale, 'preview', {name: this.props.name})}
             />
         );

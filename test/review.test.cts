@@ -84,6 +84,10 @@ function render(props) {
             locale: 'en', onComplete: value => {answer = value;}, ...props
         }), host);
     });
+    // Existing per-row cases exercise the individual screen; overview cases opt out explicitly.
+    if (props.mode === 'open' && props.overview !== true) {
+        act(() => {Simulate.click(host.querySelector('[data-testid="twextsec-individual"]'));});
+    }
     return {
         host,
         get answer() { return answer; },
@@ -91,10 +95,49 @@ function render(props) {
         rowFor: key => host.querySelector(`.twextsec-row[data-key="${key}"]`),
         radio: (key, group, value) => host.querySelector(
             `input[name="${group}-${key}"][value="${value}"]`),
+        execution: (key, value) => host.querySelector(`[data-key="${key}"] button[data-execution="${value}"]`),
         click: testid => act(() => {Simulate.click(host.querySelector(`[data-testid="${testid}"]`));}),
         unmount: () => act(() => {ReactDOM.unmountComponentAtNode(host);})
     };
 }
+
+for (const locale of ['ja', 'en']) {
+    test(`${locale}: overview only presents information and three explicit actions`, () => {
+        const view = render({mode: 'open', locale, overview: true, entries: [cacheableRow('a'), cacheableRow('b')]});
+        assert.equal(view.host.querySelectorAll('.twextsec-open-actions button').length, 3);
+        assert.equal(view.host.querySelectorAll('.twextsec-row input, .twextsec-row button').length, 0);
+        assert.equal(view.host.querySelector('.twextsec-bulk'), null);
+        assert.equal(view.host.querySelector('[data-testid="twextsec-complete"]'), null);
+        assert.match(view.host.textContent, locale === 'ja' ? /有効にする必要/ : /need to enable/);
+        assert.equal(view.answer, undefined);
+        const individual = view.host.querySelector('[data-testid="twextsec-individual"]');
+        assert.equal(individual.disabled, false);
+        assert.equal(individual.getAttribute('aria-pressed'), 'false');
+        view.click('twextsec-individual');
+        assert.equal(individual.disabled, true);
+        assert.equal(individual.getAttribute('aria-pressed'), 'true');
+        assert.equal(view.host.querySelector('[data-testid="twextsec-cancel"]').disabled, false);
+        assert.equal(view.host.querySelector('[data-testid="twextsec-enable-all"]').disabled, false);
+        assert.equal(view.host.querySelector('[role="status"]').textContent,
+            locale === 'ja' ? '個別確認モード' : 'Individual review mode');
+        assert.equal(view.rowFor('a').querySelectorAll('.twextsec-execution button').length, 3);
+        assert.equal(view.rowFor('a').querySelectorAll('.twextsec-execution input, .twextsec-execution .twextsec-choice-icon').length, 0);
+        assert.equal(view.answer, undefined);
+        view.click('twextsec-cancel');
+        assert.equal(view.answer, null);
+        view.unmount();
+    });
+}
+
+test('only the explicit enable-all action approves every extension without the sandbox', () => {
+    const view = render({mode: 'open', overview: true, entries: [cacheableRow('a'), cacheableRow('b')],
+        initialDecisions: new Map([['a', {execution: 'deny', loading: 'remote-non-cacheable'}]])});
+    assert.equal(view.answer, undefined);
+    view.click('twextsec-enable-all');
+    assert.deepEqual(view.answer.get('a'), {execution: 'unsandboxed', loading: 'remote-non-cacheable'});
+    assert.equal(view.answer.get('b').execution, 'unsandboxed');
+    view.unmount();
+});
 
 test('adding lists the catalog, and ticking one row pulls in what it needs', () => {
     const view = render({
@@ -186,21 +229,18 @@ test('adding offers all four forms, because adding is authoring', () => {
     view.unmount();
 });
 
-test('bulk execution reflects the choices of the rows it can change', () => {
+test('individual execution uses exclusive pressed buttons and preserves trusted rows', () => {
     const view = render({
         mode: 'open',
         entries: [cacheableRow('a'), cacheableRow('b'), cacheableRow('vouched', {state: {trusted: true}})]
     });
-    const bulkExecution = () => view.host.querySelector('input[name="execution-all"]:checked')?.value;
     for (const execution of ['deny', 'sandboxed', 'unsandboxed']) {
-        act(() => {view.radio('all', 'execution', execution).click();});
-        assert.equal(bulkExecution(), execution);
-        for (const key of ['a', 'b']) assert.equal(view.radio(key, 'execution', execution).checked, true);
+        act(() => {view.execution('a', execution).click();});
+        assert.equal(view.execution('a', execution).getAttribute('aria-pressed'), 'true');
+        assert.equal(view.rowFor('a').querySelectorAll('[aria-pressed="true"]').length, 1);
+        assert.equal(view.execution('b', 'sandboxed').getAttribute('aria-pressed'), 'true');
     }
-    act(() => {view.radio('a', 'execution', 'deny').click();});
-    assert.equal(bulkExecution(), undefined);
-    act(() => {view.radio('b', 'execution', 'deny').click();});
-    assert.equal(bulkExecution(), 'deny');
+    act(() => {view.execution('a', 'deny').click(); view.execution('b', 'deny').click();});
     assert.equal(view.answer, undefined);
     view.click('twextsec-complete');
     for (const key of ['a', 'b']) {
@@ -383,9 +423,11 @@ test('the creator name is shown as the extension own claim', () => {
 });
 
 test('opening uses the frame the host supplies, and adding renders in place', () => {
-    const Frame = props => React.createElement('div', {'data-testid': 'frame'}, props.children);
+    const Frame = props => React.createElement('div', {'data-testid': 'frame', 'data-title': props.title}, props.children);
     const opened = render({mode: 'open', entries: [cacheableRow('a')], DialogFrame: Frame});
     assert.notEqual(opened.host.querySelector('[data-testid="frame"]'), null);
+    assert.equal(opened.host.querySelector('[data-testid="frame"]').getAttribute('data-title'),
+        'Confirmation: This project wants to run extensions');
     opened.unmount();
     const added = render({mode: 'add', entries: [catalogRow('a')], DialogFrame: Frame});
     assert.equal(added.host.querySelector('[data-testid="frame"]'), null);
@@ -423,19 +465,46 @@ test('a preview is shown from the cache when there is one, and fetched once othe
     second.unmount();
 });
 
-test('a preview that cannot be fetched leaves the row exactly as it was', async () => {
+test('a preview blocked by CORS still displays directly, and a broken image leaves the row readable', async () => {
     globalThis.fetch = async () => {
         throw new Error('offline');
     };
     const entry = cacheableRow('a', {metadata: {name: 'A', banner: 'https://example.test/a.png'}});
     const view = render({mode: 'open', entries: [entry], previewCache: null});
     await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+    const image = view.host.querySelector('.twextsec-preview');
+    assert.equal(image.getAttribute('src'), entry.metadata.banner);
+    assert.equal(image.getAttribute('referrerpolicy'), 'no-referrer');
+    act(() => {Simulate.error(image);});
     assert.equal(view.host.querySelector('.twextsec-preview'), null);
     // The row is still readable and still answerable.
     assert.match(view.rowFor('a').textContent, /A/);
     view.click('twextsec-complete');
     assert.equal(view.answer.get('a').execution, 'sandboxed');
     view.unmount();
+});
+
+test('partial host metadata still acquires its own banner while retaining the host name and icon', async () => {
+    const banner = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+    const hostBanner = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=host';
+    const read = [];
+    const view = render({mode: 'open', overview: true, previewCache: null,
+        entries: [cacheableRow('a', {metadata: {name: 'Host name', version: '1.0'}}),
+            cacheableRow('b', {metadata: {banner: hostBanner}})],
+        loadInfo: async url => {
+            read.push(url);
+            return {source: '', metadata: {name: 'Source name', banner, author: 'Author'}};
+        }});
+    try {
+        await act(async () => {await new Promise(resolve => setTimeout(resolve, 0));});
+        assert.equal(read.length, 2);
+        assert.equal(view.rowFor('a').querySelector('strong').textContent, 'Host name');
+        assert.equal(view.rowFor('a').querySelector('.twextsec-preview').getAttribute('src'), banner);
+        assert.equal(view.rowFor('b').querySelector('.twextsec-preview').getAttribute('src'), hostBanner);
+        assert.equal(view.rowFor('a').querySelector('.twextsec-preview-fallback'), null);
+        assert.match(view.rowFor('a').textContent, /Author/);
+        assert.equal(view.answer, undefined);
+    } finally {view.unmount();}
 });
 
 test('a row with no picture of its own still gets one, without touching the network', async () => {
@@ -545,7 +614,7 @@ test('dynamic names and broken embedded data leave a usable ID heading', async (
     }
 });
 
-test('all-required opening batches show one preset execution choice in both languages, while caching stays independent', () => {
+test('all-required declarations still allow explicit denial or a sandbox trial and keep caching independent', () => {
     for (const locale of ['ja', 'en']) {
         const entries = [cacheableRow('a'),
             row('b', {kind: 'embedded-data', url: 'data:text/javascript,unused'})]
@@ -553,19 +622,25 @@ test('all-required opening batches show one preset execution choice in both lang
         let instance;
         const view = render({mode: 'open', locale, entries, ref: value => {instance = value;}});
         assert.equal(view.host.querySelector('input[name="execution-all"]'), null);
-        assert.equal(view.host.querySelectorAll('input[name^="execution-"]').length, 2);
-        for (const key of ['a', 'b']) assert.equal(view.radio(key, 'execution', 'unsandboxed').checked, true);
-        assert.match(view.host.querySelector('.twextsec-intro').textContent,
-            locale === 'ja' ? /選択済み/ : /already selected/);
+        assert.equal(view.host.querySelectorAll('input[name^="execution-"]').length, 0);
+        for (const key of ['a', 'b']) {
+            assert.equal(view.execution(key, 'unsandboxed').getAttribute('aria-pressed'), 'true');
+            assert.equal(view.execution(key, 'sandboxed').disabled, false);
+            assert.equal(view.execution(key, 'deny').disabled, false);
+        }
         assert.equal(view.answer, undefined);
         act(() => {
-            instance.handleBulkExecution({target: {value: 'deny'}});
             instance.decide('a', {execution: 'sandboxed'});
         });
-        assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
+        assert.equal(view.execution('a', 'sandboxed').getAttribute('aria-pressed'), 'true');
+        assert.notEqual(view.rowFor('a').querySelector('.twextsec-contradiction'), null);
+        act(() => {view.execution('a', 'deny').click();});
+        assert.equal(view.execution('a', 'deny').getAttribute('aria-pressed'), 'true');
+        act(() => {view.execution('a', 'unsandboxed').click();});
+        assert.equal(view.execution('a', 'unsandboxed').getAttribute('aria-pressed'), 'true');
         const cache = view.radio('a', 'loading', 'remote-non-cacheable');
         act(() => {cache.checked = true; Simulate.change(cache);});
-        assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
+        assert.equal(view.execution('a', 'unsandboxed').getAttribute('aria-pressed'), 'true');
         view.click('twextsec-complete');
         assert.deepEqual(view.answer.get('a'), {execution: 'unsandboxed', loading: 'remote-non-cacheable'});
         view.unmount();
@@ -586,18 +661,18 @@ test('an embedded all-required batch has no bulk controls and still waits for OK
     view.unmount();
 });
 
-test('late descriptions preset only once the whole batch is required, without executing it', async () => {
+test('late required declarations preserve the selected sandbox mode without executing or escalating it', async () => {
     const pending = new Map();
     const view = render({mode: 'open', entries: [cacheableRow('a'), cacheableRow('b')],
         loadInfo: url => new Promise(resolve => pending.set(url, resolve))});
-    assert.equal(view.radio('a', 'execution', 'sandboxed').checked, true);
+    assert.equal(view.execution('a', 'sandboxed').getAttribute('aria-pressed'), 'true');
     await act(async () => {pending.get('https://example.test/a.js')({metadata: {unsandboxed: 'required'}});});
-    assert.equal(view.radio('a', 'execution', 'sandboxed').checked, true);
+    assert.equal(view.execution('a', 'sandboxed').getAttribute('aria-pressed'), 'true');
     await act(async () => {pending.get('https://example.test/b.js')({metadata: {unsandboxed: 'required'}});});
     assert.equal(view.host.querySelector('input[value="deny"]'), null);
     assert.equal(view.host.querySelector('input[name="execution-all"]'), null);
-    assert.equal(view.radio('a', 'execution', 'unsandboxed').checked, true);
-    assert.equal(view.radio('b', 'execution', 'unsandboxed').checked, true);
+    assert.equal(view.execution('a', 'sandboxed').getAttribute('aria-pressed'), 'true');
+    assert.equal(view.execution('b', 'sandboxed').getAttribute('aria-pressed'), 'true');
     assert.equal(view.answer, undefined);
     view.unmount();
 });
