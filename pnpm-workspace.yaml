@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@kubohiroya/turbowarp-extension-loader@0.12.0'

@@ -9,8 +9,8 @@ importers:
   .:
     devDependencies:
       '@kubohiroya/turbowarp-extension-loader':
-        specifier: 0.11.1
-        version: 0.11.1
+        specifier: 0.12.0
+        version: 0.12.0
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -237,8 +237,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@kubohiroya/turbowarp-extension-loader@0.11.1':
-    resolution: {integrity: sha512-0jgwZBPcYbVll8WX3nWvvnNsMD0cglABPVY3uuh/pGAuMkKzsMZDc74qEO47/GHblk+tLMClTMROZgm3C+BbNg==}
+  '@kubohiroya/turbowarp-extension-loader@0.12.0':
+    resolution: {integrity: sha512-mgt5y2oToh8DM9Sa9N8zV1CRMo6GC/zPO2RfLgCFC5gsgI58eP6/OHEX/OjFJGYteh4upBohgz35I2QrCFMZXg==}
     engines: {node: '>=26'}
 
   '@playwright/test@1.64.1':
@@ -614,7 +614,7 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@kubohiroya/turbowarp-extension-loader@0.11.1': {}
+  '@kubohiroya/turbowarp-extension-loader@0.12.0': {}
 
   '@playwright/test@1.64.1':
     dependencies:
