@@ -3,6 +3,8 @@ import {test, before, after} from 'node:test';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {build} from 'esbuild';
 
 const require = createRequire(process.env.TW_SECURITY_PLAYWRIGHT_PACKAGE || import.meta.url);
@@ -94,7 +96,7 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) for (c
                 assert.equal(await page.getByTestId('twextsec-complete').count(), 0);
                 assert.equal(await page.evaluate(() => window.answer), undefined);
                 if (locale === 'ja' && theme === 'light' && width === 1280) {
-                    await page.screenshot({path: '/private/tmp/tw-review-overview.png'});
+                    await page.screenshot({path: join(tmpdir(), 'tw-review-overview.png')});
                 }
                 await page.getByTestId('twextsec-individual').click();
                 const individual = page.getByTestId('twextsec-individual');
@@ -120,7 +122,7 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) for (c
                 const bounds = await group.boundingBox();
                 assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
                 if (locale === 'ja' && theme === 'light' && width === 1280) {
-                    await page.screenshot({path: '/private/tmp/tw-review-individual.png'});
+                    await page.screenshot({path: join(tmpdir(), 'tw-review-individual.png')});
                 }
                 await page.getByTestId('twextsec-complete').click();
                 const answer = await page.evaluate(() => window.answer);
