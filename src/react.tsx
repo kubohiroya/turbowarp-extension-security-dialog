@@ -20,6 +20,8 @@ export interface ExtensionReviewProps {
     /** Used only when opening a project: the host supplies its own modal. */
     DialogFrame?: ComponentType<DialogFrameProps>;
     loadInfo?: (url: string, signal: AbortSignal) => Promise<{source: string; metadata: ExtensionMetadata}>;
+    /** Host catalog artwork, including for embedded code verified by its digest. Display only. */
+    loadPreview?: (entry: ReviewEntry, signal: AbortSignal) => Promise<string | undefined>;
     /** Where previews are kept between visits; null keeps nothing. */
     previewCache?: PreviewCache | null;
     /**

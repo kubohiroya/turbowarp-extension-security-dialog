@@ -175,8 +175,17 @@ for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
                 const before = await checkbox.boundingBox();
                 const icon = await row.locator('.twextsec-preview').boundingBox();
                 const name = await row.locator('strong').boundingBox();
-                assert.ok(before.x + before.width < icon.x && icon.x + icon.width < name.x);
-                assert.ok(Math.abs(before.y + before.height / 2 - (icon.y + icon.height / 2)) < 2);
+                assert.equal(icon.width, 180);
+                assert.equal(icon.height, 90);
+                if (mobile) {
+                    assert.ok(before.x + before.width < name.x);
+                    assert.ok(icon.y >= name.y + name.height);
+                    const rowBounds = await row.boundingBox();
+                    assert.ok(Math.abs(icon.x + icon.width / 2 - (rowBounds.x + rowBounds.width / 2)) < 2);
+                } else {
+                    assert.ok(before.x + before.width < icon.x && icon.x + icon.width < name.x);
+                    assert.ok(Math.abs(before.y + before.height / 2 - (icon.y + icon.height / 2)) < 2);
+                }
                 const scroller = page.locator('.twextsec-scroll');
                 const scroll = await scroller.evaluate(element => element.scrollTop);
                 await checkbox.check();

@@ -129,7 +129,12 @@ scrolls independently of Cancel and Add. Dismissing the unsandboxed notice prese
 and returns focus to the control that opened it.
 
 Individual review keeps its top action visibly selected and disabled. Rows use the host's icon or
-the source's declared banner; the common icon is only for rows without a picture declaration.
+the source's declared banner. Gallery images are resolved against the official catalog by the
+full extension URL, independently of source metadata loading. Missing or broken pictures use
+an unbranded common icon. Picture loading never grants execution permission.
+Gallery banners use a 180 by 90 area, with other extension previews sharing its 90px height. Square family block SVGs fill its height and
+stay centered without distortion. Opening a project can resolve the same catalog artwork by
+its URL and pinned digest. Narrow screens stack the description and preview and scale the area to fit.
 Display metadata can be read from HTTP(S), and relative banners resolve against the final source URL.
 When CORS prevents caching an image, it can still be displayed directly by the browser.
 
@@ -137,6 +142,11 @@ For trusted entries, the trust badge links to the extension page when provided. 
 GitHub versions link to their release notes. The description preserves line breaks and turns
 HTTP(S) URLs and email addresses into links. The creator's contact appears next to their name
 when supplied.
+
+Execution trust and family membership are separate: only rows with host-confirmed
+`entry.state.plusFamily` use the Plus mark. Other trusted rows use an unbranded check.
+For a standalone `ExtensionRow`, pass `plusFamily` explicitly after checking the host's Plus
+catalog. Extension-declared metadata and matching IDs alone do not establish membership.
 
 ### Using one row of the list
 

@@ -8,13 +8,15 @@ notice, so this code can be combined into a larger work distributed under GPL-3.
 the TurboWarp-Plus Editor ships it.
 
 `assets/common.svg` is the fallback icon shown when an extension has no preview of its own. It is
-original to this package: a jigsaw piece outline with a serif T, drawn for it and derived from no
+original to this package: white code brackets on a gray square, drawn for it and derived from no
 other work. `scripts/build.ts` embeds it into `dist` as a base64 data URI, so it travels in the
 published package.
 
-`assets/trusted.svg` is the mark beside an extension the host trusts: the TurboWarp Plus mark (the
+`assets/trusted.svg` is the mark beside a host-confirmed TurboWarp Plus family extension: the TurboWarp Plus mark (the
 hat block with a warp swirl and a plus sign, drawn by the same author for the TurboWarp-Plus Editor)
 with a green check over it. It is embedded into `dist` the same way.
+
+`assets/host-trusted.svg` is an original, unbranded check mark for other extensions trusted by the host.
 
 ## JavaScript parsing
 
