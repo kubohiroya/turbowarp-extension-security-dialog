@@ -3,6 +3,8 @@ import {test, before, after} from 'node:test';
 import {createRequire} from 'node:module';
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {build} from 'esbuild';
 
 const require = createRequire(process.env.TW_SECURITY_PLAYWRIGHT_PACKAGE || import.meta.url);
@@ -16,14 +18,16 @@ before(async () => {
             import ReactDOM from 'react-dom';
             import {ExtensionReview} from './dist/react.mjs';
             const locale = new URLSearchParams(location.search).get('locale');
+            const opening = new URLSearchParams(location.search).has('open');
             const entries = Array.from({length: 24}, (_, i) => ({key: 'extension' + i,
-                ids: ['extension' + i], source: {kind: 'catalog', url: 'https://example.test/' + i},
+                ids: ['extension' + i], source: {kind: opening ? 'remote-cacheable' : 'catalog', url: 'https://example.test/' + i},
                 metadata: {name: 'Extension ' + i, version: '1.2.3-rc.1',
+                    ...(i === 0 ? {banner: 'http://localhost:' + location.port + '/preview.svg'} : {}),
                     docsURL: 'https://example.github.io/extension/', repository: 'https://github.com/example/extension',
                     author: 'Creator', authorURL: 'mailto:creator@example.test',
                     description: 'First line\\nhttps://example.test/help#details\\ncontact@example.test'},
-                state: {trusted: true}}));
-            ReactDOM.render(React.createElement(ExtensionReview, {mode: 'add', entries, locale,
+                state: {trusted: !opening}}));
+            ReactDOM.render(React.createElement(ExtensionReview, {mode: opening ? 'open' : 'add', entries, locale,
                 previewCache: null, onComplete: answer => {window.answer = answer === null ? null : [...answer];}}),
                 document.getElementById('app'));
         `, resolveDir: process.cwd()},
@@ -34,6 +38,10 @@ before(async () => {
         if (request.url === '/bundle.js') {
             response.setHeader('Content-Type', 'text/javascript');
             response.end(result.outputFiles[0].text);
+        } else if (request.url === '/preview.svg') {
+            // A displayable image without CORS permission to read/cache its bytes.
+            response.setHeader('Content-Type', 'image/svg+xml');
+            response.end('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="#7352d6"/></svg>');
         } else {
             response.setHeader('Content-Type', 'text/html');
             response.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -67,6 +75,65 @@ const luminance = color => {
     });
     return linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722;
 };
+
+for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) for (const width of [1280, 390, 320]) {
+    test(`opening/${locale}/${theme}/${width}: overview, individual buttons, keyboard and explicit permission`,
+        {timeout: 30000}, async () => {
+            const context = await browser.newContext({viewport: {width, height: 900}});
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', error => errors.push(error.message));
+            try {
+                await page.goto(`${base}/?open&locale=${locale}&theme=${theme}`);
+                const first = page.locator('[data-key="extension0"]');
+                await page.waitForFunction(() => {
+                    const image = document.querySelector('[data-key="extension0"] .twextsec-preview');
+                    return image?.complete && image.naturalWidth === 40;
+                });
+                assert.equal(await first.locator('.twextsec-preview-fallback').count(), 0);
+                assert.equal(await first.locator('input, button').count(), 0);
+                assert.equal(await page.locator('.twextsec-open-actions button').count(), 3);
+                assert.equal(await page.getByTestId('twextsec-complete').count(), 0);
+                assert.equal(await page.evaluate(() => window.answer), undefined);
+                if (locale === 'ja' && theme === 'light' && width === 1280) {
+                    await page.screenshot({path: join(tmpdir(), 'tw-review-overview.png')});
+                }
+                await page.getByTestId('twextsec-individual').click();
+                const individual = page.getByTestId('twextsec-individual');
+                assert.equal(await individual.isDisabled(), true);
+                assert.equal(await individual.getAttribute('aria-pressed'), 'true');
+                assert.equal(await individual.evaluate(element => {
+                    const style = getComputedStyle(element);
+                    return style.backgroundColor !== getComputedStyle(element.parentElement).backgroundColor && style.opacity === '1';
+                }), true);
+                const group = first.locator('.twextsec-execution');
+                assert.equal(await group.getByRole('button').count(), 3);
+                assert.equal(await group.locator('input, .twextsec-choice-icon').count(), 0);
+                assert.equal(await group.locator('[aria-pressed="true"]').count(), 1);
+                const deny = group.locator('[data-execution="deny"]');
+                await deny.click();
+                assert.equal(await deny.getAttribute('aria-pressed'), 'true');
+                await deny.press('ArrowRight');
+                const sandbox = group.locator('[data-execution="sandboxed"]');
+                assert.equal(await sandbox.getAttribute('aria-pressed'), 'true');
+                assert.equal(await sandbox.evaluate(element => element === document.activeElement), true);
+                assert.equal(await page.evaluate(() => window.answer), undefined);
+                assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+                const bounds = await group.boundingBox();
+                assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width);
+                if (locale === 'ja' && theme === 'light' && width === 1280) {
+                    await page.screenshot({path: join(tmpdir(), 'tw-review-individual.png')});
+                }
+                await page.getByTestId('twextsec-complete').click();
+                const answer = await page.evaluate(() => window.answer);
+                assert.equal(answer.find(([key]) => key === 'extension0')[1].execution, 'sandboxed');
+                assert.deepEqual(errors, []);
+                await page.reload();
+                await page.getByTestId('twextsec-enable-all').click();
+                assert.equal(await page.evaluate(() => window.answer.every(([, value]) => value.execution === 'unsandboxed')), true);
+            } finally {await context.close();}
+        });
+}
 
 for (const locale of ['en', 'ja']) for (const theme of ['light', 'dark']) {
     for (const mobile of [false, true]) {

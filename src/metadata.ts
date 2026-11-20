@@ -170,9 +170,20 @@ export async function loadExtensionInfo(url: string, signal?: AbortSignal) {
         const source = decodeExtensionDataURL(url);
         return {source, metadata: parseExtensionMetadata(source)};
     }
-    const address = reviewURL(url, 'extension URL');
+    // This reads display metadata without executing code. HTTP sources used by local editors
+    // need the same descriptions and images as HTTPS sources; catalog loading stays stricter.
+    const address = reviewURL(url, 'extension URL', true);
     const response = await fetch(address, {signal, credentials: 'omit', referrerPolicy: 'no-referrer'});
     if (!response.ok) throw new Error(`Extension request failed (HTTP ${response.status})`);
     const source = await response.text();
-    return {source, metadata: parseExtensionMetadata(source)};
+    const metadata = parseExtensionMetadata(source);
+    if (metadata.banner) {
+        try {
+            metadata.banner = new URL(metadata.banner, response.url || address).href;
+        } catch {
+            // An unusable picture must not prevent the other claims from being shown.
+            delete metadata.banner;
+        }
+    }
+    return {source, metadata};
 }

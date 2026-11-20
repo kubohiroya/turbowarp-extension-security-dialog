@@ -9,6 +9,7 @@ interface ReviewState {
     decisions: Map<string, ReviewDecision>;
     chosen: Set<string>;
     described: Map<string, ExtensionMetadata>;
+    individual: boolean;
 }
 import React from 'react';
 import {formatMessage} from './messages.js';
@@ -135,6 +136,37 @@ const Choices = <T extends Choice>({name, value, options, disabled, label, onCha
     </fieldset>
 );
 
+/** Pressed buttons make the mutually exclusive execution choices visible without radio icons. */
+const ExecutionButtons = ({value, options, onChange, t}: {
+    value: ExecutionDecision; options: ExecutionDecision[];
+    onChange: (option: ExecutionDecision) => void; t: Translate;
+}) => (
+    <div className="twextsec-execution" role="group" aria-label={t('execution')}>
+        {(['deny', 'sandboxed', 'unsandboxed'] as const).map(option => (
+            <button
+                key={option}
+                type="button"
+                data-execution={option}
+                aria-pressed={value === option}
+                disabled={!options.includes(option)}
+                onClick={() => onChange(option)}
+                onKeyDown={event => {
+                    const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+                    if (!keys.includes(event.key)) return;
+                    event.preventDefault();
+                    const buttons = Array.from(event.currentTarget.parentElement!
+                        .querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+                    const index = buttons.indexOf(event.currentTarget);
+                    const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 :
+                        (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+                    buttons[next].focus();
+                    buttons[next].click();
+                }}
+            >{t(`open-execution-${option}`)}</button>
+        ))}
+    </div>
+);
+
 /**
  * The one screen that asks how extensions may run.
  *
@@ -151,26 +183,20 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         this.handleBulkLoading = this.handleBulkLoading.bind(this);
         this.handleComplete = this.handleComplete.bind(this);
         this.handleCancel = this.handleCancel.bind(this);
+        this.handleEnableAll = this.handleEnableAll.bind(this);
         this.state = {
             decisions: initialDecisions(props.entries, props.mode, {
                 recorded: props.initialDecisions, fallbackLoading: props.fallbackLoading
             }),
             chosen: new Set(props.entries.filter(entry => entry.state && entry.state.loaded)
                 .map(entry => entry.key)),
-            described: new Map()
+            described: new Map(),
+            individual: false
         };
         this.controller = new AbortController();
     }
     componentDidMount () {
         this.describe();
-    }
-    componentDidUpdate () {
-        if (this.allRequired() && this.props.entries.some(entry =>
-            this.state.decisions.get(entry.key)!.execution !== 'unsandboxed')) {
-            // Late metadata can complete the batch, but never starts it without OK.
-            this.setState(state => ({decisions: new Map([...state.decisions]
-                .map(([key, decision]) => [key, {...decision, execution: 'unsandboxed'}]))}));
-        }
     }
     componentWillUnmount () {
         this.controller.abort();
@@ -183,7 +209,9 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
             const {url} = entry.source;
             const inline = entry.source.kind === 'legacy' && url.startsWith('data:');
             const read = loadInfo ?? (inline ? loadExtensionInfo : undefined);
-            if (!read || (entry.metadata && (!inline || entry.metadata.name?.trim()))) continue;
+            // A host may only know the ID, version or catalog icon. Fill the other fields from
+            // the source instead of treating any partial metadata as a complete description.
+            if (!read) continue;
             try {
                 const info = await read(url, this.controller.signal);
                 if (this.controller.signal.aborted) return;
@@ -210,7 +238,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
             ({...entry, metadata: this.metadataOf(entry)})));
     }
     executionOptions (entry: ReviewEntry): ExecutionDecision[] {
-        return this.allRequired() && !isTrusted(entry) ? ['unsandboxed'] : executionChoices(entry, this.props.mode);
+        return executionChoices(entry, this.props.mode);
     }
     decide (key: string, change: Partial<ReviewDecision>) {
         const entry = this.props.entries.find(entry => entry.key === key);
@@ -245,6 +273,11 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
         const included = this.included();
         this.props.onComplete(new Map([...this.state.decisions]
             .filter(([key]) => included.has(key))));
+    }
+    handleEnableAll () {
+        // Explicit consent applies to the whole batch; merely showing the controls grants nothing.
+        this.setState(state => ({decisions: new Map([...state.decisions].map(([key, decision]) =>
+            [key, {...decision, execution: 'unsandboxed' as const}]))}), this.handleComplete);
     }
     handleCancel () {
         this.props.onComplete(null);
@@ -325,7 +358,15 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                     />
                 )}
                 <div className="twextsec-choices">
-                    {!isTrusted(entry) && (
+                    {mode === 'open' && this.state.individual && !isTrusted(entry) && (
+                        <ExecutionButtons
+                            value={decision.execution}
+                            options={executions}
+                            onChange={execution => this.decide(entry.key, {execution})}
+                            t={t}
+                        />
+                    )}
+                    {mode === 'add' && !isTrusted(entry) && (
                         <Choices
                             name={`execution-${entry.key}`}
                             label={t('execution')}
@@ -335,7 +376,7 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                             t={t}
                         />
                     )}
-                    {loadings.length > 0 && (
+                    {loadings.length > 0 && (mode === 'add' || this.state.individual) && (
                         <Choices
                             name={`loading-${entry.key}`}
                             label={t('loading')}
@@ -348,10 +389,10 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                 </div>
                 {/* With nothing to choose the row still says how it loads, because that is part
                     of what the person is agreeing to run, not an omission. */}
-                {loadings.length === 0 && decision.loading !== undefined && (
+                {(loadings.length === 0 || (mode === 'open' && !this.state.individual)) && decision.loading !== undefined && (
                     <p className="twextsec-loading-fixed"><ChoiceLabel kind="loading" option={decision.loading} t={t} /></p>
                 )}
-                {contradictsDeclaration(entry, decision) && (
+                {(mode === 'add' || this.state.individual) && contradictsDeclaration(entry, decision) && (
                     <p
                         className="twextsec-contradiction"
                         role="alert"
@@ -378,7 +419,24 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
             .filter(mode => entries.some(entry => loadingChoices(entry).includes(mode)));
         const content = (
             <React.Fragment>
-                <p className="twextsec-intro">{t(mode === 'add' ? 'addIntro' : allRequired ? 'allRequiredIntro' : 'openIntro')}</p>
+                {mode === 'add' ? <p className="twextsec-intro">{t('addIntro')}</p> : <>
+                    <p className="twextsec-intro">{t('openReason')}</p>
+                    <p className="twextsec-intro">{t('openIntro')} {t('openTrust')}</p>
+                    <p className="twextsec-intro">{t('unsandboxedWarning')}</p>
+                    <p className="twextsec-intro">{t('openIndividual')}</p>
+                    {allRequired && <p className="twextsec-note">{t('allRequiredIntro')}</p>}
+                    <menu className="twextsec-actions twextsec-open-actions">
+                        <button type="button" data-testid="twextsec-cancel" onClick={this.handleCancel}>{t('stop')}</button>
+                        <button type="button" data-testid="twextsec-individual"
+                            aria-expanded={this.state.individual}
+                            aria-pressed={this.state.individual}
+                            disabled={this.state.individual}
+                            onClick={() => this.setState({individual: true})}>{t('reviewIndividually')}</button>
+                        <button type="button" data-testid="twextsec-enable-all"
+                            onClick={this.handleEnableAll}>{t('enableAll')}</button>
+                    </menu>
+                    {this.state.individual && <p className="twextsec-individual-heading" role="status">{t('individualMode')}</p>}
+                </>}
                 {failure && (
                     <Failure
                         failure={failure}
@@ -386,8 +444,8 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
                         t={t}
                     />
                 )}
-                {(!allRequired || bulkLoadings.length > 0) && <div className="twextsec-bulk">
-                    {!allRequired && <Choices
+                {(mode === 'add' || this.state.individual) && ((mode === 'add' && !allRequired) || bulkLoadings.length > 0) && <div className="twextsec-bulk">
+                    {mode === 'add' && !allRequired && <Choices
                         name="execution-all"
                         label={t('executionBulk')}
                         value={bulkExecution}
@@ -416,21 +474,21 @@ export class ExtensionReview extends React.PureComponent<ExtensionReviewProps, R
             </React.Fragment>
         );
         const body = (
-            <div className="twextsec-review" data-mode={mode}>
+            <div className="twextsec-review" data-mode={mode} data-individual={this.state.individual}>
                 {mode === 'add' ? <div className="twextsec-scroll">{content}</div> : content}
-                {anyUnsandboxed && <UnsandboxedWarning t={t} />}
-                <menu className="twextsec-actions">
-                    <button
+                {anyUnsandboxed && (mode === 'add' || this.state.individual) && <UnsandboxedWarning t={t} />}
+                {(mode === 'add' || this.state.individual) && <menu className="twextsec-actions">
+                    {mode === 'add' && <button
                         type="button"
                         data-testid="twextsec-cancel"
                         onClick={this.handleCancel}
-                    >{t('cancel')}</button>
+                    >{t('cancel')}</button>}
                     <button
                         type="button"
                         data-testid="twextsec-complete"
                         onClick={this.handleComplete}
-                    >{t(mode === 'add' ? 'add' : 'ok')}</button>
-                </menu>
+                    >{t(mode === 'add' ? 'add' : 'runSelected')}</button>
+                </menu>}
             </div>
         );
         if (mode === 'open' && DialogFrame) {

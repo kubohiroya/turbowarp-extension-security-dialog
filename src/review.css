@@ -85,6 +85,27 @@
 .twextsec-actions button { font: inherit; padding: 8px 16px; border: 1px solid var(--ui-black-transparent, #0000001a); border-radius: 6px; background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
 .twextsec-actions button[data-testid="twextsec-complete"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
 .twextsec-actions button:focus-visible { outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
+.twextsec-open-actions { flex-wrap: wrap; margin: 16px 0; justify-content: flex-start; }
+.twextsec-open-actions button { min-height: 44px; }
+.twextsec-open-actions button[aria-pressed="true"]:disabled { background: var(--looks-secondary, #1d4ed8);
+    color: #fff; border-color: currentColor; box-shadow: inset 0 0 0 2px currentColor;
+    font-weight: bold; opacity: 1; cursor: default; }
+.twextsec-actions button[data-testid="twextsec-enable-all"] { background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: transparent; }
+.twextsec-individual-heading { font-weight: bold; margin: 16px 0 8px; }
+.twextsec-execution { display: flex; width: 100%; margin: 8px 0; }
+.twextsec-execution button { flex: 1 1 0; min-width: 0; min-height: 48px; padding: 10px;
+    font: inherit; line-height: 1.5; overflow-wrap: anywhere;
+    border: 1px solid var(--ui-black-transparent, #64748b); border-radius: 0;
+    background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
+.twextsec-execution button + button { margin-left: -1px; }
+.twextsec-execution button:first-child { border-radius: 6px 0 0 6px; }
+.twextsec-execution button:last-child { border-radius: 0 6px 6px 0; }
+.twextsec-execution button[aria-pressed="true"] { position: relative; z-index: 1;
+    background: var(--looks-secondary, #1d4ed8); color: #fff; border-color: currentColor; font-weight: bold;
+    box-shadow: inset 0 0 0 2px currentColor; }
+.twextsec-execution button:disabled { opacity: .5; cursor: default; }
+.twextsec-execution button:focus-visible { position: relative; z-index: 2;
+    outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
 /* Catalog banners are block icons, so a row shows its picture at icon size, not as a wide banner. */
 .twextsec-preview { display: block; width: 40px; height: 40px; object-fit: contain; margin: 2px 0 0; border-radius: 6px; }
 .twextsec-preview-fallback { opacity: .5; }

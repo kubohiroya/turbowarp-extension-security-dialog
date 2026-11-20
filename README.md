@@ -30,7 +30,7 @@ stay visible as the list scrolls. Closing the warning keeps the selection.
 
 **Open a project.** This SB3 stores Camera Source 0.19.4, Asset Cache 0.3.2 and Bubble 0.13.5
 as `data:` URLs. All three declare that they require unsandboxed execution, so the dialog
-preselects the only execution option and waits for OK or Cancel. No extension has run at
+preselects the execution mode. The older screenshot below waits for OK or Cancel. No extension has run at
 the point shown.
 
 ![Public Editor review with unsandboxed execution preselected for the three required extensions](./assets/screenshots/public-review-open-en-20261106.png)
@@ -64,16 +64,17 @@ import '@kubohiroya/turbowarp-extension-security-dialog/styles.css';
 />
 ```
 
-Adding and opening differ in what is on the list and what can be chosen, not in how the question
-is put, so they are the same component.
+Adding and opening share the component. Opening first presents information and three actions:
+Do not run, Review each extension, and Enable all and run. Individual review shows exclusive
+pressed buttons without execution icons and a separate final confirmation. Changing mode grants no permission.
 
 | | `add` | `open` |
 | --- | --- | --- |
 | What is listed | Catalog entries; dependencies are selected for you | Every extension the project uses |
 | Picking | Tick to choose | None: the project already names them |
-| How it runs | In the sandbox, or without it | Do not run, in the sandbox, or without it |
-| Where it loads from | Any of the four forms | Only whether a `remote-cacheable` row keeps its copy; every other row states how it loads |
-| All at once | Both choices | How they all run, and the copy where at least one row has one to decline |
+| How it runs | In the sandbox, or without it | In individual review: Do not run, Run in the sandbox to try it out, Trust and run without the sandbox |
+| Where it loads from | Any of the four forms | Information in the overview; cache choices in individual review |
+| All at once | Both choices | Enable all and run; cache choices remain available in individual review |
 
 ### The four loading forms
 
@@ -99,9 +100,18 @@ screen states it instead of asking.
 ### Execution, trust and remembered choices
 
 **When opening a project whose extensions all declare unsandboxed execution required, that mode is preselected.**
-This applies only to a non-empty list with every declaration available and no failed row. The other two
-execution choices and the execution bulk control are hidden. OK approves execution; Cancel stops it.
-Nothing runs before OK. Loading-source and cache-decline choices remain independent.
+This applies only to a non-empty list with every declaration initially available and no failed row.
+Individual review still permits denial or a sandbox trial, with a warning for a contradictory trial.
+Late declarations do not overwrite the selected mode. Nothing runs before explicit bulk or individual
+confirmation. Loading-source and cache-decline choices remain independent.
+
+For ordinary page navigation, the Editor goes back to the preceding page on cancellation. Its GUI
+modal receives `manageHistory: false` to avoid another entry just for showing the dialog. Another
+project opens in a new tab, leaving unsaved edits, undo history and running state in the original tab.
+It does not automatically snapshot or reload the original project.
+Direct project URLs do not insert a start page into history. Their stopped screen disables Back
+when no previous page is available and offers an explicit action to return to confirmation for
+the same project. The dialog title explicitly identifies it as a confirmation.
 
 Adding from the catalog, or opening a mixed, optional, undeclared or failed batch, keeps the sandbox
 as the default and leaves the execution choices available. A choice contradicting a declaration is warned about.
@@ -117,6 +127,11 @@ carry a stale answer into a screen that no longer offers it.
 In add mode, the checkbox, preview icon and extension name appear together. The catalog area
 scrolls independently of Cancel and Add. Dismissing the unsandboxed notice preserves the selection
 and returns focus to the control that opened it.
+
+Individual review keeps its top action visibly selected and disabled. Rows use the host's icon or
+the source's declared banner; the common icon is only for rows without a picture declaration.
+Display metadata can be read from HTTP(S), and relative banners resolve against the final source URL.
+When CORS prevents caching an image, it can still be displayed directly by the browser.
 
 For trusted entries, the trust badge links to the extension page when provided. Supported
 GitHub versions link to their release notes. The description preserves line breaks and turns
