@@ -1,4 +1,5 @@
 import type {ExtensionMetadata} from './review-types.js';
+import {parseResourceDeclaration} from '@kubohiroya/turbowarp-extension-manifest/resources';
 export interface CatalogCategory {
     id: string; title: string; titleJa?: string; order: number;
 }
@@ -55,6 +56,8 @@ export const reviewURL = (value: unknown, what = 'URL', allowHTTP = false) => {
 const metadataOf = (value: unknown): ExtensionMetadata => {
     const source = object(value, 'metadata');
     const result: ExtensionMetadata = {};
+    const resources = parseResourceDeclaration(source.resourceDeclaration);
+    if (resources !== undefined) result.resourceDeclaration = resources;
     for (const key of ['name', 'id', 'description', 'author', 'version', 'license', 'package',
         'banner', 'unsandboxed', 'updatedAt'] as const) {
         if (source[key] !== undefined) result[key] = string(source[key], key, 4096);

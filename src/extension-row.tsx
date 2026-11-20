@@ -4,6 +4,7 @@ import type {PreviewCache} from './storage.js';
 import React from 'react';
 import {formatMessage} from './messages.js';
 import {getExtensionDescription} from './metadata.js';
+import {ResourceDisclosure} from './resources.js';
 import {ExtensionPreview} from './preview.js';
 import {displayURL, releaseURL} from './display-urls.js';
 import {LinkedText} from './linked-text.js';
@@ -133,6 +134,7 @@ export const ExtensionRow = ({metadata, ids = [], locale, trusted = false, plusF
                     <span className="twextsec-contact"> <LinkedText text={metadata.authorURL} /></span>
                 )}
             </p>
+            <ResourceDisclosure declaration={metadata.resourceDeclaration} locale={locale} />
             {children}
         </li>
     );

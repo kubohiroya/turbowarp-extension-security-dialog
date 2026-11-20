@@ -32,6 +32,8 @@ export type ExecutionDecision = 'deny' | 'sandboxed' | 'unsandboxed';
 export type LoadingMode =
     'remote-non-cacheable' | 'remote-cacheable' | 'embedded-file' | 'embedded-data';
 
+import type {ResourceDeclaration} from '@kubohiroya/turbowarp-extension-manifest/resources';
+
 export interface ExtensionMetadata {
     name?: string; id?: string; description?: string; descriptions?: Record<string, string>;
     author?: string;
@@ -40,6 +42,8 @@ export interface ExtensionMetadata {
     version?: string; license?: string;
     repository?: string; docsURL?: string; banner?: string; package?: string;
     unsandboxed?: string; updatedAt?: string;
+    /** Version-specific author claim transported by the host catalog, not a permission grant. */
+    resourceDeclaration?: ResourceDeclaration;
 }
 
 /**
