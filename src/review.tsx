@@ -29,11 +29,15 @@ import {
 const isEmbedded = (source: ReviewSource): source is Extract<ReviewSource, {kind: 'embedded-file' | 'embedded-data'}> => source.kind === 'embedded-file' || source.kind === 'embedded-data';
 
 const sourceLabel = (entry: ReviewEntry, t: Translate) => {
-    if (entry.source.kind === 'embedded-file') return t('sourceEmbedded');
+    // Bytes carried by the project have no address of their own. When the host's catalog vouched
+    // for their digest, its address for the same bytes says where they are published.
+    const listed = (label: string) => entry.state?.listedURL ?
+        `${label}${t('sourceListed', {url: entry.state.listedURL})}` : label;
+    if (entry.source.kind === 'embedded-file') return listed(t('sourceEmbedded'));
     // A project that carries the extension itself has a data: URL for an address. Printing it
     // would put the whole bundle in the row, so say where the bytes are instead.
     if (entry.source.kind === 'embedded-data' || String(entry.source.url).startsWith('data:')) {
-        return t('sourceInline');
+        return listed(t('sourceInline'));
     }
     if (entry.source.kind === 'legacy') return `${t('sourceLegacy')}: ${entry.source.url}`;
     return entry.source.url;
