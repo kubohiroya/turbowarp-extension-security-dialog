@@ -147,6 +147,10 @@ Execution trust and family membership are separate: only rows with host-confirme
 `entry.state.plusFamily` use the Plus mark. Other trusted rows use an unbranded check.
 For a standalone `ExtensionRow`, pass `plusFamily` explicitly after checking the host's Plus
 catalog. Extension-declared metadata and matching IDs alone do not establish membership.
+When a project opens, an extension the project carries as a `data:` address is matched by the
+SHA-256 of its bytes. A listed digest makes the row trusted, family-marked and pictured like the
+catalog's own, and its source line names the catalog's address for the same code
+(`entry.state.listedURL`); embedded Plus manifest rows do the same. Unlisted bytes are asked about.
 
 ### Using one row of the list
 

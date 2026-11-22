@@ -61,7 +61,9 @@ export type ReviewSource =
     | {kind: 'remote-cacheable'; url: string; sha256: string}
     | {kind: 'embedded-file'; sha256: string}
     | {kind: 'embedded-data'; sha256: string}
-    | {kind: 'legacy'; url: string};
+    | {kind: 'legacy'; url: string;
+        /** Set by the host only for a `data:` address whose bytes its catalog lists by this digest. */
+        sha256?: string};
 
 /**
  * A load that failed, as the host reports it.
@@ -82,6 +84,11 @@ export interface ReviewEntryState {
     trusted?: boolean;
     /** Set by the host's Plus catalog lookup, never by extension-declared metadata. */
     plusFamily?: boolean;
+    /**
+     * The catalog's address for the bytes a project carries itself, set by the host only after
+     * the catalog vouched for their digest. Shown as where the code is published; never fetched.
+     */
+    listedURL?: string;
     error?: ReviewFailure;
 }
 

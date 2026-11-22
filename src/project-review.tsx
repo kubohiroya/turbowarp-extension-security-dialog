@@ -14,6 +14,7 @@ import React from 'react';
 import {embeddedExtensionName} from './embedded-extension-name.js';
 import {createCatalogPreviewResolver} from './catalog-preview.js';
 import {createCatalogResourceResolver} from './catalog-resources.js';
+import {createCatalogMatcher, inlineCodeDigest} from './catalog-match.js';
 import type {ReviewEntry} from './review-types.js';
 import type {PreviewCatalog} from './catalog-preview.js';
 
@@ -37,6 +38,14 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         const resourceDeclaration = await resolveResources(entry, AbortSignal.timeout(5000));
         return {...entry, metadata: {...metadata, ...(resourceDeclaration ? {resourceDeclaration} : {})}};
     };
+    const matchCatalog = createCatalogMatcher(catalog);
+    /**
+     * Where the catalog publishes the code a project carries itself. Asked only of a row whose
+     * digest the catalog already vouched for, so the address names the same bytes.
+     * @param {object} entry The review row, with its digest.
+     * @returns {Promise<string|undefined>} The catalog's address for this code.
+     */
+    const listedURL = async (entry: ReviewEntry) => (await matchCatalog(entry, AbortSignal.timeout(5000))).item?.url;
 
     /**
      * The project document a load was handed, whatever form it arrived in.
@@ -106,6 +115,8 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         ]);
         const source = typeof spec.source.url === 'string' && spec.source.type.startsWith('remote-') ?
             {kind: spec.source.type, url: spec.source.url, sha256: spec.sha256} : {kind: spec.source.type, sha256: spec.sha256};
+        // Bytes the project carries have no address of their own; the catalog's says where they come from.
+        const listed = vouched && !('url' in source) ? await listedURL({key: spec.id, ids: [spec.id], source}) : undefined;
         return withResources({key: spec.id,
             ids: [spec.id],
             metadata: {id: spec.id, ...(name ? {name} : {}), ...(spec.version ? {version: spec.version} : {}),
@@ -113,7 +124,7 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
             source,
             requestedExecution: spec.execution,
             dependencies: [...spec.dependencies],
-            ...(vouched ? {state: {trusted: true, plusFamily: true}} : {})});
+            ...(vouched ? {state: {trusted: true, plusFamily: true, ...(listed ? {listedURL: listed} : {})}} : {})});
     }));
 
     const frames = new WeakMap();
@@ -178,14 +189,25 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
                 // A trusted row is stated, not asked about: the screen gives it no choice.
                 const rows = await Promise.all(entries.map(async entry => {
                     const url = 'url' in entry.source ? entry.source.url : undefined;
-                    // Only an ordinary custom extension is trusted by its address alone. A Plus row
+                    const legacy = entry.source.kind === 'legacy';
+                    // A project written for standard TurboWarp carries a Plus extension as a data:
+                    // address. Its bytes are judged by digest, as a Plus manifest's embedded forms are;
+                    // every other ordinary custom extension is trusted by its address alone. A Plus row
                     // arrives already judged by its address and pinned digest together.
-                    const plusFamily = entry.source.kind === 'legacy' && await trusted.isTrustedURL(url);
-                    const vouched = entry.source.kind === 'legacy' && (isTrusted(url) || plusFamily);
+                    const digest = legacy ? await inlineCodeDigest(url) : undefined;
+                    const plusFamily = legacy && Boolean(digest ?
+                        await trusted.isTrustedCode({source: {type: 'embedded-data'}, actualSHA256: digest}) :
+                        await trusted.isTrustedURL(url));
+                    const vouched = legacy && (isTrusted(url) || plusFamily);
+                    // The digest goes on the row only once the catalog vouched for it, so the screen
+                    // states it and the catalog's artwork and address can be matched to it.
+                    const source = plusFamily && digest ? {...entry.source, sha256: digest} : entry.source;
+                    const listed = plusFamily && digest ? await listedURL({...entry, source}) : undefined;
                     const banner = bannerFor({ids: entry.ids, url});
-                    return withResources({...entry,
+                    return withResources({...entry, source,
                         ...(banner ? {metadata: {...entry.metadata, banner}} : {}),
-                        ...(vouched ? {state: {...entry.state, trusted: true, plusFamily}} : {})});
+                        ...(vouched ? {state: {...entry.state, trusted: true, plusFamily,
+                            ...(listed ? {listedURL: listed} : {})}} : {})});
                 }));
                 const starting = initialDecisions(rows, 'open', {recorded: initial});
                 if (!requiresReview(rows)) return starting;

@@ -572,6 +572,20 @@ test('a row whose address carries the whole extension says so instead of printin
 
 const dataURL = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 
+for (const [locale, expected] of [
+    ['en', 'Written into the project as a data address (the same code as published at https://cdn.example.test/plus.js)'],
+    ['ja', '作品の中に data: アドレスとして書かれています（提供元 https://cdn.example.test/plus.js と同じコード）']
+]) test(`${locale}: a carried copy the catalog vouched for names where it is published`, () => {
+    const url = dataURL('throw new Error("Do not run");');
+    const view = render({mode: 'open', locale, entries: [row('plus', {kind: 'legacy', url, sha256: 'd'.repeat(64)},
+        {state: {trusted: true, plusFamily: true, listedURL: 'https://cdn.example.test/plus.js'}})]});
+    try {
+        assert.equal(view.rowFor('plus').querySelector('.twextsec-source').textContent, expected);
+    } finally {
+        view.unmount();
+    }
+});
+
 test('embedded names are read even when the host only supplied a banner', async () => {
     const bundle = dataURL('// Name: 埋め込み拡張\n// Description: From the source\nthrow new Error("Do not run");');
     const banner = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
