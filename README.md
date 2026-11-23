@@ -151,6 +151,10 @@ When a project opens, an extension the project carries as a `data:` address is m
 SHA-256 of its bytes. A listed digest makes the row trusted, family-marked and pictured like the
 catalog's own, and its source line names the catalog's address for the same code
 (`entry.state.listedURL`); embedded Plus manifest rows do the same. Unlisted bytes are asked about.
+An `embedded-file` row of a Plus manifest also shows the picture (`Banner`), creator (`By` / `Author URL`) and
+description from the header of its bytes, once they match the pinned SHA-256. A header naming another `ID` lends only
+its name, and the manifest's `version` and `publisher` win over the header. These are claims, never permissions or a
+resource declaration.
 
 ### Using one row of the list
 

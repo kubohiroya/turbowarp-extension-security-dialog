@@ -25,18 +25,46 @@ import {parse} from 'acorn';
 import type {Expression, FunctionExpression, PrivateIdentifier} from 'acorn';
 import {simple} from 'acorn-walk';
 import {parseExtensionMetadata} from '@kubohiroya/turbowarp-extension-security-dialog';
+import type {ExtensionMetadata} from './review-types.js';
 
 const headerBytes = 64 * 1024;
 const maxSyntaxBytes = 1024 * 1024;
 const propertyName = (key: Expression | PrivateIdentifier) => key.type === 'Identifier' ? key.name :
     key.type === 'Literal' ? key.value : undefined;
 
-/** Large bundles only need their leading metadata. Read simple getInfo literals without running them. */
-export function embeddedExtensionName(bytes: Uint8Array, id: string): string | undefined {
+/** The extension's own header, read from its leading bytes without running them. */
+function headerMetadata(bytes: Uint8Array): ExtensionMetadata {
     const decoder = new TextDecoder('utf-8', {fatal: true});
-    const name = parseExtensionMetadata(decoder.decode(bytes.subarray(0, headerBytes), {
+    return parseExtensionMetadata(decoder.decode(bytes.subarray(0, headerBytes), {
         stream: bytes.byteLength > headerBytes
-    })).name?.trim();
+    }));
+}
+
+/**
+ * What a project-carried extension says about itself, for an open-project row.
+ *
+ * A Plus manifest records only an ID, a version and perhaps a publisher, so without this the row
+ * would show neither the extension's picture nor its creator, although its header states both. The
+ * header is read only when it describes this ID: a header naming another ID belongs to someone else.
+ * Every field is the code's own claim, shown as such; none of it grants anything, and a declaration
+ * of resource use is left to the host's catalog.
+ * @param {Uint8Array} bytes The extension's verified bytes.
+ * @param {string} id The manifest's extension ID.
+ * @returns {object} The declared fields, with the name read from getInfo() when the header has none.
+ */
+export function embeddedExtensionMetadata(bytes: Uint8Array, id: string): ExtensionMetadata {
+    const {resourceDeclaration: _claim, ...header} = headerMetadata(bytes);
+    const metadata: ExtensionMetadata = header.id === undefined || header.id === id ? header : {};
+    if (metadata.banner !== undefined && !/^(?:https:|data:image\/)/i.test(metadata.banner)) delete metadata.banner;
+    const name = embeddedExtensionName(bytes, id, metadata.name);
+    if (name) metadata.name = name;
+    else delete metadata.name;
+    return metadata;
+}
+
+/** Large bundles only need their leading metadata. Read simple getInfo literals without running them. */
+export function embeddedExtensionName(bytes: Uint8Array, id: string, declared?: string): string | undefined {
+    const name = (declared ?? headerMetadata(bytes).name)?.trim();
     if (name || bytes.byteLength > maxSyntaxBytes) return name;
 
     const source = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
