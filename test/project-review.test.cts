@@ -93,3 +93,58 @@ test('embedded Plus manifest rows vouched by digest name the catalog address', a
         sha256: digest, dependencies: []}]}, {isTrustedCode: async () => true});
     assert.deepEqual(rows[0].state, {trusted: true, plusFamily: true, listedURL});
 });
+
+const embeddedRow = async (source, spec = {}) => {
+    const bytes = new TextEncoder().encode(source);
+    const digest = Buffer.from(await globalThis.crypto.subtle.digest('SHA-256', bytes)).toString('hex');
+    const project = createProjectSecurityReview({trusted: {isTrustedURL: async () => false,
+        isTrustedCode: async () => false}, pendingReview: () => null, reviewedArchive: () => undefined,
+    duringApproval: (_vm, run) => run(), styles: {}});
+    const rows = await project.plusReviewRows({extensions: [{id: 'kamishibai', source: {type: 'embedded-file',
+        path: 'extensions/kamishibai.js'}, sha256: digest, dependencies: [], ...spec}]},
+    {isTrustedCode: async () => false}, async path => (path === 'extensions/kamishibai.js' ? bytes : new Uint8Array()));
+    return rows[0];
+};
+
+test('embedded Plus manifest rows show the picture, creator and description their header declares', async () => {
+    const row = await embeddedRow([
+        '// Name: Kamishibai Runtime',
+        '// ID: kamishibai',
+        '// Description: Runs a story.',
+        '// Description[ja]: 物語を実行します。',
+        '// By: Example Author',
+        '// Author URL: https://example.test/author',
+        '// Banner: data:image/svg+xml,%3Csvg%2F%3E',
+        '// Unsandboxed: required',
+        '(function(){})();'
+    ].join('\n'), {version: '4.0.6'});
+    assert.equal(row.metadata.name, 'Kamishibai Runtime');
+    assert.equal(row.metadata.author, 'Example Author');
+    assert.equal(row.metadata.authorURL, 'https://example.test/author');
+    assert.equal(row.metadata.banner, 'data:image/svg+xml,%3Csvg%2F%3E');
+    assert.equal(row.metadata.descriptions.ja, '物語を実行します。');
+    assert.equal(row.metadata.version, '4.0.6');
+    assert.equal(row.metadata.id, 'kamishibai');
+});
+
+test('the manifest publisher wins, and a header describing another ID lends only its name', async () => {
+    const source = '// Name: Bundle\n// ID: kamishibai\n// By: Header Author\n(function(){})();';
+    assert.equal((await embeddedRow(source, {publisher: 'Manifest Publisher'})).metadata.author, 'Manifest Publisher');
+    const other = await embeddedRow('// Name: Other\n// ID: other\n// By: Someone\n// Banner: https://x.test/a.png\n(function(){})();');
+    assert.deepEqual(other.metadata, {id: 'kamishibai', name: 'Other'});
+});
+
+test('an embedded row drops a picture that is neither HTTPS nor a data: image', async () => {
+    const row = await embeddedRow('// Name: K\n// Banner: javascript:alert(1)\n(function(){})();');
+    assert.equal(row.metadata.banner, undefined);
+});
+
+test('embedded bytes that do not match the pinned digest describe nothing', async () => {
+    const project = createProjectSecurityReview({trusted: {isTrustedURL: async () => false,
+        isTrustedCode: async () => false}, pendingReview: () => null, reviewedArchive: () => undefined,
+    duringApproval: (_vm, run) => run(), styles: {}});
+    const rows = await project.plusReviewRows({extensions: [{id: 'k', source: {type: 'embedded-file', path: 'k.js'},
+        sha256: 'd'.repeat(64), dependencies: []}]}, {isTrustedCode: async () => false},
+    async () => new TextEncoder().encode('// Name: Liar\n// By: Liar\n'));
+    assert.deepEqual(rows[0].metadata, {id: 'k'});
+});

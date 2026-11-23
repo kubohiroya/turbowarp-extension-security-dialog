@@ -11,7 +11,7 @@ import {
 } from '@kubohiroya/turbowarp-extension-security-dialog/turbowarp';
 import React from 'react';
 
-import {embeddedExtensionName} from './embedded-extension-name.js';
+import {embeddedExtensionMetadata} from './embedded-extension-name.js';
 import {createCatalogPreviewResolver} from './catalog-preview.js';
 import {createCatalogResourceResolver} from './catalog-resources.js';
 import {createCatalogMatcher, inlineCodeDigest} from './catalog-match.js';
@@ -84,15 +84,15 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         return `sha256:${hex(await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical)))}`;
     };
 
-    async function verifiedEmbeddedName(spec: ExtensionSpec, readFile?: ReadEmbeddedReviewFile) {
+    async function verifiedEmbeddedMetadata(spec: ExtensionSpec, readFile?: ReadEmbeddedReviewFile) {
         if (spec.source.type !== 'embedded-file' || !readFile) return;
         try {
             const bytes = await readFile(spec.source.path);
             // The codec returns a fresh ArrayBuffer-backed copy of the archive entry.
             const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>);
-            if (hex(digest) === spec.sha256) return embeddedExtensionName(bytes, spec.id);
+            if (hex(digest) === spec.sha256) return embeddedExtensionMetadata(bytes, spec.id);
         } catch {
-            // Names are optional. The Loader reports any invalid or unavailable code when loading.
+            // Descriptions are optional. The Loader reports any invalid or unavailable code when loading.
         }
     }
 
@@ -109,9 +109,9 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
      * @returns {Promise<Array<object>>} One `ReviewEntry` per manifest extension, keyed by its ID.
      */
     const plusReviewRows = (manifest: any, trusted: any, readEmbeddedFile?: ReadEmbeddedReviewFile) => Promise.all(manifest.extensions.map(async (spec: any) => {
-        const [vouched, name] = await Promise.all([
+        const [vouched, declared] = await Promise.all([
             trusted.isTrustedCode({source: spec.source, actualSHA256: spec.sha256}),
-            verifiedEmbeddedName(spec, readEmbeddedFile)
+            verifiedEmbeddedMetadata(spec, readEmbeddedFile)
         ]);
         const source = typeof spec.source.url === 'string' && spec.source.type.startsWith('remote-') ?
             {kind: spec.source.type, url: spec.source.url, sha256: spec.sha256} : {kind: spec.source.type, sha256: spec.sha256};
@@ -119,7 +119,8 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         const listed = vouched && !('url' in source) ? await listedURL({key: spec.id, ids: [spec.id], source}) : undefined;
         return withResources({key: spec.id,
             ids: [spec.id],
-            metadata: {id: spec.id, ...(name ? {name} : {}), ...(spec.version ? {version: spec.version} : {}),
+            // The manifest's own version and publisher win over what the bytes say of themselves.
+            metadata: {...declared, id: spec.id, ...(spec.version ? {version: spec.version} : {}),
                 ...(spec.publisher ? {author: spec.publisher} : {})},
             source,
             requestedExecution: spec.execution,
