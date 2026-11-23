@@ -71,3 +71,38 @@ test('declared metadata is carried through, and only a creator page may be plain
     })])), /must be HTTPS/);
     assert.throws(() => reviewURL('https://example.test/#x', 'URL'), /fragment/);
 });
+
+const {catalogDigests, findCatalogEntry} = require('../dist/index.cjs');
+const hexOf = c => c.repeat(64);
+
+test('catalog variants are other builds of one extension, each recognised by its own bytes', () => {
+    const [item] = parseExtensionCatalog(catalog([entry('k', {sha256: hexOf('a'), variants: [
+        {url: 'https://example.test/k-playback.js', sha256: hexOf('b')},
+        {url: 'https://example.test/k-other.js', sha256: hexOf('c')}
+    ]})]));
+    assert.equal(item.variants.length, 2);
+    assert.deepEqual([...catalogDigests([item])], [hexOf('a'), hexOf('b'), hexOf('c')]);
+    const byDigest = sha256 => findCatalogEntry([item], {key: 'k', ids: ['k'], source: {kind: 'embedded-file', sha256}});
+    assert.equal(byDigest(hexOf('a')).url, 'https://example.test/k.js');
+    const variant = byDigest(hexOf('b'));
+    assert.equal(variant.url, 'https://example.test/k-playback.js');
+    assert.equal(variant.sha256, hexOf('b'));
+    assert.equal(variant.id, 'k');
+    assert.equal(byDigest(hexOf('d')), undefined);
+    // The same digest under another ID is not this extension.
+    assert.equal(findCatalogEntry([item], {key: 'x', ids: ['x'], source: {kind: 'embedded-file', sha256: hexOf('b')}}), undefined);
+    const byURL = findCatalogEntry([item], {key: 'k', ids: ['k'],
+        source: {kind: 'remote-cacheable', url: 'https://example.test/k-other.js', sha256: hexOf('c')}});
+    assert.equal(byURL.url, 'https://example.test/k-other.js');
+    assert.equal(findCatalogEntry([item], {key: 'k', ids: ['k'],
+        source: {kind: 'remote-cacheable', url: 'https://example.test/k-other.js', sha256: hexOf('b')}}), undefined);
+});
+
+test('catalog variants must be HTTPS builds with digests and addresses of their own', () => {
+    const parse = variants => parseExtensionCatalog(catalog([entry('k', {sha256: hexOf('a'), variants})]));
+    assert.throws(() => parse('https://example.test/v.js'), /variants must be a list/);
+    assert.throws(() => parse([{url: 'http://example.test/v.js', sha256: hexOf('b')}]), /HTTPS/);
+    assert.throws(() => parse([{url: 'https://example.test/v.js', sha256: 'B'.repeat(64)}]), /Invalid variant sha256/);
+    assert.throws(() => parse([{url: 'https://example.test/k.js', sha256: hexOf('b')}]), /Duplicate extension URL/);
+    assert.throws(() => parse([{url: 'https://example.test/v.js'}]), /sha256 must be text/);
+});

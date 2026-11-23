@@ -155,6 +155,10 @@ An `embedded-file` row of a Plus manifest also shows the picture (`Banner`), cre
 description from the header of its bytes, once they match the pinned SHA-256. A header naming another `ID` lends only
 its name, and the manifest's `version` and `publisher` win over the header. These are claims, never permissions or a
 resource declaration.
+When one release ships an extension in more than one build (an authoring and a playback build, say), its catalog item
+can list the others as `variants: [{url, sha256}]`. Bytes of any listed build match that extension, and `listedURL` is
+the address of the build that matched. Adding from the library always uses `url`. `catalogDigests(entries)` returns the
+digests of every listed build.
 
 ### Using one row of the list
 
