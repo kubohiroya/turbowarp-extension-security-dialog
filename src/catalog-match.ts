@@ -57,11 +57,27 @@ export const findCatalogEntry = (entries: readonly CatalogEntry[], entry: Review
     const source = entry.source;
     const sha256 = digest ?? ('sha256' in source ? source.sha256 : undefined);
     const inline = 'url' in source && source.url.startsWith('data:');
-    return entries.find(item => entry.ids.includes(item.id) && (
-        'url' in source && !inline ? item.url === source.url && (sha256 === undefined || item.sha256 === sha256) :
-            sha256 !== undefined && item.sha256 === sha256
-    ));
+    const matches = (build: {url: string; sha256?: string}) =>
+        'url' in source && !inline ? build.url === source.url && (sha256 === undefined || build.sha256 === sha256) :
+            sha256 !== undefined && build.sha256 === sha256;
+    for (const item of entries) {
+        if (!entry.ids.includes(item.id)) continue;
+        if (matches(item)) return item;
+        // A listed variant is the same extension at its own address: the row is that build.
+        const variant = item.variants?.find(matches);
+        if (variant) return Object.freeze({...item, url: variant.url, sha256: variant.sha256});
+    }
+    return undefined;
 };
+
+/**
+ * Every SHA-256 a catalog vouches for, the main build of each extension and its variants alike.
+ * @param {Array<object>} entries The parsed catalog.
+ * @returns {Set<string>} Lowercase hex digests.
+ */
+export const catalogDigests = (entries: readonly CatalogEntry[]) => new Set(entries.flatMap(item => [
+    ...(item.sha256 ? [item.sha256] : []), ...(item.variants ?? []).map(variant => variant.sha256)
+]));
 
 export interface CatalogMatch {
     item?: CatalogEntry;

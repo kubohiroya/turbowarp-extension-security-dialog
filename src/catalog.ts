@@ -4,8 +4,20 @@ export interface CatalogCategory {
     id: string; title: string; titleJa?: string; order: number;
 }
 
+/** Other published builds of the same extension, each at its own address with its own digest. */
+export interface CatalogVariant {
+    url: string; sha256: string;
+}
+
 export interface CatalogEntry {
     key: string; id: string; ids: string[]; url: string; sha256?: string;
+    /**
+     * Builds of this extension a project may carry besides the one at `url`. A catalog lists them
+     * when one release ships the same extension in more than one form (for example an authoring
+     * and a playback build), so each can be recognised by its exact bytes. Adding one from the
+     * library always uses `url`.
+     */
+    variants?: readonly CatalogVariant[];
     dependencies: readonly string[]; metadata: ExtensionMetadata; category?: CatalogCategory;
 }
 
@@ -136,6 +148,18 @@ export function parseExtensionCatalog(data: unknown): CatalogEntry[] {
         if (source.sha256 !== undefined) {
             entry.sha256 = string(source.sha256, 'sha256', 64);
             if (!(/^[0-9a-f]{64}$/).test(entry.sha256)) fail(`Invalid sha256 for ${id}`);
+        }
+        if (source.variants !== undefined) {
+            if (!Array.isArray(source.variants) || source.variants.length > 64) fail(`${id} variants must be a list`);
+            entry.variants = Object.freeze(source.variants.map(value => {
+                const variant = object(value, `${id} variant`);
+                const variantURL = reviewURL(variant.url, `${id} variant url`);
+                if (urls.has(variantURL)) fail(`Duplicate extension URL ${variantURL}`);
+                urls.add(variantURL);
+                const sha256 = string(variant.sha256, 'sha256', 64);
+                if (!(/^[0-9a-f]{64}$/).test(sha256)) fail(`Invalid variant sha256 for ${id}`);
+                return Object.freeze({url: variantURL, sha256});
+            }));
         }
         if (source.category !== undefined) {
             const category = string(source.category, 'category', 128);

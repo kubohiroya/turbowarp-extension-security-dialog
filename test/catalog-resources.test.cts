@@ -61,3 +61,14 @@ test('the actual open-project port supplies declarations before asking, and drop
     assert.deepEqual(shown[0].metadata.resourceDeclaration, declaration);
     assert.equal(shown[1].metadata.resourceDeclaration, undefined);
 });
+
+test('a project carrying a variant build is matched to its extension and its declaration', async () => {
+    const variant = '// ID: camera\n// playback build\n';
+    const variantSHA = createHash('sha256').update(variant).digest('hex');
+    const resolve = createCatalogResourceResolver({read: async () => ({catalog: {schemaVersion: 1, extensions: [
+        {id: 'camera', url, sha256, resourceDeclaration: declaration,
+            variants: [{url: 'https://example.test/camera-playback@1.0.0.js', sha256: variantSHA}]}]}})});
+    assert.deepEqual(await resolve(entry({kind: 'embedded-file', sha256: variantSHA}), signal()), declaration);
+    assert.deepEqual(await resolve(entry({kind: 'legacy', url: `data:text/javascript,${encodeURIComponent(variant)}`}), signal()), declaration);
+    assert.equal(await resolve(entry({kind: 'embedded-file', sha256: 'e'.repeat(64)}), signal()), undefined);
+});
