@@ -309,11 +309,13 @@ React と React DOM は peerDependencies なので、ホストが用意します
 
 `test/load-errors.test.cts` は [Editor #741](https://github.com/kubohiroya/turbowarp-plus-editor/issues/741) のエラー説明・キャンセル分類3件を引き継ぎます。既存の `pnpm test` と CI からビルド済みの `./load-errors` を検証し、GUI checkout とブラウザーは不要です。拡張名と入れ子の原因、循環を含む集約エラー、拒否とキャンセルの判定を確認します。移管先の CI 成功とマージを確認するまで Editor の元テストは残し、GUI へのエラー受け渡しとレビュー内のキー入力の結線確認は Editor に保持します。移管を取り消す場合は追加テストと文書を revert します。製品ソース・依存・パッケージの版の変更は不要です。
 
+`test/permission-ui.test.cts` も Editor #741 の承認画面・診断ログ・再試行表示の8件を引き継ぎます。既存の `pnpm test` と CI がビルド済みの `./permission-ui` を GUI checkout・VM なしで実行します。import と DOM 照会の型専用記法だけを変更し、検証本体は維持します。Editor には実 VM と承認画面の結線確認を残し、移管先の CI 成功とマージまでは元テストも保持します。切り戻しは追加テストと文書を revert し、Editor 側で削除済みなら元テストを先に復元します。
+
 ## ライセンス
 
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
 
-移管した `test/load-errors.test.cts` は元の GPL-3.0-or-later を保持し、本文を `test/LICENSE.GPL-3.0` に置きます。テストとそのライセンスは npm アーカイブに含めません。ライブラリ本体は MPL-2.0 のままです。
+移管した `test/load-errors.test.cts` と `test/permission-ui.test.cts` は元の GPL-3.0-or-later を保持し、本文を `test/LICENSE.GPL-3.0` に置きます。テストとそのライセンスは npm アーカイブに含めません。ライブラリ本体は MPL-2.0 のままです。
 
 0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。
 

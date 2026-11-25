@@ -304,11 +304,13 @@ dependencies.
 
 `test/load-errors.test.cts` carries the three error-description and cancellation-classification cases from [Editor #741](https://github.com/kubohiroya/turbowarp-plus-editor/issues/741). It tests the built `./load-errors` entry through the existing `pnpm test` and CI commands, without a GUI checkout or browser. It covers a named nested cause, aggregate errors with cycles, and refusal versus cancellation. The Editor originals stay until this migration is merged with successful CI; Editor keeps its tests of GUI error forwarding and review keyboard ownership. Revert the added test and its documentation to undo the migration. No production source, dependencies, or package version change is needed.
 
+`test/permission-ui.test.cts` also carries the eight permission-dialog, diagnostic-log and retry-display cases from Editor #741. The existing `pnpm test` and CI run the built `./permission-ui` entry without a GUI checkout or VM. Test bodies are preserved; only imports and DOM query type annotations change. Editor keeps its real-VM consent wiring tests. Its originals stay until this migration is merged with successful CI. Revert the added tests and documentation to undo this migration, restoring the Editor originals first if they were removed.
+
 ## License
 
 [MPL-2.0](LICENSE). See [NOTICE.md](./NOTICE.md) for what is and is not covered.
 
-The migrated `test/load-errors.test.cts` retains its original GPL-3.0-or-later license; its text is in `test/LICENSE.GPL-3.0`. Tests and this test-only license are excluded from the npm archive. The library remains MPL-2.0.
+The migrated `test/load-errors.test.cts` and `test/permission-ui.test.cts` retain their original GPL-3.0-or-later license; its text is in `test/LICENSE.GPL-3.0`. Tests and this test-only license are excluded from the npm archive. The library remains MPL-2.0.
 
 The design record of the MPL-2.0 rewrite in 0.6.0 is in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
 
