@@ -3,6 +3,7 @@ import {ExtensionReview} from '@kubohiroya/turbowarp-extension-security-dialog/r
 import {parseExtensionCatalog} from './index.js';
 import type {CatalogEntry, ReviewDecision, ReviewEntry, ReviewFailure} from './index.js';
 import React from 'react';
+import {PublishedExtension, type PublishedExtensionPorts} from './published-extension.js';
 
 
 const text = {
@@ -54,6 +55,7 @@ interface LibraryState {
     denied: boolean;
     failure: ReviewFailure | null;
     busy: boolean;
+    publishedBusy: boolean;
     decisions: Decisions;
 }
 export const reviewRows = (entries: CatalogEntry[], vm: LibraryVM,
@@ -71,6 +73,10 @@ export interface CatalogLibraryPorts {
     readSettings(vm: LibraryVM, entries: CatalogEntry[]): Promise<{decisions: Decisions}>;
     applySettings(vm: LibraryVM, selection: {entries: CatalogEntry[]; decisions: Decisions}, options: {signal: AbortSignal}): Promise<string[]>;
     loadExtensions(vm: LibraryVM, entries: CatalogEntry[], modes: Map<string, string>, permissions: any): Promise<string[]>;
+    published?: {
+        resolve: PublishedExtensionPorts['resolve'];
+        add(vm: LibraryVM, ...args: Parameters<PublishedExtensionPorts['add']>): Promise<void>;
+    };
     loaderEnabled: boolean;
     isRetryable(error: unknown): boolean;
     styles: Record<string, string>;
@@ -79,7 +85,7 @@ export interface CatalogLibraryPorts {
 /** The host supplies its trusted catalog and loading ports, never GUI components. */
 export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPlusCatalogSettings,
     applySettings: applyPlusCatalogSettings, loadExtensions: loadPlusExtensions,
-    loaderEnabled: PLUS_EXTENSION_LOADER_ENABLED, isRetryable: isWorthAskingAgain, styles}: CatalogLibraryPorts) {
+    published, loaderEnabled: PLUS_EXTENSION_LOADER_ENABLED, isRetryable: isWorthAskingAgain, styles}: CatalogLibraryPorts) {
     class PlusLibrary extends React.PureComponent<LibraryProps, LibraryState> {
         declare controller?: AbortController;
         declare answered: Decisions | null;
@@ -96,6 +102,7 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
                 denied: false,
                 failure: null,
                 busy: false,
+                publishedBusy: false,
                 decisions: new Map()};
             // The last answer the screen gave, which "Try again" repeats unchanged.
             this.answered = null;
@@ -187,27 +194,34 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
                 }
             }
         }
+        renderPublished () {
+            if (!published || !PLUS_EXTENSION_LOADER_ENABLED) return null;
+            return <PublishedExtension locale={this.props.locale} resolve={published.resolve}
+                add={(candidate, options) => published.add(this.props.vm, candidate, options)}
+                blocked={this.state.busy}
+                onBusyChange={publishedBusy => {
+                    this.setState({publishedBusy});
+                    this.props.onBusyChange(publishedBusy);
+                }}
+                onAdded={id => {
+                    this.props.onCategorySelected(id);
+                    this.props.onRequestClose();
+                }} />;
+        }
         render () {
             const t = text[this.props.locale.startsWith('ja') ? 'ja' : 'en'];
-            const {entries, busy, denied, failure, fetchError, decisions} = this.state;
-            if (!entries) {
-                return (<div
-                    className={styles.message}
-                    role={fetchError ? 'alert' : 'status'}
-                >
-                    <p>{fetchError ? t.failed : t.loading}</p>
-                    {fetchError && <button
-                        type="button"
-                        onClick={this.handleFetchCatalog}
-                    >{t.retry}</button>}
-                </div>);
-            }
+            const {entries, busy, publishedBusy, denied, failure, fetchError, decisions} = this.state;
             return (<div className={styles.root}>
+                {this.renderPublished()}
+                {!entries ? <div className={styles.message} role={fetchError ? 'alert' : 'status'}>
+                    <p>{fetchError ? t.failed : t.loading}</p>
+                    {fetchError && <button type="button" onClick={this.handleFetchCatalog}>{t.retry}</button>}
+                </div> : <>
                 {denied && <p
                     className={styles.error}
                     role="alert"
                 >{t.denied}</p>}
-                <div hidden={busy}>
+                <div hidden={busy || publishedBusy}>
                     <ExtensionReview
                         mode="add"
                         entries={reviewRows(entries, this.props.vm, PLUS_EXTENSION_LOADER_ENABLED)}
@@ -219,6 +233,7 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
                     />
                 </div>
                 {busy && <p role="status">{t.loading}</p>}
+                </>}
             </div>);
         }
     }
