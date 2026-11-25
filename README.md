@@ -308,6 +308,8 @@ dependencies.
 
 `test/editor-batch-review.test.cts` carries three more Editor #741 cases: the review cancellation API contract, project identity with volatile metadata excluded, and trusted rows that need no screen. It uses the built `./project-review` entry with explicit host ports; no GUI checkout or VM is needed. Test bodies stay the same except for obtaining `identifyProject` from that factory. The existing `pnpm test` and CI run these cases. Editor keeps its real-VM declined-extension and GUI modal wiring tests; the originals stay until this migration is merged with successful CI. Revert the added tests and documentation to undo the migration, restoring the Editor originals first if removed.
 
+`test/editor-verified-review-names.test.cts` extracts four verified-ZIP name patterns from Editor #741's unified review: header, literal, dynamic and digest mismatch. It retains the source fixtures and all four expected names, passing a ZIP reader and normalized dependency arrays to the public `plusReviewRows` API. A temporary Scratch object detects execution and confirms that no code runs. No GUI or VM is needed; the existing `pnpm test` and CI run the test. Editor retains one name-wiring pattern and the Plus/legacy review, approval, refusal, cache and cancellation integration checks. The migrated test retains GPL-3.0-or-later (`test/LICENSE.GPL-3.0`) and stays outside the npm archive. Restore the detailed Editor cases before reverting the new test and documentation to roll back.
+
 ## License
 
 [MPL-2.0](LICENSE). See [NOTICE.md](./NOTICE.md) for what is and is not covered.
