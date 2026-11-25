@@ -307,9 +307,13 @@ node --test test/wait.browser.ts test/review.browser.ts # 取得待ち・選択�
 
 React と React DOM は peerDependencies なので、ホストが用意します。実行時の依存はありません。
 
+`test/load-errors.test.cts` は [Editor #741](https://github.com/kubohiroya/turbowarp-plus-editor/issues/741) のエラー説明・キャンセル分類3件を引き継ぎます。既存の `pnpm test` と CI からビルド済みの `./load-errors` を検証し、GUI checkout とブラウザーは不要です。拡張名と入れ子の原因、循環を含む集約エラー、拒否とキャンセルの判定を確認します。移管先の CI 成功とマージを確認するまで Editor の元テストは残し、GUI へのエラー受け渡しとレビュー内のキー入力の結線確認は Editor に保持します。移管を取り消す場合は追加テストと文書を revert します。製品ソース・依存・パッケージの版の変更は不要です。
+
 ## ライセンス
 
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
+
+移管した `test/load-errors.test.cts` は元の GPL-3.0-or-later を保持し、本文を `test/LICENSE.GPL-3.0` に置きます。テストとそのライセンスは npm アーカイブに含めません。ライブラリ本体は MPL-2.0 のままです。
 
 0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。
 
