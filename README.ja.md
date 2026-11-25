@@ -311,11 +311,13 @@ React と React DOM は peerDependencies なので、ホストが用意します
 
 `test/permission-ui.test.cts` も Editor #741 の承認画面・診断ログ・再試行表示の8件を引き継ぎます。既存の `pnpm test` と CI がビルド済みの `./permission-ui` を GUI checkout・VM なしで実行します。import と DOM 照会の型専用記法だけを変更し、検証本体は維持します。Editor には実 VM と承認画面の結線確認を残し、移管先の CI 成功とマージまでは元テストも保持します。切り戻しは追加テストと文書を revert し、Editor 側で削除済みなら元テストを先に復元します。
 
+`test/editor-batch-review.test.cts` は Editor #741 のキャンセル判定 API の基本契約、揮発性メタデータを除いた作品識別、画面を開く必要がない信頼済み行の判定の3件を引き継ぎます。ビルド済み `./project-review` にホストの接続口を明示して渡し、GUI checkout・VM なしで既存の `pnpm test` と CI から実行します。`identifyProject` を factory から得る1行以外の検証本体は維持します。Editor には実 VM で拒否した拡張のブロック保持と GUI モーダルの結線確認を残し、上流 CI 成功とマージまでは元テストも保持します。切り戻しは追加テストと文書を revert し、Editor で削除済みなら元テストを先に復元します。
+
 ## ライセンス
 
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
 
-移管した `test/load-errors.test.cts` と `test/permission-ui.test.cts` は元の GPL-3.0-or-later を保持し、本文を `test/LICENSE.GPL-3.0` に置きます。テストとそのライセンスは npm アーカイブに含めません。ライブラリ本体は MPL-2.0 のままです。
+移管した `test/load-errors.test.cts`・`test/permission-ui.test.cts`・`test/editor-batch-review.test.cts` は元の GPL-3.0-or-later を保持し、本文を `test/LICENSE.GPL-3.0` に置きます。テストとそのライセンスは npm アーカイブに含めません。ライブラリ本体は MPL-2.0 のままです。
 
 0.6.0でMPL-2.0へ書き直したときの設計の記録は [書き直しの設計](docs/mpl-rewrite.ja.md) にあります。
 
