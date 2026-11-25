@@ -302,9 +302,13 @@ node --test test/wait.browser.ts test/review.browser.ts
 React and React DOM are peer dependencies, so the host supplies them. There are no runtime
 dependencies.
 
+`test/load-errors.test.cts` carries the three error-description and cancellation-classification cases from [Editor #741](https://github.com/kubohiroya/turbowarp-plus-editor/issues/741). It tests the built `./load-errors` entry through the existing `pnpm test` and CI commands, without a GUI checkout or browser. It covers a named nested cause, aggregate errors with cycles, and refusal versus cancellation. The Editor originals stay until this migration is merged with successful CI; Editor keeps its tests of GUI error forwarding and review keyboard ownership. Revert the added test and its documentation to undo the migration. No production source, dependencies, or package version change is needed.
+
 ## License
 
 [MPL-2.0](LICENSE). See [NOTICE.md](./NOTICE.md) for what is and is not covered.
+
+The migrated `test/load-errors.test.cts` retains its original GPL-3.0-or-later license; its text is in `test/LICENSE.GPL-3.0`. Tests and this test-only license are excluded from the npm archive. The library remains MPL-2.0.
 
 The design record of the MPL-2.0 rewrite in 0.6.0 is in [the rewrite design (Japanese)](docs/mpl-rewrite.ja.md).
 
