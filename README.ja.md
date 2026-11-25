@@ -313,6 +313,8 @@ React と React DOM は peerDependencies なので、ホストが用意します
 
 `test/editor-batch-review.test.cts` は Editor #741 のキャンセル判定 API の基本契約、揮発性メタデータを除いた作品識別、画面を開く必要がない信頼済み行の判定の3件を引き継ぎます。ビルド済み `./project-review` にホストの接続口を明示して渡し、GUI checkout・VM なしで既存の `pnpm test` と CI から実行します。`identifyProject` を factory から得る1行以外の検証本体は維持します。Editor には実 VM で拒否した拡張のブロック保持と GUI モーダルの結線確認を残し、上流 CI 成功とマージまでは元テストも保持します。切り戻しは追加テストと文書を revert し、Editor で削除済みなら元テストを先に復元します。
 
+`test/editor-verified-review-names.test.cts` は Editor #741 の統合レビューから、検証済み ZIP の表示名を判定する4パターン（header・literal・dynamic・digest 不一致）を切り出します。元の source fixture と4件の期待値を保持し、公開 `plusReviewRows` に ZIP reader と正規化済みの依存配列を渡します。実行の検出用に一時的な Scratch オブジェクトを置き、コードが実行されないことも確認します。GUI と VM は不要で、既存の `pnpm test` と CI が実行します。Editor には表示名の接続確認1パターンと、Plus/legacy の統合レビュー・承認・拒否・キャッシュ・キャンセルの連携確認を残します。元の GPL-3.0-or-later（`test/LICENSE.GPL-3.0`）を保持し、テストは npm 配布対象外です。切り戻しは Editor の詳細ケースを復元してから、このテストと文書を revert します。
+
 ## ライセンス
 
 [MPL-2.0](LICENSE)。何が対象で何が対象外かは [NOTICE.md](./NOTICE.md) を参照してください。
