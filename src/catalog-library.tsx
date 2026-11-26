@@ -122,15 +122,12 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
             const timeout = setTimeout(() => this.controller?.abort(), 15000);
             try {
                 const read = await plusCatalog.read(this.controller?.signal ?? new AbortController().signal);
-                const entries = read.catalog ? parseExtensionCatalog(read.catalog) : [];
+                const parsed = read.catalog ? parseExtensionCatalog(read.catalog) : [];
                 // Display images come from the trusted build, not from a project or remote metadata,
                 // and the side that owns them has already checked them.
                 const icons = read.icons || {};
-                for (const entry of entries) {
-                    if (Object.hasOwn(icons, entry.id)) {
-                        entry.metadata = {...entry.metadata, banner: icons[entry.id]};
-                    }
-                }
+                const entries = parsed.map(entry => Object.hasOwn(icons, entry.id) ?
+                    {...entry, metadata: {...entry.metadata, banner: icons[entry.id]}} : entry);
                 const {decisions} = await readPlusCatalogSettings(this.props.vm, entries);
                 if (this.alive) this.setState({entries, decisions});
             } catch (error) {

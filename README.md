@@ -327,3 +327,7 @@ Catalog metadata may contain `resourceDeclaration`, following `@kubohiroya/turbo
 The project-review port resolves declarations before asking. A declaration belongs to a catalog ID and exact URL/digest; embedded and legacy inline code are matched by digest. A project-supplied package name or declaration cannot borrow another version's claim. An unavailable catalog leaves the declaration unknown and does not block denial/cancellation. Existing host integration ports suffice; Scratch GUI code is unchanged. Roll back to 0.11.0 and the previous dependencies to remove the display.
 
 Resource disclosures show only icons by default. Click the icon row or press Enter/Space to expand or collapse the labels and details. Accessible names remain available while collapsed.
+
+## Local catalog images (Editor #823)
+
+Catalog parsing returns immutable entries. Trusted host preview icons decorate new presentation entries and metadata without mutating the parser output or source catalog. Validate catalog/settings regression checks and the Editor's actual local catalog/SVG preview before rollout. Publish this package after CI passes, then update the Editor pin. Roll back the Editor pin first. Permission, execution and saved formats are unchanged. Tracking: [Editor #823](https://github.com/kubohiroya/turbowarp-plus-editor/issues/823).
