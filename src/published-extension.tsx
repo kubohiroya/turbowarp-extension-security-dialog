@@ -13,6 +13,10 @@ export interface PublishedCandidate {
         readonly license: string;
         readonly execution: 'sandboxed' | 'unsandboxed';
         readonly resources: ResourceDeclaration;
+        readonly bundle?: {readonly sha256: string};
+    };
+    readonly source?: {readonly provider: 'npm'} | {
+        readonly provider: 'github'; readonly repository: string; readonly tag: string; readonly commit: string;
     };
     readonly bytes: Uint8Array<ArrayBuffer>;
     readonly sourceURL?: string;
@@ -26,33 +30,51 @@ export interface PublishedExtensionPorts {
 interface Props extends PublishedExtensionPorts {
     locale: string;
     blocked: boolean;
+    allowReferenceAliases?: boolean;
     onBusyChange(busy: boolean): void;
     onAdded(id: string): void;
 }
 
-export function PublishedExtension({locale, resolve, add, blocked, onBusyChange, onAdded}: Props) {
+export function PublishedExtension({locale, resolve, add, blocked, allowReferenceAliases = false, onBusyChange, onAdded}: Props) {
     const t = (english: string, japanese: string) => locale.startsWith('ja') ? japanese : english;
     const [reference, setReference] = React.useState('');
     const [candidate, setCandidate] = React.useState<PublishedCandidate>();
     const [error, setError] = React.useState('');
-    const [pending, setPending] = React.useState(false);
+    const [phase, setPhase] = React.useState<'idle' | 'working' | 'cancelling'>('idle');
     const operation = React.useRef<AbortController | null>(null);
-    React.useEffect(() => () => operation.current?.abort(), []);
+    const mounted = React.useRef(true);
+    React.useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+            operation.current?.abort();
+        };
+    }, []);
+    const pending = phase !== 'idle';
+
+    function cancel() {
+        if (!operation.current || operation.current.signal.aborted) return;
+        setPhase('cancelling');
+        operation.current.abort();
+    }
 
     async function run(task: (signal: AbortSignal) => Promise<void>, authoring = false) {
         if (operation.current || blocked) return false;
         const controller = operation.current = new AbortController();
-        setPending(true);
+        setPhase('working');
         setError('');
         if (authoring) onBusyChange(true);
         try {
             await task(controller.signal);
-            return !controller.signal.aborted;
+            return mounted.current && !controller.signal.aborted;
         } catch (failure) {
-            if (!controller.signal.aborted) {
+            if (mounted.current && !controller.signal.aborted) {
                 const code = (failure as {code?: string} | null)?.code;
-                const invalid = t('Enter an exact npm version or a GitHub Release tag URL.',
-                    'npm の正確な版、または GitHub Release のタグ URL を入力してください。');
+                const invalid = allowReferenceAliases ?
+                    t('Enter an npm package or a GitHub repository or Release URL.',
+                        'npm パッケージ、GitHub リポジトリ、または Release の URL を入力してください。') :
+                    t('Enter an exact npm version or a GitHub Release tag URL.',
+                        'npm の正確な版、または GitHub Release のタグ URL を入力してください。');
                 const failed = authoring ? t('The extension was not added.', '拡張機能を追加できませんでした。') :
                     t('The published files could not be verified.', '公開ファイルを検証できませんでした。');
                 setError(code === 'INVALID_REFERENCE' ? invalid : code ? failed + ' (' + code + ')' : failed);
@@ -60,8 +82,8 @@ export function PublishedExtension({locale, resolve, add, blocked, onBusyChange,
             return false;
         } finally {
             operation.current = null;
-            if (!controller.signal.aborted) {
-                setPending(false);
+            if (mounted.current) {
+                setPhase('idle');
                 if (authoring) onBusyChange(false);
             }
         }
@@ -70,14 +92,16 @@ export function PublishedExtension({locale, resolve, add, blocked, onBusyChange,
     return <section aria-label={t('Published extension', '公開済みの拡張機能')}>
         <form onSubmit={event => {
             event.preventDefault();
-            setCandidate(undefined);
             void run(async signal => {
+                setCandidate(undefined);
                 const resolved = await resolve(reference, {signal});
                 if (!signal.aborted) setCandidate(resolved);
             });
         }}>
             <label>
-                {t('npm package or GitHub Release', 'npm パッケージまたは GitHub Release')}
+                {allowReferenceAliases ?
+                    t('npm package or GitHub repository / Release', 'npm パッケージまたは GitHub リポジトリ・Release') :
+                    t('npm package or GitHub Release', 'npm パッケージまたは GitHub Release')}
                 <input type="text" placeholder="@scope/package@1.2.3" value={reference} maxLength={512}
                     disabled={pending || blocked} onChange={event => {
                         setReference(event.target.value);
@@ -90,14 +114,24 @@ export function PublishedExtension({locale, resolve, add, blocked, onBusyChange,
         {error && <p role="alert">{error}</p>}
         {candidate && <div>
             <p><strong>{candidate.distribution.name}</strong> · {candidate.distribution.package}@{candidate.distribution.version}</p>
+            {candidate.source?.provider === 'github' && <p>GitHub: {candidate.source.repository} · {candidate.source.tag}</p>}
             <p>{candidate.distribution.description}</p>
             <p>{candidate.distribution.license} · {candidate.distribution.execution === 'sandboxed' ?
                 t('Sandboxed', 'サンドボックス内') : t('Runs outside the sandbox', 'サンドボックス外で実行')}</p>
             <ResourceDisclosure declaration={candidate.distribution.resources} locale={locale} />
+            {(candidate.distribution.bundle || candidate.source?.provider === 'github') && <details>
+                <summary>{t('Verified artifact details', '検証済み成果物の詳細')}</summary>
+                {candidate.source?.provider === 'github' && <p>Commit: <code>{candidate.source.commit}</code></p>}
+                {candidate.distribution.bundle && <p>SHA-256: <code>{candidate.distribution.bundle.sha256}</code></p>}
+            </details>}
             <button type="button" disabled={pending || blocked} onClick={() => void run(signal => add(candidate, {signal}), true).then(added => {
                 if (added) onAdded(candidate.distribution.id);
             })}>{t('Add published extension', '公開拡張を追加')}</button>
         </div>}
-        {pending && <p role="status">{t('Working…', '処理中…')}</p>}
+        {pending && <>
+            <p role="status">{phase === 'cancelling' ?
+                t('Cancelling…', 'キャンセル中…') : t('Working…', '処理中…')}</p>
+            <button type="button" disabled={phase === 'cancelling'} onClick={cancel}>{t('Cancel', 'キャンセル')}</button>
+        </>}
     </section>;
 }
