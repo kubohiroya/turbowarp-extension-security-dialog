@@ -71,7 +71,9 @@ test('a data: address is a Plus family row only when the catalog lists its exact
         key: `row${index}`, ids: ['plus'], source: {kind: 'legacy', url}
     }));
     const answers = await review(entries);
-    assert.deepEqual(asked[0], {source: {type: 'embedded-data'}, actualSHA256: digest});
+    const otherDigest = createHash('sha256').update(`${code}\n`).digest('hex');
+    assert.deepEqual(asked.map(value => value.source), Array.from({length: 3}, () => ({type: 'embedded-data'})));
+    assert.deepEqual(asked.map(value => value.actualSHA256).sort(), [digest, digest, otherDigest].sort());
     for (const row of rows.slice(0, 2)) {
         assert.deepEqual(row.state, {trusted: true, plusFamily: true, listedURL});
         assert.equal(row.source.sha256, digest);

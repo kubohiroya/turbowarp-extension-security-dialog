@@ -74,6 +74,7 @@ export interface CatalogLibraryPorts {
     applySettings(vm: LibraryVM, selection: {entries: CatalogEntry[]; decisions: Decisions}, options: {signal: AbortSignal}): Promise<string[]>;
     loadExtensions(vm: LibraryVM, entries: CatalogEntry[], modes: Map<string, string>, permissions: any): Promise<string[]>;
     published?: {
+        allowReferenceAliases?: boolean;
         resolve: PublishedExtensionPorts['resolve'];
         add(vm: LibraryVM, ...args: Parameters<PublishedExtensionPorts['add']>): Promise<void>;
     };
@@ -195,7 +196,7 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
             if (!published || !PLUS_EXTENSION_LOADER_ENABLED) return null;
             return <PublishedExtension locale={this.props.locale} resolve={published.resolve}
                 add={(candidate, options) => published.add(this.props.vm, candidate, options)}
-                blocked={this.state.busy}
+                blocked={this.state.busy} allowReferenceAliases={published.allowReferenceAliases}
                 onBusyChange={publishedBusy => {
                     this.setState({publishedBusy});
                     this.props.onBusyChange(publishedBusy);
