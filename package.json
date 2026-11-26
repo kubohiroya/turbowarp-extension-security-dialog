@@ -116,7 +116,7 @@
     "react": "^16.14.0",
     "react-dom": "^16.14.0",
     "typescript": "^6.0.3",
-    "@kubohiroya/turbowarp-extension-loader": "0.16.1",
+    "@kubohiroya/turbowarp-extension-loader": "0.16.2",
     "@turbowarp/jszip": "3.12.0"
   },
   "packageManager": "pnpm@11.28.8",
