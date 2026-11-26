@@ -9,12 +9,12 @@ importers:
   .:
     dependencies:
       '@kubohiroya/turbowarp-extension-manifest':
-        specifier: 0.6.0
-        version: 0.6.0
+        specifier: 0.8.0
+        version: 0.8.0
     devDependencies:
       '@kubohiroya/turbowarp-extension-loader':
-        specifier: 0.13.1
-        version: 0.13.1
+        specifier: 0.16.1
+        version: 0.16.1
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -241,12 +241,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@kubohiroya/turbowarp-extension-loader@0.13.1':
-    resolution: {integrity: sha512-yCp+965xm+CzoyCNxqZgK/0139mghR+ycMUAh3RzORxVavKidK6fW81WWCKLgK+F/UlwZzL5bCB9CVmIk+WFeg==}
+  '@kubohiroya/turbowarp-extension-loader@0.16.1':
+    resolution: {integrity: sha512-jDrbc+QDRor1fxOg9CtQde7M9qOltxJj+RsS+mCK0awUWmTTPB2zxExVQaOC/jx7xbkiGGQsC+cQ+ngAjTPKnw==}
     engines: {node: '>=26'}
 
-  '@kubohiroya/turbowarp-extension-manifest@0.6.0':
-    resolution: {integrity: sha512-GnNFESu2EeyrFkuxOQoFsEta3HwnNjen0PJm7DOOy2wPuqItqaogEUq80ccnJ/GwfVwfMS9V5Eddsga5CbF+Mw==}
+  '@kubohiroya/turbowarp-extension-manifest@0.8.0':
+    resolution: {integrity: sha512-mSVMD34rgwefDBEjCSVfDXCe0bpT3S0CdSaTSDjUCRLBsvNpDupeznVWYuk6VsoMYJ34iqTYbRnS7TLItJX46A==}
     engines: {node: '>=24'}
 
   '@playwright/test@1.64.1':
@@ -622,9 +622,9 @@ snapshots:
   '@esbuild/win32-x64@0.28.2':
     optional: true
 
-  '@kubohiroya/turbowarp-extension-loader@0.13.1': {}
+  '@kubohiroya/turbowarp-extension-loader@0.16.1': {}
 
-  '@kubohiroya/turbowarp-extension-manifest@0.6.0': {}
+  '@kubohiroya/turbowarp-extension-manifest@0.8.0': {}
 
   '@playwright/test@1.64.1':
     dependencies:
