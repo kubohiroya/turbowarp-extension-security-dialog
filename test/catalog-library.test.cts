@@ -47,3 +47,20 @@ test('cancelling a selection closes the library without applying settings', asyn
     await view.handleComplete(null);
     assert.deepEqual(calls, [['close']]);
 });
+
+test('trusted preview icons decorate immutable parsed entries without changing catalog metadata', async () => {
+    const catalogEntry = {id: 'preview', name: 'Preview', version: '1.0.0', url: 'https://example.test/preview.js',
+        sha256: 'a'.repeat(64), unsandboxed: 'optional', dependencies: [], banner: 'https://example.test/original.svg'};
+    const icon = 'data:image/svg+xml;base64,PHN2Zy8+';
+    let settingsEntries;
+    const {view} = fixture({catalog: {read: async () => ({catalog: {schemaVersion: 1, extensions: [catalogEntry]},
+        icons: {preview: icon}})}, readSettings: async (_vm, entries) => {
+        settingsEntries = entries;
+        return {decisions: new Map()};
+    }});
+    await view.handleFetchCatalog();
+    assert.equal(view.state.fetchError, false);
+    assert.equal(view.state.entries[0].metadata.banner, icon);
+    assert.equal(settingsEntries, view.state.entries);
+    assert.equal(catalogEntry.banner, 'https://example.test/original.svg');
+});
