@@ -53,6 +53,7 @@ export function createGalleryPreviewResolver() {
                 }
             })();
         }
-        return (await pending).get(url);
+        const pictures = await pending;
+        return signal.aborted ? undefined : pictures.get(url);
     };
 }

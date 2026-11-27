@@ -55,3 +55,18 @@ test('unavailable catalogs and cancellation do not prevent review', async t => {
     controller.abort();
     assert.equal(await pending, undefined);
 });
+
+test('a cancelled row ignores a late catalog result without cancelling another row', async t => {
+    let finish;
+    t.mock.method(globalThis, 'fetch', async () => new Promise(resolve => {
+        finish = () => resolve({ok: true, json: async () => ({extensions: items})});
+    }));
+    const resolve = createGalleryPreviewResolver();
+    const controller = new AbortController();
+    const active = resolve(`${origin}text.js`, new AbortController().signal);
+    const cancelled = resolve(`${origin}text.js`, controller.signal);
+    controller.abort();
+    finish();
+    assert.equal(await cancelled, undefined);
+    assert.equal(await active, `${origin}images/text.svg`);
+});

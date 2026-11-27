@@ -39,13 +39,8 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         return {...entry, metadata: {...metadata, ...(resourceDeclaration ? {resourceDeclaration} : {})}};
     };
     const matchCatalog = createCatalogMatcher(catalog);
-    /**
-     * Where the catalog publishes the code a project carries itself. Asked only of a row whose
-     * digest the catalog already vouched for, so the address names the same bytes.
-     * @param {object} entry The review row, with its digest.
-     * @returns {Promise<string|undefined>} The catalog's address for this code.
-     */
-    const listedURL = async (entry: ReviewEntry) => (await matchCatalog(entry, AbortSignal.timeout(5000))).item?.url;
+    // Display membership requires an ID and URL/digest match independently of execution trust.
+    const familyEntry = async (entry: ReviewEntry) => (await matchCatalog(entry, AbortSignal.timeout(5000))).item;
 
     /**
      * The project document a load was handed, whatever form it arrived in.
@@ -116,7 +111,8 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
         const source = typeof spec.source.url === 'string' && spec.source.type.startsWith('remote-') ?
             {kind: spec.source.type, url: spec.source.url, sha256: spec.sha256} : {kind: spec.source.type, sha256: spec.sha256};
         // Bytes the project carries have no address of their own; the catalog's says where they come from.
-        const listed = vouched && !('url' in source) ? await listedURL({key: spec.id, ids: [spec.id], source}) : undefined;
+        const family = vouched ? await familyEntry({key: spec.id, ids: [spec.id], source}) : undefined;
+        const listed = !('url' in source) ? family?.url : undefined;
         return withResources({key: spec.id,
             ids: [spec.id],
             // The manifest's own version and publisher win over what the bytes say of themselves.
@@ -125,7 +121,7 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
             source,
             requestedExecution: spec.execution,
             dependencies: [...spec.dependencies],
-            ...(vouched ? {state: {trusted: true, plusFamily: true, ...(listed ? {listedURL: listed} : {})}} : {})});
+            ...(vouched ? {state: {trusted: true, plusFamily: Boolean(family), ...(listed ? {listedURL: listed} : {})}} : {})});
     }));
 
     const frames = new WeakMap();
@@ -196,14 +192,16 @@ export function createProjectSecurityReview({catalog, trusted: defaultTrusted, p
                     // every other ordinary custom extension is trusted by its address alone. A Plus row
                     // arrives already judged by its address and pinned digest together.
                     const digest = legacy ? await inlineCodeDigest(url) : undefined;
-                    const plusFamily = legacy && Boolean(digest ?
+                    const catalogTrusted = legacy && Boolean(digest ?
                         await trusted.isTrustedCode({source: {type: 'embedded-data'}, actualSHA256: digest}) :
                         await trusted.isTrustedURL(url));
-                    const vouched = legacy && (isTrusted(url) || plusFamily);
+                    const vouched = legacy && (isTrusted(url) || catalogTrusted);
                     // The digest goes on the row only once the catalog vouched for it, so the screen
                     // states it and the catalog's artwork and address can be matched to it.
-                    const source = plusFamily && digest ? {...entry.source, sha256: digest} : entry.source;
-                    const listed = plusFamily && digest ? await listedURL({...entry, source}) : undefined;
+                    const source = catalogTrusted && digest ? {...entry.source, sha256: digest} : entry.source;
+                    const family = catalogTrusted ? await familyEntry({...entry, source}) : undefined;
+                    const plusFamily = Boolean(family);
+                    const listed = digest ? family?.url : undefined;
                     const banner = bannerFor({ids: entry.ids, url});
                     return withResources({...entry, source,
                         ...(banner ? {metadata: {...entry.metadata, banner}} : {}),

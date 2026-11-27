@@ -9,7 +9,8 @@ function fixture() {
     let review;
     let rows;
     const trusted = {isTrustedURL: async url => url === familyURL, isTrustedCode: async () => true};
-    const project = createProjectSecurityReview({trusted, pendingReview: () => null,
+    const catalog = {read: async () => ({catalog: {extensions: [{id: 'plus', url: familyURL, sha256: 'a'.repeat(64)}]}})};
+    const project = createProjectSecurityReview({catalog, trusted, pendingReview: () => null,
         reviewedArchive: () => undefined, duringApproval: (_vm, run) => run(), styles: {}});
     const host = project.createSecurityReview({install: (_vm, callback) => {review = callback; return () => {};}});
     host.installBatchLoader({vm: {}, defaultURLs: {}, isTrusted: url => url === galleryURL,
@@ -20,7 +21,7 @@ function fixture() {
 test('gallery execution trust and Plus catalog membership remain independent', async () => {
     const view = fixture();
     const entries = [galleryURL, familyURL, 'https://unlisted.test/extension.js'].map(url => ({
-        key: url, ids: ['same-id'], source: {kind: 'legacy', url}, metadata: {plusFamily: true}
+        key: url, ids: ['plus'], source: {kind: 'legacy', url}, metadata: {plusFamily: true}
     }));
     const answers = await view.review(entries);
     assert.deepEqual(view.rows[0].state, {trusted: true, plusFamily: false});
@@ -29,6 +30,38 @@ test('gallery execution trust and Plus catalog membership remain independent', a
     assert.equal(answers.get(galleryURL).execution, 'unsandboxed');
     assert.equal(answers.get(familyURL).execution, 'unsandboxed');
     assert.equal(answers.get(entries[2].key).execution, 'sandboxed');
+});
+
+test('execution trust alone cannot assign Plus membership to a different ID, URL or digest', async () => {
+    const sha256 = 'a'.repeat(64);
+    const trusted = {isTrustedURL: async () => true, isTrustedCode: async () => true};
+    for (const read of [
+        async () => ({catalog: {extensions: [{id: 'plus', url: familyURL, sha256}]}}),
+        async () => {throw new Error('catalog unavailable');}
+    ]) {
+        let ask;
+        let rows;
+        const project = createProjectSecurityReview({catalog: {read}, trusted, pendingReview: () => null,
+            reviewedArchive: () => undefined, duringApproval: (_vm, run) => run(), styles: {}});
+        project.createSecurityReview({install: (_vm, callback) => {ask = callback; return () => {};}})
+            .installBatchLoader({vm: {}, defaultURLs: {}, isTrusted: () => false, bannerFor: () => undefined,
+                showReview: entries => {rows = entries; return new Map();}});
+        await ask([
+            {key: 'wrong-id', ids: ['other'], source: {kind: 'legacy', url: familyURL}},
+            {key: 'wrong-url', ids: ['plus'], source: {kind: 'legacy', url: 'https://other.test/extension.js'}},
+            {key: 'wrong-bytes', ids: ['plus'], source: {kind: 'legacy', url: 'data:text/javascript,void%200'}},
+            {key: 'ask', ids: ['ask'], source: {kind: 'embedded-file', sha256}, dependencies: []}
+        ]);
+        assert.deepEqual(rows.slice(0, 3).map(row => row.state),
+            Array.from({length: 3}, () => ({trusted: true, plusFamily: false})));
+        const manifestRows = await project.plusReviewRows({extensions: [
+            {id: 'other', source: {type: 'remote-cacheable', url: familyURL}, sha256, dependencies: []},
+            {id: 'plus', source: {type: 'remote-cacheable', url: familyURL}, sha256: 'b'.repeat(64), dependencies: []},
+            {id: 'plus', source: {type: 'embedded-data'}, sha256: 'b'.repeat(64), dependencies: []}
+        ]}, trusted);
+        assert.deepEqual(manifestRows.map(row => row.state),
+            Array.from({length: 3}, () => ({trusted: true, plusFamily: false})));
+    }
 });
 
 test('verified Plus manifest rows and the host Plus catalog carry family membership', async () => {
