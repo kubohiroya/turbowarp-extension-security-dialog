@@ -1,0 +1,39 @@
+{
+  "issue": "https://github.com/kubohiroya/turbowarp-extension-security-dialog/issues/97",
+  "dateJST": "2026-11-28",
+  "editorRevision": "25655d487b20630f77f61cc2397991e25f9bbe55",
+  "guiRevision": "60b87e2f2503206847f509285aa4de3cee3670c7",
+  "vmRevision": "88a2c06e9deb3dd652c52c20daf4f728b387d41d",
+  "loaderVersion": "0.16.3",
+  "securityBaseRevision": "fe311adfdfb5af2bb40d3159b7a6cd884a46f2e7",
+  "securitySourceState": "working-tree",
+  "securityArtifactSHA256": {
+    "dist/project-review.mjs": "f159426be43a9e4c39b3f330a7f5279cde5d283e573aad4cccb3ab5c08e063a5",
+    "dist/react.mjs": "00a7efb056dd0f1ef937885744d4d83ffa881c8efc1a76933028dc44adc1559e",
+    "dist/turbowarp.mjs": "c72f8821c1cec1a7ab9a51b84a3ee69d31a404cfb87a010b82e1c69e3a7c515c",
+    "dist/catalog-library.mjs": "8004d397c1a2103cc5d2061479c668c29c5dadfc86c4babc9b39d7a7b288db1e",
+    "styles.css": "0f87ce7b8a8db6a918a25913f6b79e83840172c3ffeabe9949fbb8560bd0199d"
+  },
+  "previewManifestSHA256": "71977ce59e7d1f4f5564a28de9cf3f8a22e73207a0ce7a757d291f0ca4e9bf54",
+  "environment": "local pinned Editor build with unpublished security-dialog overlay; headless Chromium",
+  "networkFixtures": [
+    "TurboWarp gallery metadata, source and images",
+    "Plus catalog and family image",
+    "unlisted extension source"
+  ],
+  "tests": [
+    {
+      "locale": "ja",
+      "viewportWidth": 1280,
+      "scenario": "gallery pictures, family badge, no execution before or after cancellation",
+      "result": "passed"
+    },
+    {
+      "locale": "en",
+      "viewportWidth": 390,
+      "scenario": "gallery pictures, family badge, four approved executions, denied extension never runs, IndexedDB restore after reload",
+      "result": "passed"
+    }
+  ],
+  "publishedDeploymentUpdated": false
+}
