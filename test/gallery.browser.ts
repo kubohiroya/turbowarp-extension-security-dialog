@@ -41,6 +41,8 @@ before(async () => {
             metadata: {name: item.name}, source: {kind: 'legacy', url: '${origin}' + item.slug + '.js'}}));
         entries.push({key: 'plus', ids: ['plus'], metadata: {name: 'Plus family'},
             source: {kind: 'legacy', url: 'https://family.test/plus.js'}});
+        entries.push({key: 'wrong-id', ids: ['other'], metadata: {name: 'Different extension'},
+            source: {kind: 'legacy', url: 'https://family.test/plus.js'}});
         entries.push({key: 'other', ids: ['strings'], metadata: {name: 'Unlisted extension', banner: '/broken.svg'},
             source: {kind: 'legacy', url: 'https://other.test/text.js'}});
         batch(entries);
@@ -130,6 +132,8 @@ for (const [locale, theme, width] of [['ja', 'dark', 1280], ['en', 'light', 390]
             await page.locator('[data-key="other"] .twextsec-preview-fallback').waitFor();
             assert.equal(await page.locator('[data-key="other"] .twextsec-trusted').count(), 0);
             assert.match(await page.locator('[data-key="plus"] .twextsec-trusted').getAttribute('alt'), /Plus/);
+            assert.doesNotMatch(await page.locator('[data-key="wrong-id"] .twextsec-trusted').getAttribute('alt'), /Plus/);
+            await page.locator('[data-key="wrong-id"] .twextsec-preview-fallback').waitFor();
             assert.equal(catalogRequests, 1);
             assert.equal(await page.evaluate(() => window.extensionExecuted), undefined);
             assert.equal(await page.evaluate(() => window.answer), undefined);
