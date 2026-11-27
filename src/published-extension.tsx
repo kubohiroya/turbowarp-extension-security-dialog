@@ -35,14 +35,41 @@ interface Props extends PublishedExtensionPorts {
     onAdded(id: string): void;
 }
 
+const selectedVersion = (candidate: PublishedCandidate) => candidate.source?.provider === 'github' ?
+    candidate.source.tag : candidate.distribution.version;
+
+/** Build another exact reference on the inspected provider; the host still verifies every byte. */
+function versionReference(candidate: PublishedCandidate, value: string) {
+    const version = value.trim();
+    const exact = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[\w.-]+)?(?:\+[\w.-]+)?$/;
+    if (candidate.source?.provider === 'npm' && exact.test(version) &&
+        /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(candidate.distribution.package)) {
+        return `${candidate.distribution.package}@${version}`;
+    }
+    if (candidate.source?.provider === 'github' && exact.test(version.replace(/^v/, '')) &&
+        /^[\w-]+\/[\w.-]+$/.test(candidate.source.repository) &&
+        !['.', '..'].includes(candidate.source.repository.split('/')[1])) {
+        return `https://github.com/${candidate.source.repository}/releases/tag/${version}`;
+    }
+}
+
 export function PublishedExtension({locale, resolve, add, blocked, allowReferenceAliases = false, onBusyChange, onAdded}: Props) {
     const t = (english: string, japanese: string) => locale.startsWith('ja') ? japanese : english;
     const [reference, setReference] = React.useState('');
     const [candidate, setCandidate] = React.useState<PublishedCandidate>();
+    const [version, setVersion] = React.useState('');
     const [error, setError] = React.useState('');
     const [phase, setPhase] = React.useState<'idle' | 'working' | 'cancelling'>('idle');
     const operation = React.useRef<AbortController | null>(null);
     const mounted = React.useRef(true);
+    const sourceInput = React.useRef<HTMLInputElement>(null);
+    const returning = React.useRef(false);
+    React.useLayoutEffect(() => {
+        if (!candidate && returning.current) {
+            returning.current = false;
+            sourceInput.current?.focus();
+        }
+    }, [candidate]);
     React.useEffect(() => {
         mounted.current = true;
         return () => {
@@ -51,6 +78,8 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
         };
     }, []);
     const pending = phase !== 'idle';
+    const versionChanged = Boolean(candidate?.source && version.trim() !== selectedVersion(candidate));
+    const nextReference = candidate && versionReference(candidate, version);
 
     function cancel() {
         if (!operation.current || operation.current.signal.aborted) return;
@@ -89,20 +118,27 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
         }
     }
 
-    return <section aria-label={t('Published extension', '公開済みの拡張機能')}>
-        <form onSubmit={event => {
+    function inspect(value: string) {
+        return run(async signal => {
+            const resolved = await resolve(value, {signal});
+            if (mounted.current && !signal.aborted) {
+                setCandidate(resolved);
+                setVersion(selectedVersion(resolved));
+                setReference(value);
+            }
+        });
+    }
+
+    return <section className="twextsec-published" aria-label={t('Published extension', '公開済みの拡張機能')}>
+        <form hidden={Boolean(candidate)} onSubmit={event => {
             event.preventDefault();
-            void run(async signal => {
-                setCandidate(undefined);
-                const resolved = await resolve(reference, {signal});
-                if (mounted.current && !signal.aborted) setCandidate(resolved);
-            });
+            void inspect(reference);
         }}>
             <label>
                 {allowReferenceAliases ?
                     t('npm package or GitHub repository / Release', 'npm パッケージまたは GitHub リポジトリ・Release') :
                     t('npm package or GitHub Release', 'npm パッケージまたは GitHub Release')}
-                <input type="text" placeholder="@scope/package@1.2.3" value={reference} maxLength={512}
+                <input ref={sourceInput} type="text" placeholder="@scope/package@1.2.3" value={reference} maxLength={512}
                     disabled={pending || blocked} onChange={event => {
                         setReference(event.target.value);
                         setCandidate(undefined);
@@ -113,8 +149,29 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
         </form>
         {error && <p role="alert">{error}</p>}
         {candidate && <div>
+            <button type="button" disabled={pending || blocked} onClick={() => {
+                returning.current = true;
+                setCandidate(undefined);
+                setError('');
+            }}>{t('Back to source', '配布元の入力に戻る')}</button>
             <p><strong>{candidate.distribution.name}</strong> · {candidate.distribution.package}@{candidate.distribution.version}</p>
             {candidate.source?.provider === 'github' && <p>GitHub: {candidate.source.repository} · {candidate.source.tag}</p>}
+            {candidate.source?.provider === 'npm' && <p>npm: {candidate.distribution.package}@{candidate.distribution.version}</p>}
+            {candidate.source && <form onSubmit={event => {
+                event.preventDefault();
+                if (nextReference && versionChanged) void inspect(nextReference);
+            }}>
+                <label>{candidate.source.provider === 'github' ?
+                    t('Release tag', 'Release タグ') : t('Exact npm version', 'npm の正確な版')}
+                    <input type="text" value={version} maxLength={128} disabled={pending || blocked}
+                        onChange={event => {setVersion(event.target.value); setError('');}} />
+                </label>
+                <button type="submit" disabled={pending || blocked || !nextReference || !versionChanged}>
+                    {t('Inspect version', 'この版を確認')}
+                </button>
+                {versionChanged && <p>{t('Inspect this version before adding the extension.',
+                    '追加する前に、選び直した版を確認してください。')}</p>}
+            </form>}
             <p>{candidate.distribution.description}</p>
             <p>{candidate.distribution.license} · {candidate.distribution.execution === 'sandboxed' ?
                 t('Sandboxed', 'サンドボックス内') : t('Runs outside the sandbox', 'サンドボックス外で実行')}</p>
@@ -124,7 +181,7 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
                 {candidate.source?.provider === 'github' && <p>Commit: <code>{candidate.source.commit}</code></p>}
                 {candidate.distribution.bundle && <p>SHA-256: <code>{candidate.distribution.bundle.sha256}</code></p>}
             </details>}
-            <button type="button" disabled={pending || blocked} onClick={() => void run(signal => add(candidate, {signal}), true).then(added => {
+            <button type="button" disabled={pending || blocked || versionChanged} onClick={() => void run(signal => add(candidate, {signal}), true).then(added => {
                 if (added) onAdded(candidate.distribution.id);
             })}>{t('Add published extension', '公開拡張を追加')}</button>
         </div>}
