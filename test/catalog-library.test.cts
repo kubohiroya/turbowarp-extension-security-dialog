@@ -48,6 +48,23 @@ test('cancelling a selection closes the library without applying settings', asyn
     assert.deepEqual(calls, [['close']]);
 });
 
+test('a published operation blocks catalog additions, retry and closing until it settles', async () => {
+    let applications = 0;
+    const {view, calls} = fixture({applySettings: async () => {applications++; return [entry.id];}});
+    const decisions = new Map([[entry.id, {execution: 'sandboxed', loading: 'embedded-file'}]]);
+    view.answered = decisions;
+    view.state.publishedBusy = true;
+    await view.handleComplete(null);
+    await view.handleComplete(decisions);
+    await view.handleRetry();
+    assert.equal(applications, 0);
+    assert.deepEqual(calls, []);
+    view.state.publishedBusy = false;
+    await view.handleRetry();
+    assert.equal(applications, 1);
+    assert.deepEqual(calls, [['busy', true], ['category', entry.id], ['close'], ['busy', false]]);
+});
+
 test('trusted preview icons decorate immutable parsed entries without changing catalog metadata', async () => {
     const catalogEntry = {id: 'preview', name: 'Preview', version: '1.0.0', url: 'https://example.test/preview.js',
         sha256: 'a'.repeat(64), unsandboxed: 'optional', dependencies: [], banner: 'https://example.test/original.svg'};

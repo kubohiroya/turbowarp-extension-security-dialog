@@ -28,6 +28,7 @@ before(async () => {
             onBusyChange: state => calls.push('busy:' + state),
             onAdded: id => calls.push('added:' + id)
         }), document.querySelector('main'));
+        window.unmount = () => ReactDOM.unmountComponentAtNode(document.querySelector('main'));
     `, resolveDir: process.cwd()}, bundle: true, write: false, platform: 'browser'});
     server = createServer((request, response) => {
         if (request.url === '/fixture.js') response.writeHead(200, {'Content-Type': 'text/javascript'}).end(bundle.outputFiles[0].text);
@@ -53,6 +54,9 @@ test('cancelled inspection ignores a late result and allows trying the same inpu
         await page.getByRole('button', {name: 'キャンセル', exact: true}).click();
         assert.equal(await page.getByRole('status').textContent(), 'キャンセル中…');
         assert.equal(await inspect.isDisabled(), true);
+        assert.deepEqual(await page.evaluate(() => window.calls), [
+            'busy:true', 'inspect:sample@1.0.0', 'inspect:sample@1.0.0:abort'
+        ]);
         await page.evaluate(() => window.finish());
         await page.getByRole('status').waitFor({state: 'hidden'});
         assert.equal(await page.getByRole('alert').count(), 0);
@@ -67,7 +71,26 @@ test('cancelled inspection ignores a late result and allows trying the same inpu
         await page.getByText('d'.repeat(64), {exact: true}).waitFor();
         assert.equal(await page.evaluate(() => window.executed), undefined);
         assert.deepEqual(await page.evaluate(() => window.calls), [
-            'inspect:sample@1.0.0', 'inspect:sample@1.0.0:abort', 'inspect:sample@1.0.0'
+            'busy:true', 'inspect:sample@1.0.0', 'inspect:sample@1.0.0:abort', 'busy:false',
+            'busy:true', 'inspect:sample@1.0.0', 'busy:false'
+        ]);
+    } finally { await page.close(); }
+});
+
+test('disposing an inspection aborts it and ignores late completion callbacks', async () => {
+    const page = await browser.newPage();
+    try {
+        await page.goto(`${base}/?locale=en`);
+        await page.getByRole('textbox').fill('sample@1.0.0');
+        await page.getByRole('button', {name: 'Inspect', exact: true}).click();
+        await page.evaluate(async () => {
+            window.unmount();
+            window.finish();
+            await new Promise(resolve => setTimeout(resolve, 0));
+        });
+        assert.equal(await page.locator('main').textContent(), '');
+        assert.deepEqual(await page.evaluate(() => window.calls), [
+            'busy:true', 'inspect:sample@1.0.0', 'inspect:sample@1.0.0:abort'
         ]);
     } finally { await page.close(); }
 });
@@ -84,7 +107,8 @@ test('cancelled installation holds the busy guard until it settles and does not 
         await add.click();
         await page.getByRole('button', {name: 'Cancel', exact: true}).click();
         assert.equal(await add.isDisabled(), true);
-        assert.deepEqual(await page.evaluate(() => window.calls), ['inspect:https://github.com/third-party/sample', 'busy:true', 'add:sample', 'add:sample:abort']);
+        assert.deepEqual(await page.evaluate(() => window.calls), ['busy:true', 'inspect:https://github.com/third-party/sample',
+            'busy:false', 'busy:true', 'add:sample', 'add:sample:abort']);
         await page.evaluate(() => window.finish());
         await page.getByRole('status').waitFor({state: 'hidden'});
         assert.equal(await page.getByRole('alert').count(), 0);
@@ -92,7 +116,8 @@ test('cancelled installation holds the busy guard until it settles and does not 
         await page.evaluate(() => window.finish());
         await page.waitForFunction(() => window.calls.includes('added:sample'));
         assert.deepEqual(await page.evaluate(() => window.calls), [
-            'inspect:https://github.com/third-party/sample', 'busy:true', 'add:sample', 'add:sample:abort', 'busy:false',
+            'busy:true', 'inspect:https://github.com/third-party/sample', 'busy:false',
+            'busy:true', 'add:sample', 'add:sample:abort', 'busy:false',
             'busy:true', 'add:sample', 'busy:false', 'added:sample'
         ]);
     } finally { await page.close(); }
