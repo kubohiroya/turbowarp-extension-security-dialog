@@ -28,14 +28,14 @@ node --test --test-timeout=45000 test/published-extension.browser.ts
 
 ## Issue全体に残る契約・実装
 
-この修正はIssue #106全体の完了を意味しません。現行の`PublishedExtensionPorts`は単一候補の解決と追加のみで、以下のUIとホスト契約を持ちません。
+この修正はIssue #106全体の完了を意味しません。`PublishedExtensionPorts`は単一候補の解決と追加を担います。開発sessionの表示と操作は、追加の[`ExtensionDevelopment`](./extension-development-ui.ja.md)でホストsnapshotとコールバックを受けられるようになりました。以下の製品結線と所有APIの検証は継続します。
 
 | 残る機能 | 所有境界・必要な接続 |
 | --- | --- |
 | 版の一覧、更新候補、実行中の版・出所 | resolverの版列挙とLoaderの現在状態・更新候補API |
-| Desktopのフォルダ選択、compiler準備・容量・進捗・取消 | Desktopが許可したhandleと検証済みビルド能力 |
-| 開発sessionの開始・範囲確認・watch停止・終了 | ディレクトリ、profile、実行方式、権限上限、有効期限のホスト契約 |
-| build／runtime診断とTSへの移動 | 世代・file・line・columnに対応した診断と安全なsource navigation |
+| 共有開発UIとDesktopの製品結線、compiler準備・容量・進捗 | 新しい共有UIを含む固定版とDesktopが検証したビルド能力 |
+| 開発sessionの範囲・権限拡大・失効の製品連携 | 表示・開始・停止・解除は共有UIに追加。範囲と承認の検証はホストが所有 |
+| 全build／runtime診断とTSへの移動の製品接続 | 種類と適用ハッシュを区別する表示・移動callbackは追加。世代付き診断と安全な実移動はホストが所有 |
 | 互換buildの再承認なしの反映、範囲逸脱での停止、復旧 | LoaderとDesktopのsession・世代管理・snapshotと前版復旧 |
 
 共有パッケージ`extension-manifest@0.8.0`にはdistributionとbuild-profileの入口があります。また、`extension-loader@0.16.2`には`applyDevelopmentBuild`があります。これらの存在だけで、Desktopの全操作・unsandboxedの自動反映・権限拡大時の停止が本画面で検証済みとは扱いません。

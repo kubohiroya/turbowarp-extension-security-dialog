@@ -1,4 +1,21 @@
 .twextsec-review { box-sizing: border-box; color: var(--ui-modal-foreground, #263145); font: inherit; }
+.twextsec-development { display: flex; flex-direction: column; min-width: 0; min-height: 0; max-width: 100%;
+    max-height: calc(100vh - 12rem); max-height: calc(100dvh - 12rem);
+    background: var(--ui-modal-background, #fff); padding: 1rem; overflow-wrap: anywhere; }
+.twextsec-development h2 { margin: 0 0 .5rem; font: inherit; font-weight: bold; }
+.twextsec-development-scroll { min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.twextsec-development-source p { margin: .25rem 0; }
+.twextsec-development .twextsec-row > p { margin: .25rem 0; }
+.twextsec-development button { font: inherit; min-height: 44px; max-width: 100%; padding: .5rem .75rem;
+    border: 1px solid var(--ui-black-transparent, #80808080); border-radius: 6px;
+    background: var(--ui-modal-background, #fff); color: inherit; cursor: pointer; }
+.twextsec-development button:disabled { opacity: .6; cursor: default; }
+.twextsec-development button:focus-visible, .twextsec-development summary:focus-visible {
+    outline: 3px solid var(--link-color, #7352d6); outline-offset: 2px; }
+.twextsec-development-actions { flex: none; flex-wrap: wrap; padding-top: .75rem;
+    border-top: 1px solid var(--ui-black-transparent, #80808080); }
+.twextsec-development .twextsec-row details { font-size: .85em; }
+.twextsec-development .twextsec-failed { color: var(--ui-danger, currentColor); }
 .twextsec-published { box-sizing: border-box; min-width: 0; max-width: 100%; padding: 1rem;
     color: var(--ui-modal-foreground, #263145); background: var(--ui-modal-background, #fff);
     font: inherit; overflow-wrap: anywhere; }
