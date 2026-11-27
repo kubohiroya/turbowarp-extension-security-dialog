@@ -145,6 +145,7 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
          * @param {Map<string, object>|null} decisions The answer by extension ID, or null for no.
          */
         async handleComplete (decisions: Decisions | null) {
+            if (this.state.busy || this.state.publishedBusy) return;
             if (decisions === null) {
                 this.props.onRequestClose();
                 return;
@@ -163,6 +164,7 @@ export function createCatalogLibrary({catalog: plusCatalog, readSettings: readPl
          * @param {Map<string, object>} decisions The answer by extension ID.
          */
         async apply (decisions: Decisions) {
+            if (this.state.busy || this.state.publishedBusy) return;
             const chosen = (this.state.entries ?? []).filter(entry => decisions.has(entry.id));
             this.setState({busy: true, denied: false, failure: null});
             this.props.onBusyChange(true);

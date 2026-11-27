@@ -63,7 +63,7 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
         const controller = operation.current = new AbortController();
         setPhase('working');
         setError('');
-        if (authoring) onBusyChange(true);
+        onBusyChange(true);
         try {
             await task(controller.signal);
             return mounted.current && !controller.signal.aborted;
@@ -84,7 +84,7 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
             operation.current = null;
             if (mounted.current) {
                 setPhase('idle');
-                if (authoring) onBusyChange(false);
+                onBusyChange(false);
             }
         }
     }
@@ -95,7 +95,7 @@ export function PublishedExtension({locale, resolve, add, blocked, allowReferenc
             void run(async signal => {
                 setCandidate(undefined);
                 const resolved = await resolve(reference, {signal});
-                if (!signal.aborted) setCandidate(resolved);
+                if (mounted.current && !signal.aborted) setCandidate(resolved);
             });
         }}>
             <label>
